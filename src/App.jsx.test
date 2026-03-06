@@ -1,0 +1,692 @@
+import React, { data && stats ? (<div className="">PLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDERPLACEHOLDER</div>) : null}
+          <div className="">
+            <div className="mb-8 border-b border-gray-800">
+              <nav className="flex flex-wrap gap-2 sm:gap-2 -mb-px justify-center sm:justify-start">
+                {[
+                  { id: 'overview',       label: '📊 Overview' },
+                  { id: 'preferences',    label: '🎯 Preferences' },
+                  { id: 'discoveries',    label: '💎 Discoveries' },
+                  { id: 'deepdive',       label: '🔍 Deep Dive' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (tab.id === 'discoveries' || tab.id === 'deepdive') {
+                        const filmsToLoad = [];
+                        if (tab.id === 'discoveries') {
+                          hiddenGems.allFilms?.slice(0, 10).forEach(f => filmsToLoad.push(f));
+                          hiddenTreasures.allFilms?.slice(0, 10).forEach(f => filmsToLoad.push(f));
+                        } else {
+                          favoriteFilmPerYear.slice(0, 5).forEach(y => y.films?.slice(0, 3).forEach(f => filmsToLoad.push(f)));
+                          personalCanon.slice(-3).forEach(d => d.films?.slice(0, 3).forEach(f => filmsToLoad.push(f)));
+                          topFilmPerGenre.slice(0, 5).forEach(g => g.films?.slice(0, 3).forEach(f => filmsToLoad.push(f)));
+                        }
+                        const unique = [...new Map(filmsToLoad.map(f => [`${f.title}_${f.year}`, f])).values()];
+                        loadPostersForFilms(unique.slice(0, 20));
+                      }
+                    }}
+                    className={`
+                      px-5 py-2.5 font-medium rounded-xl transition-all text-sm relative overflow-hidden
+                      ${activeTab === tab.id
+                        ? 'bg-gradient-to-r from-pink-500/80 to-purple-500/80 text-white shadow-lg shadow-pink-500/30'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                    `}
+                  >
+                    <span className="relative">{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="space-y-8">
+
+              {activeTab === 'overview' && (
+                <>
+                  {/* Stats Grid - fun colorful cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                    <div className="relative bg-gradient-to-br from-pink-900/40 to-purple-900/40 border border-pink-500/30 rounded-2xl p-5 hover:from-pink-900/60 hover:to-purple-900/60 hover:border-pink-500/50 transition-all duration-300 group hover:shadow-lg hover:shadow-pink-500/20">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-pink-500/10 rounded-full -mr-10 -mt-10 group-hover:bg-pink-500/20 transition-all"></div>
+                      <div className="text-pink-400 text-xs font-bold mb-1">🎬</div>
+                      <div className="text-gray-400 text-xs mb-1">Total Films</div>
+                      <div className="text-4xl font-black text-white">{stats.totalFilms}</div>
+                    </div>
+                    <div className="relative bg-gradient-to-br from-purple-900/40 to-indigo-900/40 border border-purple-500/30 rounded-2xl p-5 hover:from-purple-900/60 hover:to-indigo-900/60 hover:border-purple-500/50 transition-all duration-300 group hover:shadow-lg hover:shadow-purple-500/20">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full -mr-10 -mt-10 group-hover:bg-purple-500/20 transition-all"></div>
+                      <div className="text-purple-400 text-xs font-bold mb-1">⭐</div>
+                      <div className="text-gray-400 text-xs mb-1">Your Avg</div>
+                      <div className="text-4xl font-black text-white">{stats.avgYourRating}</div>
+                    </div>
+                    <div className="relative bg-gradient-to-br from-indigo-900/40 to-blue-900/40 border border-indigo-500/30 rounded-2xl p-5 hover:from-indigo-900/60 hover:to-blue-900/60 hover:border-indigo-500/50 transition-all duration-300 group hover:shadow-lg hover:shadow-indigo-500/20">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/10 rounded-full -mr-10 -mt-10 group-hover:bg-indigo-500/20 transition-all"></div>
+                      <div className="text-indigo-400 text-xs font-bold mb-1">📈</div>
+                      <div className="text-gray-400 text-xs mb-1">vs IMDb</div>
+                      <div className="text-4xl font-black text-white">
+                        {stats.avgDifference > 0 ? '+' : ''}{stats.avgDifference}
+                      </div>
+                    </div>
+                    <div className="relative bg-gradient-to-br from-blue-900/40 to-cyan-900/40 border border-blue-500/30 rounded-2xl p-5 hover:from-blue-900/60 hover:to-cyan-900/60 hover:border-blue-500/50 transition-all duration-300 group hover:shadow-lg hover:shadow-blue-500/20">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -mr-10 -mt-10 group-hover:bg-blue-500/20 transition-all"></div>
+                      <div className="text-blue-400 text-xs font-bold mb-1">🎭</div>
+                      <div className="text-gray-400 text-xs mb-1">Top Genre</div>
+                      <div className="text-lg font-bold text-white truncate">{stats.mostRatedGenre}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-xs font-medium text-purple-400/60">05</span>
+                        <h2 className="text-lg font-semibold">Rating Distribution</h2>
+                      </div>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={ratingDist}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                          <XAxis dataKey="rating" stroke="#aaa" tick={{fontSize: 12}} />
+                          <YAxis stroke="#aaa" tick={{fontSize: 12}} />
+                          <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} labelStyle={{ color: '#fff' }} />
+                          <Bar dataKey="count" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]}>
+                            {ratingDist.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {mostWatchedGenres.genres.length > 0 && (
+                      <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="text-xs font-medium text-blue-400/60">06</span>
+                          <h2 className="text-lg font-semibold">Most Watched Genres</h2>
+                        </div>
+                        <div className="mb-4 text-sm text-gray-300">
+                          Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>
+                          {mostWatchedGenres.topGenre && (
+                            <span className="ml-3 text-blue-200">
+                              {mostWatchedGenres.topGenre.count} {mostWatchedGenres.topGenre.genre} ({mostWatchedGenres.topGenre.percentage}%)
+                            </span>
+                          )}
+                        </div>
+                        <ResponsiveContainer width="100%" height={340}>
+                          <BarChart data={mostWatchedGenres.genres} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                            <XAxis type="number" stroke="#aaa" tick={{fontSize: 11}} />
+                            <YAxis type="category" dataKey="genre" width={120} stroke="#aaa" tick={{fontSize: 11}} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                              labelStyle={{ color: '#fff' }}
+                              formatter={(v, name, props) => [`${v} films (${props.payload.percentage}%)`, 'Count']}
+                            />
+                            <Bar dataKey="count" fill={ACCENT_COLOR} radius={[0, 6, 6, 0]}>
+                              {mostWatchedGenres.genres.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'preferences' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {genreAffinity.length > 0 && (
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-xs font-medium text-pink-400/60">01</span>
+                        <h2 className="text-lg font-semibold">Genre Affinity</h2>
+                      </div>
+                      <ResponsiveContainer width="100%" height={380}>
+                        <BarChart data={genreAffinity} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                          <XAxis type="number" domain={[0, 10]} stroke="#aaa" tick={{fontSize: 11}} />
+                          <YAxis type="category" dataKey="genre" width={120} stroke="#aaa" tick={{fontSize: 11}} />
+                          <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} labelStyle={{ color: '#fff' }} />
+                          <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={[0, 6, 6, 0]}>
+                            {genreAffinity.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {eraPreference.length > 0 && (
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-xs font-medium text-green-400/60">02</span>
+                        <h2 className="text-lg font-semibold">Era Preference</h2>
+                      </div>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={eraPreference}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                          <XAxis dataKey="decade" stroke="#aaa" tick={{fontSize: 11}} />
+                          <YAxis domain={[0, 10]} stroke="#aaa" tick={{fontSize: 11}} />
+                          <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} labelStyle={{ color: '#fff' }} />
+                          <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]}>
+                            {eraPreference.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5 lg:col-span-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-medium text-blue-400/60">03</span>
+                      <h2 className="text-lg font-semibold">🌍 Country Preference</h2>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-4">Films rated 8+ by country of origin</p>
+                    <div className="relative" style={{ height: countryPreference.length > 10 ? '500px' : '360px' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={countryPreference.length > 0 ? countryPreference : [{ country: 'No data yet', count: 0 }]}
+                          layout="vertical"
+                          margin={{ top: 10, right: 40, left: 160, bottom: 10 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                          <XAxis type="number" stroke="#aaa" domain={[0, 'dataMax + 10']} tick={{fontSize: 11}} />
+                          <YAxis 
+                            type="category" 
+                            dataKey="country" 
+                            stroke="#aaa" 
+                            width={150}
+                            tick={{ fontSize: 11 }}
+                            interval={0}
+                          />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                            labelStyle={{ color: '#fff' }}
+                            formatter={(v) => [`${v} films rated ≥8`, 'Count']}
+                          />
+                          <Bar dataKey="count" fill={ACCENT_COLOR} radius={[0, 8, 8, 0]} minPointSize={10}>
+                            {countryPreference.map((_, i) => (
+                              <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                            ))}
+                            <LabelList dataKey="count" position="right" fill="#e5e7eb" fontSize={12} offset={8} />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+
+                      {countryPreference.length === 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl">
+                          <p className="text-gray-300 text-sm">No high-rated films with country data yet</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'discoveries' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {hiddenGems.allFilms?.length > 0 && (
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-xs font-medium text-yellow-400/60">01</span>
+                        <h2 className="text-lg font-semibold">Hidden Gems</h2>
+                        <span className="text-xs text-gray-500">(You &gt; IMDb by &gt;2.5)</span>
+                      </div>
+                      <div className="mb-3 text-xs text-gray-400">
+                        Showing {(hiddenGemsPage - 1) * hiddenGemsPerPage + 1}–{Math.min(hiddenGemsPage * hiddenGemsPerPage, hiddenGems.allFilms.length)} of {hiddenGems.allFilms.length}
+                      </div>
+                      <div className="space-y-3 mb-5">
+                        {hiddenGems.allFilms.slice((hiddenGemsPage - 1) * hiddenGemsPerPage, hiddenGemsPage * hiddenGemsPerPage).map((movie, idx) => (
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-gray-850 rounded-lg">
+                            {posters[`${movie.title}_${movie.year}`] ? (
+                              <img 
+                                src={posters[`${movie.title}_${movie.year}`]} 
+                                alt={movie.title}
+                                className="w-8 h-12 object-cover rounded flex-shrink-0"
+                                onError={(e) => e.target.style.display = 'none'}
+                              />
+                            ) : (
+                              <div 
+                                className="w-8 h-12 bg-gray-700 rounded flex items-center justify-center cursor-pointer flex-shrink-0"
+                                onClick={() => fetchPoster(movie.title, movie.year)}
+                                title="Click to load poster"
+                              >
+                                <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <button 
+                                onClick={() => handleMovieClick(movie)}
+                                className="font-semibold text-sm text-blue-400 hover:text-blue-300 hover:underline text-left truncate block w-full"
+                              >
+                                {movie.title}
+                              </button>
+                              <div className="text-xs text-gray-400">({movie.year})</div>
+                            </div>
+                            <div className="flex gap-2 text-xs flex-shrink-0">
+                              <div>You: <span className="text-green-400 font-bold">{movie.yourRating}</span></div>
+                              <div>IMDb: <span className="text-gray-300 font-bold">{movie.imdbRating}</span></div>
+                              <div className="text-blue-400 font-bold">+{movie.difference}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {hiddenGems.allFilms.length > hiddenGemsPerPage && (
+                        <div className="flex justify-center gap-3">
+                          <button
+                            onClick={() => {
+                              const newPage = Math.max(1, hiddenGemsPage - 1);
+                              setHiddenGemsPage(newPage);
+                              loadPostersForFilms(hiddenGems.allFilms.slice((newPage - 1) * hiddenGemsPerPage, newPage * hiddenGemsPerPage));
+                            }}
+                            disabled={hiddenGemsPage === 1}
+                            className="px-4 py-1.5 bg-gray-800 rounded text-xs disabled:opacity-50 hover:bg-gray-700"
+                          >Prev</button>
+                          <span className="py-1.5 text-xs text-gray-400">Page {hiddenGemsPage}</span>
+                          <button
+                            onClick={() => {
+                              const newPage = hiddenGemsPage + 1;
+                              setHiddenGemsPage(newPage);
+                              loadPostersForFilms(hiddenGems.allFilms.slice((newPage - 1) * hiddenGemsPerPage, newPage * hiddenGemsPerPage));
+                            }}
+                            disabled={hiddenGemsPage * hiddenGemsPerPage >= hiddenGems.allFilms.length}
+                            className="px-4 py-1.5 bg-gray-800 rounded text-xs disabled:opacity-50 hover:bg-gray-700"
+                          >Next</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {hiddenTreasures.allFilms?.length > 0 && (
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-purple-400/60">02</span>
+                        <h2 className="text-lg font-semibold">💎 Hidden Treasures</h2>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-4">Your 8+ ratings on films with &lt; 2,000 IMDb votes</p>
+
+                      {hiddenTreasures.stats && (
+                        <div className="grid grid-cols-3 gap-3 mb-4 p-3 bg-gray-850 rounded-lg">
+                          <div className="text-center">
+                            <div className="text-gray-400 text-xs">Count</div>
+                            <div className="text-lg font-bold text-blue-400">{hiddenTreasures.stats.count}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-gray-400 text-xs">Your Avg</div>
+                            <div className="text-lg font-bold text-green-400">{hiddenTreasures.stats.avgYourRating}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-gray-400 text-xs">Avg Votes</div>
+                            <div className="text-lg font-bold text-gray-300">{hiddenTreasures.stats.avgVoteCount.toLocaleString()}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mb-3 text-xs text-gray-400">
+                        Showing {(hiddenTreasuresPage - 1) * itemsPerPage + 1}–{Math.min(hiddenTreasuresPage * itemsPerPage, hiddenTreasures.allFilms.length)} of {hiddenTreasures.allFilms.length}
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-gray-700 text-gray-300">
+                              <th className="py-2 px-1 text-left font-semibold w-10"></th>
+                              <th className="py-2 px-2 text-left font-semibold">Title</th>
+                              <th className="py-2 px-2 text-center font-semibold">Year</th>
+                              <th className="py-2 px-2 text-center font-semibold">You</th>
+                              <th className="py-2 px-2 text-center font-semibold">IMDb</th>
+                              <th className="py-2 px-2 text-center font-semibold">Votes</th>
+                              <th className="py-2 px-2 text-center font-semibold">Diff</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {hiddenTreasures.allFilms.slice((hiddenTreasuresPage - 1) * itemsPerPage, hiddenTreasuresPage * itemsPerPage).map((m, i) => (
+                              <tr key={i} className="border-b border-gray-800 hover:bg-gray-850">
+                                <td className="py-2 px-1">
+                                  {posters[`${m.title}_${m.year}`] ? (
+                                    <img 
+                                      src={posters[`${m.title}_${m.year}`]} 
+                                      alt={m.title}
+                                      className="w-6 h-9 object-cover rounded"
+                                      onError={(e) => e.target.style.display = 'none'}
+                                    />
+                                  ) : (
+                                    <div 
+                                      className="w-6 h-9 bg-gray-700 rounded flex items-center justify-center cursor-pointer"
+                                      onClick={() => fetchPoster(m.title, m.year)}
+                                      title="Click to load poster"
+                                    >
+                                      <svg className="w-2 h-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-2 font-medium max-w-[150px] truncate">
+                                  <button 
+                                    onClick={() => handleMovieClick(m)}
+                                    className="text-blue-400 hover:text-blue-300 hover:underline text-left w-full truncate"
+                                  >
+                                    {m.title}
+                                  </button>
+                                </td>
+                                <td className="py-2 px-2 text-center text-gray-400">{m.year}</td>
+                                <td className="py-2 px-2 text-center text-green-400 font-bold">{m.yourRating}</td>
+                                <td className="py-2 px-2 text-center text-gray-300">{m.imdbRating}</td>
+                                <td className="py-2 px-2 text-center text-gray-400">{(m.numVotes || 0).toLocaleString()}</td>
+                                <td className="py-2 px-2 text-center">
+                                  <span className={`font-bold ${m.difference >= 2 ? 'text-blue-400' : 'text-green-400'}`}>
+                                    +{m.difference}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {hiddenTreasures.allFilms.length > itemsPerPage && (
+                        <div className="flex justify-center gap-3 mt-5">
+                          <button
+                            onClick={() => {
+                              const newPage = Math.max(1, hiddenTreasuresPage - 1);
+                              setHiddenTreasuresPage(newPage);
+                              loadPostersForFilms(hiddenTreasures.allFilms.slice((newPage - 1) * itemsPerPage, newPage * itemsPerPage));
+                            }}
+                            disabled={hiddenTreasuresPage === 1}
+                            className="px-4 py-1.5 bg-gray-800 rounded text-xs disabled:opacity-50 hover:bg-gray-700"
+                          >Prev</button>
+                          <span className="py-1.5 text-xs text-gray-400">Page {hiddenTreasuresPage} / {Math.ceil(hiddenTreasures.allFilms.length / itemsPerPage)}</span>
+                          <button
+                            onClick={() => {
+                              const newPage = hiddenTreasuresPage + 1;
+                              setHiddenTreasuresPage(newPage);
+                              loadPostersForFilms(hiddenTreasures.allFilms.slice((newPage - 1) * itemsPerPage, newPage * itemsPerPage));
+                            }}
+                            disabled={hiddenTreasuresPage * itemsPerPage >= hiddenTreasures.allFilms.length}
+                            className="px-4 py-1.5 bg-gray-800 rounded text-xs disabled:opacity-50 hover:bg-gray-700"
+                          >Next</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'deepdive' && (
+                <div className="space-y-6">
+                  {favoriteFilmPerYear.length > 0 && (() => {
+                    const latest = selectedFavoriteYear || favoriteFilmPerYear[0].year;
+                    const selected = favoriteFilmPerYear.find(y => y.year === latest) || favoriteFilmPerYear[0];
+                    return (
+                      <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-xs font-medium text-yellow-400/60">01</span>
+                          <h2 className="text-lg font-semibold">⭐ Favorites by Year</h2>
+                          <span className="text-xs text-gray-500">(9–10 rated)</span>
+                        </div>
+                        <div className="mb-4">
+                          <label className="block text-gray-300 mb-1 text-xs">Select Year</label>
+                          <select
+                            value={latest}
+                            onChange={e => {
+                              setSelectedFavoriteYear(Number(e.target.value));
+                              const sel = favoriteFilmPerYear.find(y => y.year === Number(e.target.value));
+                              if (sel) loadPostersForFilms(sel.films);
+                            }}
+                            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-white w-full sm:w-56 text-sm"
+                          >
+                            {favoriteFilmPerYear.map(y => (
+                              <option key={y.year} value={y.year}>
+                                {y.year} ({y.filmCount})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-3">
+                          {selected.films.map((f, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 bg-gray-850 rounded-lg">
+                              {posters[`${f.title}_${f.year}`] ? (
+                                <img 
+                                  src={posters[`${f.title}_${f.year}`]} 
+                                  alt={f.title}
+                                  className="w-10 h-14 object-cover rounded flex-shrink-0"
+                                  onError={(e) => e.target.style.display = 'none'}
+                                />
+                              ) : (
+                                <div 
+                                  className="w-10 h-14 bg-gray-700 rounded flex items-center justify-center cursor-pointer flex-shrink-0"
+                                  onClick={() => fetchPoster(f.title, f.year)}
+                                  title="Click to load poster"
+                                >
+                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <button 
+                                  onClick={() => handleMovieClick(f)}
+                                  className="text-blue-400 hover:text-blue-300 hover:underline text-left font-semibold text-sm"
+                                >
+                                  {f.title}
+                                </button>
+                                <div className="text-xs text-gray-400">{f.year}</div>
+                              </div>
+                              <div className="flex gap-4 text-xs flex-shrink-0">
+                                <span>You: <strong className="text-green-400">{f.yourRating}</strong></span>
+                                <span>IMDb: <strong className="text-gray-300">{f.imdbRating}</strong></span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {personalCanon.length > 0 && (() => {
+                    const selectedDec = expandedDecades[0] || personalCanon[personalCanon.length - 1].decade;
+                    const selected = personalCanon.find(d => d.decade === selectedDec) || personalCanon[personalCanon.length - 1];
+                    return (
+                      <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-xs font-medium text-pink-400/60">02</span>
+                          <h2 className="text-lg font-semibold">Personal Canon</h2>
+                          <span className="text-xs text-gray-500">(by decade, 9–10)</span>
+                        </div>
+                        <div className="mb-4">
+                          <label className="block text-gray-300 mb-1 text-xs">Select Decade</label>
+                          <select
+                            value={selectedDec}
+                            onChange={e => {
+                              setExpandedDecades([e.target.value]);
+                              const sel = personalCanon.find(d => d.decade === e.target.value);
+                              if (sel) loadPostersForFilms(sel.films);
+                            }}
+                            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-white w-full sm:w-56 text-sm"
+                          >
+                            {personalCanon.map(d => (
+                              <option key={d.decade} value={d.decade}>
+                                {d.decade} ({d.filmCount})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-3">
+                          {selected.films.map((f, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 bg-gray-850 rounded-lg">
+                              {posters[`${f.title}_${f.year}`] ? (
+                                <img 
+                                  src={posters[`${f.title}_${f.year}`]} 
+                                  alt={f.title}
+                                  className="w-10 h-14 object-cover rounded flex-shrink-0"
+                                  onError={(e) => e.target.style.display = 'none'}
+                                />
+                              ) : (
+                                <div 
+                                  className="w-10 h-14 bg-gray-700 rounded flex items-center justify-center cursor-pointer flex-shrink-0"
+                                  onClick={() => fetchPoster(f.title, f.year)}
+                                  title="Click to load poster"
+                                >
+                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <button 
+                                  onClick={() => handleMovieClick(f)}
+                                  className="text-blue-400 hover:text-blue-300 hover:underline text-left font-semibold text-sm"
+                                >
+                                  {f.title}
+                                </button>
+                                <div className="text-xs text-gray-400">{f.year}</div>
+                              </div>
+                              <div className="flex gap-4 text-xs flex-shrink-0">
+                                <span>You: <strong className="text-green-400">{f.yourRating}</strong></span>
+                                <span>IMDb: <strong className="text-gray-300">{f.imdbRating}</strong></span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {yearlyHighlight.length > 0 && (
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-xs font-medium text-blue-400/60">03</span>
+                        <h2 className="text-lg font-semibold">Yearly Rating Activity</h2>
+                      </div>
+                      <ResponsiveContainer width="100%" height={320}>
+                        <BarChart data={yearlyHighlight}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                          <XAxis dataKey="year" stroke="#aaa" interval="preserveStartEnd" tick={{fontSize: 11}} />
+                          <YAxis stroke="#aaa" tick={{fontSize: 11}} />
+                          <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} labelStyle={{ color: '#fff' }} />
+                          <Bar dataKey="filmCount" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]}>
+                            {yearlyHighlight.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {topFilmPerGenre.length > 0 && (
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-xs font-medium text-green-400/60">04</span>
+                        <h2 className="text-lg font-semibold">Top Films by Genre</h2>
+                      </div>
+                      <p className="text-gray-400 mb-4 text-xs">Top 10 genres — highest rated films (no duplicates)</p>
+                      <div className="space-y-3">
+                        {topFilmPerGenre.map((g, idx) => (
+                          <div key={idx} className="border border-gray-700 rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => {
+                                const newExpanded = { ...expandedGenres, [g.genre]: !expandedGenres[g.genre] };
+                                setExpandedGenres(newExpanded);
+                                if (!expandedGenres[g.genre]) {
+                                  loadPostersForFilms(g.films);
+                                }
+                              }}
+                              className="w-full flex items-center justify-between p-3 bg-gray-850 hover:bg-gray-800 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-base font-bold text-blue-400">{g.genre}</span>
+                                <span className="text-gray-400 text-xs">
+                                  ({g.films.length} • avg {g.avgGenreRating.toFixed(2)})
+                                </span>
+                              </div>
+                              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedGenres[g.genre] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                            {expandedGenres[g.genre] && (
+                              <div className="p-3 bg-gray-900 max-h-72 overflow-y-auto space-y-2">
+                                {g.films.map((f, fi) => (
+                                  <div key={fi} className="flex items-center gap-3 p-2 bg-gray-850 rounded-lg">
+                                    {posters[`${f.title}_${f.year}`] ? (
+                                      <img 
+                                        src={posters[`${f.title}_${f.year}`]} 
+                                        alt={f.title}
+                                        className="w-8 h-12 object-cover rounded flex-shrink-0"
+                                        onError={(e) => e.target.style.display = 'none'}
+                                      />
+                                    ) : (
+                                      <div 
+                                        className="w-8 h-12 bg-gray-700 rounded flex items-center justify-center cursor-pointer flex-shrink-0"
+                                        onClick={() => fetchPoster(f.title, f.year)}
+                                        title="Click to load poster"
+                                      >
+                                        <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <button 
+                                        onClick={() => handleMovieClick(f)}
+                                        className="font-medium text-blue-400 hover:text-blue-300 hover:underline text-left text-sm"
+                                      >
+                                        {f.title}
+                                      </button>
+                                      <div className="text-xs text-gray-400">{f.year}</div>
+                                    </div>
+                                    <div className="flex gap-3 text-xs flex-shrink-0">
+                                      <span>You: <strong className="text-green-400">{f.yourRating}</strong></span>
+                                      <span>IMDb: <strong className="text-gray-300">{f.imdbRating}</strong></span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {consistentlyLovedDirectors.length > 0 && (
+                    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-xs font-medium text-purple-400/60">05</span>
+                        <h2 className="text-lg font-semibold">Most Consistently Loved Directors</h2>
+                      </div>
+                      <ResponsiveContainer width="100%" height={380}>
+                        <BarChart data={consistentlyLovedDirectors} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                          <XAxis type="number" stroke="#aaa" tick={{fontSize: 11}} />
+                          <YAxis type="category" dataKey="director" width={140} stroke="#aaa" tick={{fontSize: 11}} />
+                          <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }} labelStyle={{ color: '#fff' }} />
+                          <Bar dataKey="highRatedCount" fill={ACCENT_COLOR} radius={[0, 6, 6, 0]}>
+                            {consistentlyLovedDirectors.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+        
+        {(!fetchingCountries && !data) && (
+          <div className="text-center py-24">
+            <div className="text-8xl mb-8">🎬</div>
+            <h3 className="text-3xl font-semibold mb-6 text-gray-100">Ready to analyze your taste?</h3>
+            <p className="text-xl text-gray-300 mb-8">Upload your IMDb ratings export file to begin</p>
+            <p className="text-gray-500">
+              Get the file here →{' '}
+              <a
+                href="https://www.imdb.com/list/ratings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline"
+              >
+                imdb.com → Ratings → Export
+              </a>
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
