@@ -126,6 +126,15 @@ const toPublicMemberSnapshot = (snapshot = {}) => {
     moodboards: Array.isArray(safe?.moodboards)
       ? safe.moodboards.slice(0, 30).map((m) => ({ id: m?.id, title: m?.title || '' }))
       : [],
+    // Keep per-user dataset in snapshot so the same account can restore on another browser/device.
+    // Member directory list queries project only lightweight fields, so this won't bloat list payloads.
+    dataset: Array.isArray(safe?.dataset)
+      ? safe.dataset
+      : Array.isArray(safe?.rows)
+        ? safe.rows
+        : Array.isArray(safe?.data)
+          ? safe.data
+          : [],
     updatedAt: safe?.updatedAt || new Date().toISOString(),
   };
 };
@@ -250,6 +259,9 @@ export default function App() {
   const [membersRetryNonce, setMembersRetryNonce] = useState(0);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
+  const [membersSearchQuery, setMembersSearchQuery] = useState('');
+  const [followingSearchQuery, setFollowingSearchQuery] = useState('');
+  const [followersSearchQuery, setFollowersSearchQuery] = useState('');
   const [membersEnabled, setMembersEnabled] = useState(true);
   const [memberViewUserId, setMemberViewUserId] = useState(null);
   const [memberViewName, setMemberViewName] = useState('');
@@ -4327,6 +4339,29 @@ const [user, setUser] = useState(null);
     });
   }, [membersDirectory, user, followerUserIds, followsTableEnabled]);
 
+  const filterMembersByQuery = React.useCallback((list, query) => {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return list;
+    return (Array.isArray(list) ? list : []).filter((member) => {
+      const name = String(member?.name || '').toLowerCase();
+      const email = String(member?.email || '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+  }, []);
+
+  const filteredMembersDirectory = React.useMemo(
+    () => filterMembersByQuery(membersDirectory, membersSearchQuery),
+    [membersDirectory, membersSearchQuery, filterMembersByQuery]
+  );
+  const filteredFollowedMembersList = React.useMemo(
+    () => filterMembersByQuery(followedMembersList, followingSearchQuery),
+    [followedMembersList, followingSearchQuery, filterMembersByQuery]
+  );
+  const filteredFollowersMembersList = React.useMemo(
+    () => filterMembersByQuery(followersMembersList, followersSearchQuery),
+    [followersMembersList, followersSearchQuery, filterMembersByQuery]
+  );
+
   const newFollowersList = React.useMemo(() => {
     const seen = new Set((lastSeenFollowerIds || []).map((id) => String(id)));
     return followersMembersList.filter((member) => !seen.has(String(member.userId)));
@@ -6747,8 +6782,18 @@ const [user, setUser] = useState(null);
                     </div>
                   </div>
 
+                  <div className="bg-[#111827] border border-gray-800 rounded-xl p-3">
+                    <input
+                      type="text"
+                      value={membersSearchQuery}
+                      onChange={(e) => setMembersSearchQuery(e.target.value)}
+                      placeholder="Search members by name or email..."
+                      className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {membersDirectory.map((member) => (
+                    {filteredMembersDirectory.map((member) => (
                       <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                         <div className="flex items-center gap-3 mb-3">
                           {member.avatarUrl ? (
@@ -6790,9 +6835,9 @@ const [user, setUser] = useState(null);
                     ))}
                   </div>
 
-                  {!membersLoading && membersDirectory.length === 0 && (
+                  {!membersLoading && filteredMembersDirectory.length === 0 && (
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 text-center text-sm text-gray-400">
-                      No members found yet.
+                      No members found.
                     </div>
                   )}
                 </div>
@@ -6831,8 +6876,18 @@ const [user, setUser] = useState(null);
                     </div>
                   )}
 
+                  <div className="bg-[#111827] border border-gray-800 rounded-xl p-3">
+                    <input
+                      type="text"
+                      value={followingSearchQuery}
+                      onChange={(e) => setFollowingSearchQuery(e.target.value)}
+                      placeholder="Search following by name or email..."
+                      className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {followedMembersList.map((member) => (
+                    {filteredFollowedMembersList.map((member) => (
                       <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                         <div className="flex items-center gap-3 mb-3">
                           {member.avatarUrl ? (
@@ -6883,9 +6938,9 @@ const [user, setUser] = useState(null);
                     ))}
                   </div>
 
-                  {!membersLoading && followedMembersList.length === 0 && (
+                  {!membersLoading && filteredFollowedMembersList.length === 0 && (
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 text-center text-sm text-gray-400">
-                      You are not following anyone yet.
+                      No matching following members.
                     </div>
                   )}
                 </div>
@@ -6924,8 +6979,18 @@ const [user, setUser] = useState(null);
                     </div>
                   )}
 
+                  <div className="bg-[#111827] border border-gray-800 rounded-xl p-3">
+                    <input
+                      type="text"
+                      value={followersSearchQuery}
+                      onChange={(e) => setFollowersSearchQuery(e.target.value)}
+                      placeholder="Search followers by name or email..."
+                      className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {followersMembersList.map((member) => {
+                    {filteredFollowersMembersList.map((member) => {
                       const isNewFollower = newFollowersList.some((item) => String(item.userId) === String(member.userId));
                       return (
                       <div
@@ -6995,9 +7060,9 @@ const [user, setUser] = useState(null);
                     )})}
                   </div>
 
-                  {!membersLoading && followersMembersList.length === 0 && (
+                  {!membersLoading && filteredFollowersMembersList.length === 0 && (
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 text-center text-sm text-gray-400">
-                      No followers yet.
+                      No matching followers.
                     </div>
                   )}
                   </div>
