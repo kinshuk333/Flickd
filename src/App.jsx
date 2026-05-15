@@ -275,7 +275,7 @@ export default function App() {
   const [savingAboutMe, setSavingAboutMe] = useState(false);
   const [followToast, setFollowToast] = useState(null);
   const [supabasePinging, setSupabasePinging] = useState(false);
-  const [supabaseHealth, setSupabaseHealth] = useState({
+  const [_supabaseHealth, setSupabaseHealth] = useState({
     status: 'idle', // idle | ok | slow | error
     lastMs: null,
     label: '',
@@ -4564,23 +4564,6 @@ const [user, setUser] = useState(null);
   const isMembersTopActive =
     activeTab === 'members' ||
     (Boolean(memberViewUserId) && !['following', 'followers', 'settings'].includes(activeTab));
-  const supabaseHealthPillClass =
-    supabaseHealth.status === 'error'
-      ? 'border-red-500/40 text-red-300 bg-red-500/10'
-      : supabaseHealth.status === 'slow'
-      ? 'border-amber-500/40 text-amber-300 bg-amber-500/10'
-      : supabaseHealth.status === 'ok'
-      ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
-      : 'border-gray-700 text-gray-300 bg-[#111827]';
-  const supabaseHealthText =
-    supabaseHealth.status === 'error'
-      ? `Supabase: error${supabaseHealth.lastMs != null ? ` ${supabaseHealth.lastMs}ms` : ''}`
-      : supabaseHealth.status === 'slow'
-      ? `Supabase: slow ${supabaseHealth.lastMs ?? '--'}ms`
-      : supabaseHealth.status === 'ok'
-      ? `Supabase: ${supabaseHealth.lastMs ?? '--'}ms`
-      : 'Supabase: idle';
-
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     if (tabId === 'discoveries') {
@@ -5492,16 +5475,6 @@ const [user, setUser] = useState(null);
                     alt="Flickd"
                     className="h-9 w-auto object-contain"
                   />
-                  <span
-                    className={`hidden xl:inline-flex items-center rounded-lg border px-2 py-1 text-[11px] font-medium ${supabaseHealthPillClass}`}
-                    title={
-                      supabaseHealth.error
-                        ? `${supabaseHealth.label || 'request'}: ${supabaseHealth.error}`
-                        : (supabaseHealth.label ? `${supabaseHealth.label}` : 'No recent Supabase request')
-                    }
-                  >
-                    {supabaseHealthText}
-                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2 overflow-hidden">
                   <button
@@ -7465,12 +7438,6 @@ const [user, setUser] = useState(null);
                     <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
                       <h2 className="text-lg font-semibold">Settings</h2>
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-lg border px-2 py-1 text-[11px] font-medium ${supabaseHealthPillClass}`}
-                          title={supabaseHealth.error ? `${supabaseHealth.label || 'request'}: ${supabaseHealth.error}` : (supabaseHealth.label || 'No recent Supabase request')}
-                        >
-                          {supabaseHealthText}
-                        </span>
                         <button
                           type="button"
                           onClick={handleRetrySupabaseConnection}
