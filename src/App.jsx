@@ -4556,7 +4556,7 @@ const [user, setUser] = useState(null);
     { id: 'allwatched', label: 'All Watched Films' },
     { id: 'tastetimeline', label: 'Taste Timeline' },
     { id: 'mytrace', label: 'My Trace' },
-    { id: 'moodboard', label: 'Moodboards' },
+    { id: 'moodboard', label: 'Filmboards' },
     { id: 'deepdive', label: 'Deep Dive' },
   ];
   const isViewingOtherMember = Boolean(memberViewUserId) && String(memberViewUserId) !== String(user?.id || '');
@@ -5459,7 +5459,7 @@ const [user, setUser] = useState(null);
             </p>
             <p className="text-xs text-blue-200/90 mt-2 leading-relaxed">
               Their cinematic world has been added to your orbit.
-              Explore their taste profile, moodboards, and cinematic trace.
+              Explore their taste profile, filmboards, and cinematic trace.
             </p>
           </div>
         </div>
@@ -7601,12 +7601,12 @@ const [user, setUser] = useState(null);
                       <>
                   <div className="bg-[#111827] border border-gray-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                      <h2 className="text-xl sm:text-2xl font-bold text-white">Cinema Moodboard</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold text-white">Cinema Filmboard</h2>
                       <p className="text-gray-400 text-sm mt-1">Curate and revisit your film collections.</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="hidden sm:block text-right text-xs text-gray-400">
-                        <div>{displayedMoodboards.length} moodboards</div>
+                        <div>{displayedMoodboards.length} filmboards</div>
                         <div>{displayedMoodboards.reduce((sum, b) => sum + (b.films?.length || 0), 0)} films saved</div>
                       </div>
                       {canEditMoodboards && (
@@ -7614,7 +7614,7 @@ const [user, setUser] = useState(null);
                           onClick={() => setShowCreateModal(true)}
                           className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium text-white transition-colors"
                         >
-                          + Create Moodboard
+                          + Create Filmboard
                         </button>
                       )}
                     </div>
@@ -7623,10 +7623,10 @@ const [user, setUser] = useState(null);
                   {showCreateModal && canEditMoodboards && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
                       <div className="bg-[#111827] border border-gray-700 rounded-xl p-5 w-full max-w-md">
-                        <h3 className="text-lg font-semibold text-white mb-4">Create Moodboard</h3>
+                        <h3 className="text-lg font-semibold text-white mb-4">Create Filmboard</h3>
                         <input
                           type="text"
-                          placeholder="Enter moodboard title"
+                          placeholder="Enter filmboard title"
                           value={newMoodboardTitle}
                           onChange={(e) => setNewMoodboardTitle(e.target.value)}
                           className="w-full px-4 py-3 bg-[#0b1220] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-4"
@@ -7961,7 +7961,7 @@ const [user, setUser] = useState(null);
                         </div>
                       ) : (
                         <div className="rounded-lg border border-dashed border-gray-700 bg-[#0b1220] py-12 text-center">
-                          <p className="text-gray-400 text-sm">No films in this moodboard yet.</p>
+                          <p className="text-gray-400 text-sm">No films in this filmboard yet.</p>
                           {canEditMoodboards && (
                             <button
                               onClick={() => {
@@ -7987,18 +7987,18 @@ const [user, setUser] = useState(null);
 
                   {displayedMoodboards.length === 0 && (
                     <div className="bg-[#111827] border border-dashed border-gray-700 rounded-xl p-10 text-center">
-                      <h3 className="text-lg font-semibold text-gray-200">No moodboards yet</h3>
+                      <h3 className="text-lg font-semibold text-gray-200">No filmboards yet</h3>
                       <p className="mt-2 text-sm text-gray-400">
                         {canEditMoodboards
                           ? 'Create your first collection and start saving films by vibe.'
-                          : 'This member has not created any moodboards yet.'}
+                          : 'This member has not created any filmboards yet.'}
                       </p>
                       {canEditMoodboards && (
                         <button
                           onClick={() => setShowCreateModal(true)}
                           className="mt-5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
                         >
-                          + Create Moodboard
+                          + Create Filmboard
                         </button>
                       )}
                     </div>
