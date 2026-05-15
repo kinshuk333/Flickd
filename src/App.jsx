@@ -32,6 +32,7 @@ const TRACE_GENRE_PALETTE = {
   default: '#6B7FA6',
 };
 const DATA_CACHE_KEY = 'imdb-ratings-dataset-v1';
+const datasetCacheKey = (userId) => `${DATA_CACHE_KEY}:${String(userId || 'guest')}`;
 const MEMBERS_LOCAL_CACHE_KEY = 'imdb-members-directory-v1';
 const memberDatasetKey = (userId) => `imdb-member-dataset-${userId}`;
 
@@ -468,6 +469,9 @@ const [user, setUser] = useState(null);
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     });
     if (error) console.error('Sign in error:', error);
@@ -481,6 +485,10 @@ const [user, setUser] = useState(null);
       if (error) {
         throw error;
       }
+      setData(null);
+      setFileName('');
+      setLoadedFromCache(false);
+      setLastDataSyncAt(null);
       setUser(null);
       setMoodboards([]);
       localStorage.removeItem('imdb-moodboards');
@@ -846,7 +854,9 @@ const [user, setUser] = useState(null);
         fileName: sourceFileName || fileName || 'IMDb Ratings',
         updatedAt: new Date().toISOString(),
       };
-      localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(payload));
+      if (user?.id) {
+        localStorage.setItem(datasetCacheKey(user.id), JSON.stringify(payload));
+      }
       if (user?.id && Array.isArray(rows) && rows.length) {
         localStorage.setItem(memberDatasetKey(user.id), JSON.stringify(toShareableRows(rows)));
       }
@@ -867,9 +877,16 @@ const [user, setUser] = useState(null);
   }, [user?.id, data]);
 
   useEffect(() => {
+    if (!user?.id) return;
     try {
-      const cached = JSON.parse(localStorage.getItem(DATA_CACHE_KEY) || 'null');
-      if (!cached?.rows?.length) return;
+      const cached = JSON.parse(localStorage.getItem(datasetCacheKey(user.id)) || 'null');
+      if (!cached?.rows?.length) {
+        setData(null);
+        setFileName('');
+        setLoadedFromCache(false);
+        setLastDataSyncAt(null);
+        return;
+      }
 
       const hydratedRows = cached.rows.map((row) => ({
         ...row,
@@ -885,7 +902,7 @@ const [user, setUser] = useState(null);
     } catch (e) {
       console.error('Failed to restore cached dataset:', e);
     }
-  }, []);
+  }, [user?.id]);
 
 
   useEffect(() => {
@@ -1244,7 +1261,10 @@ const [user, setUser] = useState(null);
     if (!shouldRemove) return;
 
     try {
-      localStorage.removeItem(DATA_CACHE_KEY);
+      if (user?.id) {
+        localStorage.removeItem(datasetCacheKey(user.id));
+        localStorage.removeItem(memberDatasetKey(user.id));
+      }
     } catch (e) {
       console.error('Failed to clear cached dataset:', e);
     }
