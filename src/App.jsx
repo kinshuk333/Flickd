@@ -296,6 +296,7 @@ export default function App() {
   const posterFailedAtRef = React.useRef({});
   const omdbCacheAvailableRef = React.useRef(true);
   const membersFetchInFlightRef = React.useRef(false);
+  const lastAuthUserIdRef = React.useRef(null);
 
   // ============ SUPABASE AUTH CONFIG ============
 const [user, setUser] = useState(null);
@@ -323,6 +324,37 @@ const [user, setUser] = useState(null);
     const key = user?.id ? `imdb-following-${user.id}` : 'imdb-following-guest';
     const saved = localStorage.getItem(key);
     setFollowedMemberIds(saved ? JSON.parse(saved) : []);
+  }, [user?.id]);
+
+  // Hard isolation between accounts:
+  // whenever authenticated user changes, reset in-memory dashboard state immediately.
+  useEffect(() => {
+    const nextUserId = user?.id ? String(user.id) : null;
+    const prevUserId = lastAuthUserIdRef.current;
+    const hasUserChanged = prevUserId !== nextUserId;
+
+    if (hasUserChanged) {
+      setData(null);
+      setFileName('');
+      setLoadedFromCache(false);
+      setLastDataSyncAt(null);
+      setPosters({});
+      setSelectedMovie(null);
+      setMovieDetails(null);
+      setHoveredMapCountry(null);
+      setMapTooltip(null);
+      setMemberViewUserId(null);
+      setMemberViewName('');
+      setMemberViewAvatarUrl('');
+      setMemberViewSocials({ instagram: '', x: '', facebook: '' });
+      setMemberViewSnapshot(null);
+      setMemberViewAboutMe('');
+      setMemberViewMoodboards([]);
+      setShowTasteResonance(false);
+      setHasHydratedCurrentUserData(false);
+    }
+
+    lastAuthUserIdRef.current = nextUserId;
   }, [user?.id]);
 
   useEffect(() => {
