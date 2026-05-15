@@ -1,0 +1,73 @@
+/* Editorial cinema palette and typography (fixed path) */
+
+:root {
+  --paper: #F7F3EA;
+  --card: #FFFFFF;
+  --text: #1C1C1C;
+  --text-secondary: #6B6B6B;
+  --meta: #9A9A9A;
+  --accent: #B89C5A; /* muted cinema gold */
+  --border: #E6E0D6;
+  --hover: #F1ECE3;
+  --upload-bg: #FAF7F2;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--paper); color: var(--text); font-family: Inter, ui-sans-serif, system-ui; }
+.editorial-header { text-align: center; padding: 32px 0 28px; }
+.editorial-header h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 36px; letter-spacing: 0.06em; margin: 0; }
+.editorial-header p { font-family: Inter, system-ui; color: var(--text-secondary); font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+.card:hover { background: #F9F6EF; }
+.upload-area, .editorial-upload-area { border: 1px dashed #D8D2C6; background: var(--upload-bg); padding: 20px; border-radius: 8px; text-align: center; }
+.poster { border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: transform 0.2s; }
+.poster:hover { transform: scale(1.02); }
+.tab-active { color: var(--accent); background: transparent; border-bottom: 2px solid var(--accent); }
+.tab-inactive { color: var(--text-secondary); }
+.chart-area { padding: 16px; }
+.chart-area * { color: var(--text); }
+.rechartsXAxis, .rechartsYAxis { stroke: var(--text-secondary); }
+.recharts-cartesian-grid { stroke: var(--border); }
+.recharts-tooltip-content { background: var(--paper); border: 1px solid var(--border); color: var(--text); }
+
+/* Editorial typography scale */
+.main-title {
+  font-family: Georgia, serif;
+  font-size: 36px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.15;
+}
+.section-title {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.25;
+}
+.film-title {
+  font-family: Georgia, serif;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.25;
+}
+.metadata {
+  font-family: UI-Sans-Serif, Inter, system-ui;
+  font-size: 12px;
+  color: var(--meta);
+  font-weight: 400;
+}
+
+/* Page layout spacing: desktop 64px padding, mobile 32px */
+.editorial-content {
+  padding: 0 64px;
+}
+@media (max-width: 768px) {
+  .editorial-content {
+    padding: 0 32px;
+  }
+}
