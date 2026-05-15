@@ -258,6 +258,7 @@ export default function App() {
   const [memberViewAboutMe, setMemberViewAboutMe] = useState('');
   const [memberViewMoodboards, setMemberViewMoodboards] = useState([]);
   const [memberViewSnapshot, setMemberViewSnapshot] = useState(null);
+  const [hasHydratedCurrentUserData, setHasHydratedCurrentUserData] = useState(false);
   const [showTasteResonance, setShowTasteResonance] = useState(false);
   const [tasteResonanceLoading, setTasteResonanceLoading] = useState(false);
   const [followedMemberIds, setFollowedMemberIds] = useState([]);
@@ -480,11 +481,7 @@ const [user, setUser] = useState(null);
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
-    try {
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
-      if (error) {
-        throw error;
-      }
+    const clearLocalAuthState = () => {
       setData(null);
       setFileName('');
       setLoadedFromCache(false);
@@ -497,9 +494,19 @@ const [user, setUser] = useState(null);
       if (user?.id) {
         localStorage.removeItem(`imdb-following-${user.id}`);
       }
+      setHasHydratedCurrentUserData(false);
+    };
+
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) {
+        throw error;
+      }
+      clearLocalAuthState();
     } catch (error) {
       console.error('Sign out error:', error);
-      alert('Sign out failed. Please try again.');
+      clearLocalAuthState();
+      alert('Signed out locally. If Google auto-selects an account next time, choose "Use another account".');
     } finally {
       setSigningOut(false);
       setLoadingAuth(false);
@@ -878,30 +885,91 @@ const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (!user?.id) return;
-    try {
-      const cached = JSON.parse(localStorage.getItem(datasetCacheKey(user.id)) || 'null');
-      if (!cached?.rows?.length) {
-        setData(null);
-        setFileName('');
-        setLoadedFromCache(false);
-        setLastDataSyncAt(null);
-        return;
+    let cancelled = false;
+    setHasHydratedCurrentUserData(false);
+
+    const hydrateCurrentUserDataset = async () => {
+      try {
+        const cached = JSON.parse(localStorage.getItem(datasetCacheKey(user.id)) || 'null');
+        if (cached?.rows?.length) {
+          const hydratedRows = cached.rows.map((row) => ({
+            ...row,
+            dateRated: row?.dateRated ? new Date(row.dateRated) : null,
+            imdbVotes: Number(row?.imdbVotes ?? row?.numVotes) || 0,
+            numVotes: Number(row?.numVotes ?? row?.imdbVotes) || 0,
+          }));
+
+          if (!cancelled) {
+            setData(hydratedRows);
+            setFileName(cached.fileName || 'IMDb Ratings (cached)');
+            setLoadedFromCache(true);
+            setLastDataSyncAt(cached.updatedAt || null);
+            setHasHydratedCurrentUserData(true);
+          }
+          return;
+        }
+
+        // Fallback: restore this user's dataset from Supabase snapshot if local cache is empty.
+        const { data: row, error } = await supabase
+          .from('member_profiles')
+          .select('snapshot,updated_at')
+          .eq('user_id', String(user.id))
+          .maybeSingle();
+
+        if (!cancelled && !error && row?.snapshot) {
+          const remoteRows = Array.isArray(row.snapshot?.dataset)
+            ? row.snapshot.dataset
+            : Array.isArray(row.snapshot?.rows)
+              ? row.snapshot.rows
+              : Array.isArray(row.snapshot?.data)
+                ? row.snapshot.data
+                : [];
+
+          if (remoteRows.length) {
+            const normalized = fromShareableRows(remoteRows);
+            if (normalized.length) {
+              setData(normalized);
+              setFileName('IMDb Ratings (synced)');
+              setLoadedFromCache(false);
+              setLastDataSyncAt(row.updated_at || null);
+              setHasHydratedCurrentUserData(true);
+              try {
+                localStorage.setItem(datasetCacheKey(user.id), JSON.stringify({
+                  rows: normalized,
+                  fileName: 'IMDb Ratings (synced)',
+                  updatedAt: row.updated_at || new Date().toISOString(),
+                }));
+              } catch {
+                // ignore local cache write failures
+              }
+              return;
+            }
+          }
+        }
+
+        if (!cancelled) {
+          setData(null);
+          setFileName('');
+          setLoadedFromCache(false);
+          setLastDataSyncAt(null);
+          setHasHydratedCurrentUserData(true);
+        }
+      } catch (e) {
+        console.error('Failed to restore cached dataset:', e);
+        if (!cancelled) {
+          setData(null);
+          setFileName('');
+          setLoadedFromCache(false);
+          setLastDataSyncAt(null);
+          setHasHydratedCurrentUserData(true);
+        }
       }
+    };
 
-      const hydratedRows = cached.rows.map((row) => ({
-        ...row,
-        dateRated: row?.dateRated ? new Date(row.dateRated) : null,
-        imdbVotes: Number(row?.imdbVotes ?? row?.numVotes) || 0,
-        numVotes: Number(row?.numVotes ?? row?.imdbVotes) || 0,
-      }));
-
-      setData(hydratedRows);
-      setFileName(cached.fileName || 'IMDb Ratings (cached)');
-      setLoadedFromCache(true);
-      setLastDataSyncAt(cached.updatedAt || null);
-    } catch (e) {
-      console.error('Failed to restore cached dataset:', e);
-    }
+    hydrateCurrentUserDataset();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
 
@@ -3816,7 +3884,7 @@ const [user, setUser] = useState(null);
   }, [currentMemberRecord, data, fileName, lastDataSyncAt, memberViewUserId]);
 
   useEffect(() => {
-    if (!user || !membersEnabled || memberViewUserId) return;
+    if (!user || !membersEnabled || memberViewUserId || !hasHydratedCurrentUserData) return;
 
     let cancelled = false;
     (async () => {
@@ -3849,7 +3917,7 @@ const [user, setUser] = useState(null);
     return () => {
       cancelled = true;
     };
-  }, [user?.id, membersEnabled, memberViewUserId, publicMemberSnapshotKey]);
+  }, [user?.id, membersEnabled, memberViewUserId, publicMemberSnapshotKey, hasHydratedCurrentUserData]);
 
   const fetchMemberList = async ({ page = 0, pageSize = 30 } = {}) => {
     const from = Math.max(0, Number(page) || 0) * (Number(pageSize) || 30);
