@@ -209,6 +209,8 @@ export default function App() {
   const [timelineHoverKey, setTimelineHoverKey] = useState(null);
   const [timelineDragging, setTimelineDragging] = useState(false);
   const [timelineFullscreen, setTimelineFullscreen] = useState(false);
+  const [mapFullscreen, setMapFullscreen] = useState(false);
+  const [traceFullscreen, setTraceFullscreen] = useState(false);
   const [expandedDecades, setExpandedDecades] = useState([]);
   const [selectedFavoriteYear, setSelectedFavoriteYear] = useState(null);
   const [favoriteYearPage, setFavoriteYearPage] = useState(1);
@@ -300,6 +302,8 @@ export default function App() {
   const traceSvgRef = React.useRef(null);
   const mainContentRef = React.useRef(null);
   const tasteTimelineFullscreenRef = React.useRef(null);
+  const mapFullscreenRef = React.useRef(null);
+  const traceFullscreenRef = React.useRef(null);
   const tasteTimelineRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
   const tasteTimelineDragStartRef = React.useRef({ x: 0, left: 0 });
@@ -4789,6 +4793,8 @@ const [user, setUser] = useState(null);
   React.useEffect(() => {
     const onFullscreenChange = () => {
       setTimelineFullscreen(document.fullscreenElement === tasteTimelineFullscreenRef.current);
+      setMapFullscreen(document.fullscreenElement === mapFullscreenRef.current);
+      setTraceFullscreen(document.fullscreenElement === traceFullscreenRef.current);
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
@@ -4796,6 +4802,34 @@ const [user, setUser] = useState(null);
 
   const toggleTimelineFullscreen = async () => {
     const container = tasteTimelineFullscreenRef.current;
+    if (!container) return;
+    try {
+      if (document.fullscreenElement === container) {
+        await document.exitFullscreen();
+      } else {
+        await container.requestFullscreen();
+      }
+    } catch {
+      // ignore fullscreen failures
+    }
+  };
+
+  const toggleMapFullscreen = async () => {
+    const container = mapFullscreenRef.current;
+    if (!container) return;
+    try {
+      if (document.fullscreenElement === container) {
+        await document.exitFullscreen();
+      } else {
+        await container.requestFullscreen();
+      }
+    } catch {
+      // ignore fullscreen failures
+    }
+  };
+
+  const toggleTraceFullscreen = async () => {
+    const container = traceFullscreenRef.current;
     if (!container) return;
     try {
       if (document.fullscreenElement === container) {
@@ -6197,7 +6231,10 @@ const [user, setUser] = useState(null);
                         </ResponsiveContainer>
                       </div>
                     )}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 lg:col-span-2">
+                    <div
+                      ref={mapFullscreenRef}
+                      className={`bg-[#111827] border border-gray-800 rounded-xl p-4 lg:col-span-2 ${mapFullscreen ? 'h-screen overflow-auto' : ''}`}
+                    >
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
                         <div>
                           <div className="flex items-center gap-2">
@@ -6218,6 +6255,7 @@ const [user, setUser] = useState(null);
                             <button type="button" onClick={() => zoomMap(-0.2)} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">-</button>
                             <button type="button" onClick={() => zoomMap(0.2)} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">+</button>
                             <button type="button" onClick={resetMapView} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">Reset</button>
+                            <button type="button" onClick={toggleMapFullscreen} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">{mapFullscreen ? 'Exit Full Screen' : 'Full Screen'}</button>
                           </div>
                       </div>
 
@@ -6226,7 +6264,7 @@ const [user, setUser] = useState(null);
                           {mapFeatures.length > 0 && mapPathGenerator ? (
                             <svg
                               viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                                className={`w-full h-[580px] ${isMapDragging ? "cursor-grabbing" : ""}`}
+                                className={`w-full ${mapFullscreen ? 'h-[82vh]' : 'h-[580px]'} ${isMapDragging ? "cursor-grabbing" : ""}`}
                               onMouseDown={handleMapMouseDown}
                               onMouseMove={handleMapMouseMove}
                               onMouseUp={stopMapDragging}
@@ -6407,7 +6445,10 @@ const [user, setUser] = useState(null);
               )}
 {activeTab === 'mytrace' && (
                 <div className="space-y-4">
-                  <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
+                  <div
+                    ref={traceFullscreenRef}
+                    className={`bg-[#111827] border border-gray-800 rounded-xl p-4 ${traceFullscreen ? 'h-screen overflow-auto' : ''}`}
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h2 className="text-lg font-semibold text-white">Director Fingerprint</h2>
@@ -6467,6 +6508,13 @@ const [user, setUser] = useState(null);
                            <div className="flex flex-wrap justify-start sm:justify-end gap-2">
                              <button
                                type="button"
+                               onClick={toggleTraceFullscreen}
+                               className="px-3 py-1.5 text-xs rounded-lg bg-[#0b1220] border border-gray-700 text-gray-200 hover:bg-gray-800"
+                             >
+                               {traceFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+                             </button>
+                             <button
+                               type="button"
                                onClick={downloadDirectorFingerprintSvg}
                                className="px-3 py-1.5 text-xs rounded-lg bg-[#0b1220] border border-gray-700 text-gray-200 hover:bg-gray-800"
                              >
@@ -6483,10 +6531,10 @@ const [user, setUser] = useState(null);
                          </div>
 
                          <div className="rounded-lg border border-gray-800 bg-[#0b1220] p-3 overflow-hidden relative">
-                          <svg
+                         <svg
                               ref={traceSvgRef}
                               viewBox={'0 0 ' + directorFingerprintData.size + ' ' + directorFingerprintData.size}
-                              className="w-full h-auto max-h-[840px]"
+                              className={`w-full h-auto ${traceFullscreen ? 'max-h-[86vh]' : 'max-h-[840px]'}`}
                              role="img"
                              aria-label="Director Fingerprint generative poster"
                              onWheel={(event) => {
