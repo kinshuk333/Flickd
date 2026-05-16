@@ -259,6 +259,7 @@ export default function App() {
   const [membersRetryNonce, setMembersRetryNonce] = useState(0);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
+  const [mobileTopNavOpen, setMobileTopNavOpen] = useState(false);
   const [membersSearchQuery, setMembersSearchQuery] = useState('');
   const [followingSearchQuery, setFollowingSearchQuery] = useState('');
   const [followersSearchQuery, setFollowersSearchQuery] = useState('');
@@ -5561,7 +5562,7 @@ const [user, setUser] = useState(null);
       <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-3 sm:py-6 h-full flex flex-col">
         <div className="md:fixed md:top-0 md:left-1/2 md:-translate-x-1/2 z-50 w-full max-w-7xl px-3 sm:px-5 lg:px-8 pt-2 sm:pt-3 pb-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
             <div className="rounded-2xl border border-gray-700 bg-[#0f172a]/95 px-4 py-3 backdrop-blur w-full">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <img
                     src="/flickd-wordmark.png"
@@ -5569,7 +5570,17 @@ const [user, setUser] = useState(null);
                     className="h-9 w-auto object-contain"
                   />
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 md:overflow-visible md:pb-0 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setMobileTopNavOpen((prev) => !prev)}
+                  className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-[#1f2937]"
+                  aria-label="Toggle menu"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <div className="hidden md:flex gap-2 overflow-x-auto pb-1 md:overflow-visible md:pb-0 whitespace-nowrap">
                   <button
                     type="button"
                     onClick={() => { if (memberViewUserId) exitMemberDashboard(); handleTabChange('overview'); }}
@@ -5651,6 +5662,86 @@ const [user, setUser] = useState(null);
                   )}
                 </div>
               </div>
+              {mobileTopNavOpen && (
+                <div className="md:hidden mt-3 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (memberViewUserId) exitMemberDashboard();
+                      handleTabChange('overview');
+                      setMobileTopNavOpen(false);
+                    }}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                      isHomeActive
+                        ? 'bg-blue-600 text-white border-blue-500'
+                        : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
+                    }`}
+                  >
+                    Home
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { handleTabChange('members'); setMobileTopNavOpen(false); }}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                      isMembersTopActive
+                        ? 'bg-blue-600 text-white border-blue-500'
+                        : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
+                    }`}
+                  >
+                    Members
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { handleTabChange('following'); setMobileTopNavOpen(false); }}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                      activeTab === 'following'
+                        ? 'bg-blue-600 text-white border-blue-500'
+                        : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
+                    }`}
+                  >
+                    Following
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { handleTabChange('followers'); setMobileTopNavOpen(false); }}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                      activeTab === 'followers'
+                        ? 'bg-blue-600 text-white border-blue-500'
+                        : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
+                    }`}
+                  >
+                    Followers {newFollowersList.length > 0 ? `(${newFollowersList.length} new)` : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { handleTabChange('settings'); setMobileTopNavOpen(false); }}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                      activeTab === 'settings'
+                        ? 'bg-blue-600 text-white border-blue-500'
+                        : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
+                    }`}
+                  >
+                    Settings
+                  </button>
+                  <button
+                    onClick={() => { handleDownloadPdfBook(); setMobileTopNavOpen(false); }}
+                    disabled={isBookExporting}
+                    className="px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-left"
+                  >
+                    {isBookExporting ? 'Preparing PDF Book...' : 'Download'}
+                  </button>
+                  {user && (
+                    <button
+                      type="button"
+                      onClick={() => { handleSignOut(); setMobileTopNavOpen(false); }}
+                      disabled={signingOut}
+                      className="px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] disabled:opacity-60 disabled:cursor-not-allowed text-left"
+                    >
+                      {signingOut ? 'Signing Out...' : 'Sign Out'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
         </div>
         <div className="hidden md:block" style={{ height: '96px' }} />
