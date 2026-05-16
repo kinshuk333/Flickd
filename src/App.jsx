@@ -1056,6 +1056,62 @@ const [user, setUser] = useState(null);
     return `title:${safeTitle}|${Number(year) || ''}`;
   };
 
+  const syncDatasetToMemberProfile = async (rows = []) => {
+    if (!user?.id) return;
+    try {
+      const safeRows = Array.isArray(rows) ? rows : [];
+      const avgYourRating = safeRows.length
+        ? safeRows.reduce((sum, row) => sum + (Number(row?.yourRating) || 0), 0) / safeRows.length
+        : 0;
+
+      const genreCount = {};
+      safeRows.forEach((row) => {
+        String(row?.genres || '')
+          .split(',')
+          .map((g) => g.trim())
+          .filter(Boolean)
+          .forEach((genre) => {
+            genreCount[genre] = (genreCount[genre] || 0) + 1;
+          });
+      });
+      const mostRatedGenre = Object.keys(genreCount).sort((a, b) => genreCount[b] - genreCount[a])[0] || 'N/A';
+
+      const baseSnapshot = currentMemberSnapshot && typeof currentMemberSnapshot === 'object'
+        ? currentMemberSnapshot
+        : (minimalMemberSnapshot && typeof minimalMemberSnapshot === 'object' ? minimalMemberSnapshot : {});
+
+      const updatedAt = new Date().toISOString();
+      const snapshot = toPublicMemberSnapshot({
+        ...baseSnapshot,
+        stats: {
+          totalFilms: safeRows.length,
+          avgYourRating: Number(avgYourRating || 0),
+          mostRatedGenre,
+        },
+        dataset: toShareableRows(safeRows),
+        updatedAt,
+      });
+
+      const payload = {
+        user_id: user.id,
+        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Member',
+        email: user.email || null,
+        avatar_url: user.user_metadata?.avatar_url || null,
+        snapshot,
+        updated_at: updatedAt,
+      };
+
+      const { error } = await supabase
+        .from('member_profiles')
+        .upsert(payload, { onConflict: 'user_id' });
+      if (error) {
+        console.error('member_profiles upsert failed (dataset sync):', error);
+      }
+    } catch (e) {
+      console.error('Dataset cloud sync failed:', e);
+    }
+  };
+
   const fetchOmdbWithFallback = async (buildUrlForKey) => {
     const availableKeys = OMDB_API_KEYS.filter((k) => !invalidOmdbKeysRef.current.has(k));
     const keys = availableKeys.length ? availableKeys : OMDB_API_KEYS;
@@ -1355,6 +1411,7 @@ const [user, setUser] = useState(null);
       setFileName(file.name);
       setLoadedFromCache(false);
       persistDataset(parsed, file.name);
+      syncDatasetToMemberProfile(parsed);
       setHiddenGemsPage(1);
       setHiddenTreasuresPage(1);
       setWatchedPage(1);
@@ -1391,6 +1448,7 @@ const [user, setUser] = useState(null);
     setHoveredMapCountry(null);
     setMapTooltip(null);
     setActiveTab('overview');
+    syncDatasetToMemberProfile([]);
   };
   const parseExcelDate = (excelDate) => {
     if (!excelDate) return null;
@@ -5500,8 +5558,8 @@ const [user, setUser] = useState(null);
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 h-full flex flex-col">
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-3 pb-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-3 sm:py-6 h-full flex flex-col">
+        <div className="md:fixed md:top-0 md:left-1/2 md:-translate-x-1/2 z-50 w-full max-w-7xl px-3 sm:px-5 lg:px-8 pt-2 sm:pt-3 pb-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
             <div className="rounded-2xl border border-gray-700 bg-[#0f172a]/95 px-4 py-3 backdrop-blur w-full">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3">
@@ -5511,7 +5569,7 @@ const [user, setUser] = useState(null);
                     className="h-9 w-auto object-contain"
                   />
                 </div>
-                <div className="flex flex-wrap gap-2 overflow-hidden">
+                <div className="flex gap-2 overflow-x-auto pb-1 md:overflow-visible md:pb-0 whitespace-nowrap">
                   <button
                     type="button"
                     onClick={() => { if (memberViewUserId) exitMemberDashboard(); handleTabChange('overview'); }}
@@ -5595,7 +5653,7 @@ const [user, setUser] = useState(null);
               </div>
             </div>
         </div>
-        <div style={{ height: '96px' }} />
+        <div className="hidden md:block" style={{ height: '96px' }} />
 
         {(!fetchingCountries && data && stats) ? (
 
@@ -5767,11 +5825,11 @@ const [user, setUser] = useState(null);
               </div>
             )}
 
-          <div className={`mt-0 grid grid-cols-1 ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? '' : 'lg:grid-cols-[320px_1fr]'} gap-4`}>
+          <div className={`mt-2 md:mt-0 grid grid-cols-1 ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? '' : 'lg:grid-cols-[320px_1fr]'} gap-3 sm:gap-4`}>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <>
                 <div className="hidden lg:block w-[320px]" />
-                <aside className="lg:hidden bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-6 space-y-4 overflow-hidden flex flex-col h-[768px] pointer-events-auto">
+                <aside className="lg:hidden bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 space-y-4 overflow-hidden flex flex-col h-auto pointer-events-auto">
                   <div className="flex flex-col items-center text-center">
                     {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                       <img
@@ -5868,14 +5926,14 @@ const [user, setUser] = useState(null);
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
                   <div className="h-[64px] lg:hidden" />
-                  <div className="lg:hidden rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-3 backdrop-blur">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <nav className="flex flex-wrap gap-2 w-full lg:w-auto">
+                  <div className="lg:hidden rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-2 backdrop-blur">
+                    <div className="flex items-center justify-between gap-2">
+                      <nav className="flex gap-2 w-full overflow-x-auto pb-1 whitespace-nowrap">
                         {navItems.map((tab) => (
                           <button
                             key={tab.id}
                             onClick={() => handleTabChange(tab.id)}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                            className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all shrink-0 ${
                               activeTab === tab.id
                                 ? 'bg-blue-600 text-white shadow-md border-blue-500/40 hover:bg-blue-700'
                                 : 'text-gray-300 bg-[#111827] border-gray-700 hover:bg-[#1f2937] hover:border-gray-500 hover:text-gray-100'
@@ -5889,7 +5947,7 @@ const [user, setUser] = useState(null);
                   </div>
                 </>
               )}
-              <div className="space-y-5 pb-6 pt-2">
+              <div className="space-y-4 sm:space-y-5 pb-6 pt-3 sm:pt-2">
               {activeTab === 'overview' && (
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
