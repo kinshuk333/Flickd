@@ -7709,8 +7709,13 @@ const [user, setUser] = useState(null);
                       </div>
                     </div>
 
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-3">
-                      <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden">
+                    <div
+                      className="bg-[#111827] border border-gray-800 rounded-xl p-3"
+                      style={timelineFullscreen ? { height: 'calc(100vh - 210px)' } : undefined}
+                    >
+                      <div
+                        className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full"
+                      >
                         <div className="absolute left-0 top-0 bottom-0 z-20 w-24 border-r border-gray-800/80 bg-[#050811]/95 backdrop-blur-sm">
                           <span className="absolute top-[14%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
                           <span className="absolute top-[42%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
@@ -7719,8 +7724,11 @@ const [user, setUser] = useState(null);
 
                         <div
                           ref={tasteTimelineRef}
-                          className="cinematic-rail overflow-x-auto scroll-smooth"
-                          style={{ overscrollBehavior: 'contain', cursor: timelineDragging ? 'grabbing' : 'grab' }}
+                          className="cinematic-rail overflow-x-auto overflow-y-hidden scroll-smooth flex-1 min-h-0"
+                          style={{
+                            overscrollBehavior: 'contain',
+                            cursor: timelineDragging ? 'grabbing' : 'grab',
+                          }}
                           onWheelCapture={onTimelineWheelCapture}
                           onScroll={onTimelineRailScroll}
                           onMouseDown={onTimelineMouseDown}
@@ -7736,7 +7744,7 @@ const [user, setUser] = useState(null);
                             style={{
                               minWidth: `${timelineRailWidth}px`,
                               minHeight: `${Math.max(
-                                timelineFullscreen ? window.innerHeight * 0.76 : 520,
+                                timelineFullscreen ? 520 : 520,
                                 230 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 4))
                               )}px`,
                             }}
@@ -7829,7 +7837,7 @@ const [user, setUser] = useState(null);
 
                           </div>
                         </div>
-                        <div className="border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm px-3 py-1">
+                        <div className="border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm px-3 py-1 shrink-0">
                           <div
                             className="flex gap-4"
                             style={{
