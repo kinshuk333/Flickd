@@ -3402,10 +3402,35 @@ const [user, setUser] = useState(null);
 
   const timelineMovies = React.useMemo(() => {
     if (!Array.isArray(data) || !data.length) return [];
-    const source = data
-      .filter((m) => Number(m?.year) >= 1900 && Number(m?.year) <= 2035 && String(m?.title || '').trim())
-      .sort((a, b) => (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) || (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0))
-      .slice(0, 220)
+    const candidates = data
+      .filter((m) => Number(m?.year) >= 1900 && Number(m?.year) <= 2035 && String(m?.title || '').trim());
+
+    // Keep timeline readable: no more than 5 films per release year.
+    const byYear = new Map();
+    candidates.forEach((m) => {
+      const y = Number(m?.year) || 0;
+      if (!byYear.has(y)) byYear.set(y, []);
+      byYear.get(y).push(m);
+    });
+
+    const cappedPerYear = [];
+    byYear.forEach((films) => {
+      films
+        .sort((a, b) =>
+          (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) ||
+          (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0)
+        )
+        .slice(0, 5)
+        .forEach((m) => cappedPerYear.push(m));
+    });
+
+    // Render only top 100 films overall.
+    const source = cappedPerYear
+      .sort((a, b) =>
+        (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) ||
+        (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0)
+      )
+      .slice(0, 100)
       .map((m) => {
         const styleScore = timelineStyleScore(m);
         return {
@@ -3452,7 +3477,7 @@ const [user, setUser] = useState(null);
         bucketCount[key] = inYearIndex + 1;
         const localX = ((year - decade) / 9) * 100;
         const baseY = 50 - movie.styleScore * 38;
-        const spread = ((inYearIndex % 5) - 2) * 5 + (Math.floor(inYearIndex / 5) % 2 ? 2.5 : -2.5);
+        const spread = ((inYearIndex % 5) - 2) * 4;
         const y = Math.max(7, Math.min(93, baseY + spread));
         return {
           ...movie,
@@ -7411,10 +7436,10 @@ const [user, setUser] = useState(null);
                                     onClick={() => handleMovieClick(movie)}
                                     onMouseEnter={() => setTimelineHoverKey(hoverKey)}
                                     onMouseLeave={() => setTimelineHoverKey(null)}
-                                    className={`absolute w-[72px] sm:w-[78px] transition-all duration-150 ${isHovered ? 'z-20 scale-[1.08]' : 'z-10'} ${faded ? 'opacity-60' : 'opacity-100'}`}
+                                    className={`absolute w-[56px] sm:w-[62px] transition-all duration-150 ${isHovered ? 'z-20 scale-[1.08]' : 'z-10'} ${faded ? 'opacity-60' : 'opacity-100'}`}
                                       style={{
                                         left: `calc(14% + ${movie.localX * 0.8}%)`,
-                                        top: `calc(${movie.y}% - 58px)`,
+                                        top: `calc(${movie.y}% - 46px)`,
                                         boxShadow: isHovered ? '0 8px 20px rgba(37,99,235,.32)' : 'none',
                                     }}
                                   >
@@ -7423,11 +7448,11 @@ const [user, setUser] = useState(null);
                                         src={posters[posterKey]}
                                         alt={movie.title}
                                         loading="lazy"
-                                        className="w-full h-[108px] sm:h-[116px] object-cover rounded-md border border-gray-700"
+                                        className="w-full h-[86px] sm:h-[94px] object-cover rounded-md border border-gray-700"
                                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                       />
                                     ) : (
-                                      <div className="w-full h-[108px] sm:h-[116px] rounded-md border border-gray-700 bg-[#1f2937] text-[10px] text-gray-500 flex items-center justify-center">
+                                      <div className="w-full h-[86px] sm:h-[94px] rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center">
                                         Poster
                                       </div>
                                     )}
