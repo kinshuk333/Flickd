@@ -211,7 +211,6 @@ export default function App() {
   const [timelineDragging, setTimelineDragging] = useState(false);
   const [timelineFullscreen, setTimelineFullscreen] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
-  const [expandedTimelineYears, setExpandedTimelineYears] = useState({});
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [traceFullscreen, setTraceFullscreen] = useState(false);
   const [expandedDecades, setExpandedDecades] = useState([]);
@@ -3483,7 +3482,6 @@ const [user, setUser] = useState(null);
       const style = Number(movie?.styleScore || 0);
       let lane = 'Hybrid';
       if (style >= 0.42) lane = 'Mainstream';
-      else if (style <= -0.62) lane = 'Experimental';
       else if (style <= -0.18) lane = 'Arthouse';
 
       map.get(year).push({
@@ -3498,15 +3496,29 @@ const [user, setUser] = useState(null);
         (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) ||
         (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0)
       );
+      const cappedFilms = films.slice(0, 10);
       const lanes = {
-        Mainstream: films.filter((f) => f.lane === 'Mainstream'),
-        Hybrid: films.filter((f) => f.lane === 'Hybrid'),
-        Arthouse: films.filter((f) => f.lane === 'Arthouse'),
-        Experimental: films.filter((f) => f.lane === 'Experimental'),
+        Mainstream: cappedFilms.filter((f) => f.lane === 'Mainstream'),
+        Hybrid: cappedFilms.filter((f) => f.lane === 'Hybrid'),
+        Arthouse: cappedFilms.filter((f) => f.lane === 'Arthouse'),
       };
-      return { year, films, lanes };
+      return { year, films: cappedFilms, lanes };
     });
   }, [timelineMovies, timelineStartYear, timelineEndYear]);
+
+  const timelineMaxLaneCount = React.useMemo(() => {
+    if (!timelineYearClusters.length) return 1;
+    let maxCount = 1;
+    timelineYearClusters.forEach((cluster) => {
+      maxCount = Math.max(
+        maxCount,
+        cluster?.lanes?.Mainstream?.length || 0,
+        cluster?.lanes?.Hybrid?.length || 0,
+        cluster?.lanes?.Arthouse?.length || 0
+      );
+    });
+    return maxCount;
+  }, [timelineYearClusters]);
 
   const timelineRelated = React.useMemo(() => {
     if (!timelineHoverKey) return new Set();
@@ -7650,10 +7662,9 @@ const [user, setUser] = useState(null);
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-3">
                       <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 z-20 w-24 border-r border-gray-800/80 bg-[#050811]/95 backdrop-blur-sm">
-                          <span className="absolute top-[10%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
-                          <span className="absolute top-[35%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
-                          <span className="absolute top-[60%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
-                          <span className="absolute top-[84%] left-3 text-[10px] text-gray-500 tracking-wide uppercase">Experimental</span>
+                          <span className="absolute top-[14%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
+                          <span className="absolute top-[42%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
+                          <span className="absolute top-[70%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
                         </div>
 
                         <div
@@ -7671,58 +7682,87 @@ const [user, setUser] = useState(null);
                           }}
                         >
                           <div
-                            className={`relative ml-24 p-3 ${timelineFullscreen ? 'min-h-[76vh]' : 'min-h-[520px]'}`}
+                            className={`relative ml-24 p-3`}
                             style={{
                               minWidth: `${Math.max(1200, timelineYearClusters.length * Math.round(95 * timelineZoom))}px`,
+                              minHeight: `${Math.max(
+                                timelineFullscreen ? window.innerHeight * 0.76 : 520,
+                                230 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 4))
+                              )}px`,
                             }}
                           >
                             <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              {timelineYearClusters.map((cluster, i) => {
-                                const x = 12 + (i * (92 * timelineZoom)) + 36;
-                                const isDecade = cluster.year % 10 === 0;
-                                return (
-                                  <g key={`grid-year-${cluster.year}`}>
-                                    <line
-                                      x1={x}
-                                      y1="0"
-                                      x2={x}
-                                      y2="100%"
-                                      stroke={isDecade ? 'rgba(96,165,250,0.18)' : 'rgba(71,85,105,0.16)'}
-                                      strokeDasharray={isDecade ? '2 2' : '1 4'}
-                                    />
-                                  </g>
-                                );
-                              })}
                               <path d="M0 20% C15% 14%, 35% 22%, 50% 18% C65% 14%, 85% 24%, 100% 19%" stroke="rgba(96,165,250,0.14)" fill="none" />
                               <path d="M0 62% C20% 58%, 40% 70%, 60% 64% C78% 60%, 92% 72%, 100% 66%" stroke="rgba(147,51,234,0.12)" fill="none" />
                             </svg>
 
-                            <div className="absolute inset-x-3 top-[20%] border-t border-gray-700/40" />
-                            <div className="absolute inset-x-3 top-[45%] border-t border-gray-700/40" />
-                            <div className="absolute inset-x-3 top-[70%] border-t border-gray-700/40" />
+                            <div className="absolute inset-x-3 top-[28%] border-t border-gray-700/40" />
+                            <div className="absolute inset-x-3 top-[56%] border-t border-gray-700/40" />
 
                             <div className="relative z-10 flex gap-4">
                               {timelineYearClusters.map((cluster) => {
-                                const visibleCount = expandedTimelineYears[cluster.year] ? 5 : 3;
-                                const topCount = cluster.films.length;
-                                const moreCount = Math.max(0, topCount - visibleCount);
-                                const columnWidth = Math.max(78, Math.round(84 * timelineZoom));
-                                const posterW = Math.max(44, Math.round(50 * timelineZoom));
-                                const posterH = Math.max(64, Math.round(74 * timelineZoom));
+                                const posterW = Math.max(36, Math.round(42 * timelineZoom));
+                                const posterH = Math.max(52, Math.round(60 * timelineZoom));
 
                                 const laneRows = [
-                                  { lane: 'Mainstream', top: '4%' },
-                                  { lane: 'Hybrid', top: '28%' },
-                                  { lane: 'Arthouse', top: '52%' },
-                                  { lane: 'Experimental', top: '76%' },
+                                  { lane: 'Mainstream', top: '8%' },
+                                  { lane: 'Hybrid', top: '36%' },
+                                  { lane: 'Arthouse', top: '64%' },
                                 ];
+                                const columnWidth = Math.max(78, Math.round(84 * timelineZoom));
 
                                 return (
                                   <div
                                     key={`year-cluster-${cluster.year}`}
-                                    className="relative shrink-0"
+                                    className="relative shrink-0 border-l border-gray-800/40"
                                     style={{ width: `${columnWidth}px` }}
                                   >
+                                    <div className="pt-2 pb-5 flex flex-col gap-3">
+                                      {laneRows.map((laneRow) => {
+                                        const laneFilms = cluster.lanes?.[laneRow.lane] || [];
+                                        return (
+                                          <div key={`${cluster.year}-${laneRow.lane}`} className="min-h-[68px] flex justify-center">
+                                            <div className="space-y-0.5">
+                                              {laneFilms.map((movie) => {
+                                                const posterKey = `${movie.title}_${movie.year}`;
+                                                const hoverKey = movie.timelineKey;
+                                                const isHovered = timelineHoverKey === hoverKey;
+                                                const isRelated = timelineRelated.has(hoverKey);
+                                                const faded = timelineHoverKey && !isHovered && !isRelated;
+                                                const primary = Number(movie?.yourRating || 0) >= 9;
+                                                return (
+                                                  <button
+                                                    key={hoverKey}
+                                                    type="button"
+                                                    onClick={() => handleMovieClick(movie)}
+                                                    onMouseEnter={() => setTimelineHoverKey(hoverKey)}
+                                                    onMouseLeave={() => setTimelineHoverKey(null)}
+                                                    className={`group block rounded-md transition-all duration-200 ${faded ? 'opacity-55 grayscale-[0.2]' : primary ? 'opacity-100' : 'opacity-85'} ${isHovered ? 'scale-[1.07] shadow-[0_0_0_1px_rgba(59,130,246,0.65),0_0_24px_rgba(59,130,246,0.25)]' : ''}`}
+                                                    style={{ width: `${posterW}px` }}
+                                                  >
+                                                    {posters[posterKey] ? (
+                                                      <img
+                                                        src={posters[posterKey]}
+                                                        alt={movie.title}
+                                                        loading="lazy"
+                                                        className="w-full object-cover rounded-md border border-gray-700"
+                                                        style={{ height: `${posterH}px` }}
+                                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                      />
+                                                    ) : (
+                                                      <div className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center" style={{ height: `${posterH}px` }}>
+                                                        Poster
+                                                      </div>
+                                                    )}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+
                                     <div
                                       className={`absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] ${
                                         cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'
@@ -7731,71 +7771,9 @@ const [user, setUser] = useState(null);
                                       {cluster.year}
                                     </div>
 
-                                    {laneRows.map((laneRow) => {
-                                      const laneFilms = (cluster.lanes?.[laneRow.lane] || []).slice(0, visibleCount);
-                                      return (
-                                        <div key={`${cluster.year}-${laneRow.lane}`} className="absolute left-1/2 -translate-x-1/2" style={{ top: laneRow.top, width: `${posterW}px` }}>
-                                          <div className="space-y-2">
-                                            {laneFilms.map((movie) => {
-                                              const posterKey = `${movie.title}_${movie.year}`;
-                                              const hoverKey = movie.timelineKey;
-                                              const isHovered = timelineHoverKey === hoverKey;
-                                              const isRelated = timelineRelated.has(hoverKey);
-                                              const faded = timelineHoverKey && !isHovered && !isRelated;
-                                              const primary = Number(movie?.yourRating || 0) >= 9;
-                                              return (
-                                                <button
-                                                  key={hoverKey}
-                                                  type="button"
-                                                  onClick={() => handleMovieClick(movie)}
-                                                  onMouseEnter={() => setTimelineHoverKey(hoverKey)}
-                                                  onMouseLeave={() => setTimelineHoverKey(null)}
-                                                  className={`group block rounded-md transition-all duration-200 ${faded ? 'opacity-55 grayscale-[0.2]' : primary ? 'opacity-100' : 'opacity-85'} ${isHovered ? 'scale-[1.07] shadow-[0_0_0_1px_rgba(59,130,246,0.65),0_0_24px_rgba(59,130,246,0.25)]' : ''}`}
-                                                  style={{ width: `${posterW}px` }}
-                                                >
-                                                  {posters[posterKey] ? (
-                                                    <img
-                                                      src={posters[posterKey]}
-                                                      alt={movie.title}
-                                                      loading="lazy"
-                                                      className="w-full object-cover rounded-md border border-gray-700"
-                                                      style={{ height: `${posterH}px` }}
-                                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                                    />
-                                                  ) : (
-                                                    <div className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center" style={{ height: `${posterH}px` }}>
-                                                      Poster
-                                                    </div>
-                                                  )}
-                                                  <div className={`mt-1 text-left transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-                                                    <p className="text-[10px] text-white truncate">{movie.title}</p>
-                                                    <p className="text-[9px] text-blue-300">{movie.year}</p>
-                                                  </div>
-                                                </button>
-                                              );
-                                            })}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-
-                                    {moreCount > 0 && (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setExpandedTimelineYears((prev) => ({
-                                            ...prev,
-                                            [cluster.year]: !prev[cluster.year],
-                                          }))
-                                        }
-                                        className="absolute left-1/2 -translate-x-1/2 bottom-7 px-2 py-0.5 rounded-full border border-gray-700 bg-[#0b1220] text-[10px] text-gray-300 hover:bg-[#1f2937]"
-                                      >
-                                        {expandedTimelineYears[cluster.year] ? 'Show less' : `+${moreCount} more`}
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                    </div>
+                                  );
+                                })}
                             </div>
                           </div>
                         </div>
