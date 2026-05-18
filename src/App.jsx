@@ -3433,36 +3433,12 @@ const [user, setUser] = useState(null);
   };
 
   const timelineMovies = React.useMemo(() => {
-    if (!Array.isArray(data) || !data.length) return [];
-    const candidates = data
-      .filter((m) => Number(m?.year) >= 1900 && Number(m?.year) <= 2035 && String(m?.title || '').trim());
+    const favoritesByYear = getFavoriteFilmPerYear();
+    if (!Array.isArray(favoritesByYear) || !favoritesByYear.length) return [];
 
-    // Keep timeline readable: no more than 5 films per release year.
-    const byYear = new Map();
-    candidates.forEach((m) => {
-      const y = Number(m?.year) || 0;
-      if (!byYear.has(y)) byYear.set(y, []);
-      byYear.get(y).push(m);
-    });
-
-    const cappedPerYear = [];
-    byYear.forEach((films) => {
-      films
-        .sort((a, b) =>
-          (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) ||
-          (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0)
-        )
-        .slice(0, 5)
-        .forEach((m) => cappedPerYear.push(m));
-    });
-
-    // Render only top 100 films overall.
-    const source = cappedPerYear
-      .sort((a, b) =>
-        (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) ||
-        (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0)
-      )
-      .slice(0, 150)
+    const source = favoritesByYear
+      .flatMap((yearGroup) => yearGroup?.films || [])
+      .filter((m) => Number(m?.year) >= 1900 && Number(m?.year) <= 2035 && String(m?.title || '').trim())
       .map((m) => {
         const styleScore = timelineStyleScore(m);
         return {
@@ -7730,7 +7706,6 @@ const [user, setUser] = useState(null);
                                 const visibleCount = expandedTimelineYears[cluster.year] ? 5 : 3;
                                 const topCount = cluster.films.length;
                                 const moreCount = Math.max(0, topCount - visibleCount);
-                                const decadeLabel = cluster.year % 10 === 0;
                                 const columnWidth = Math.max(78, Math.round(84 * timelineZoom));
                                 const posterW = Math.max(44, Math.round(50 * timelineZoom));
                                 const posterH = Math.max(64, Math.round(74 * timelineZoom));
@@ -7748,12 +7723,13 @@ const [user, setUser] = useState(null);
                                     className="relative shrink-0"
                                     style={{ width: `${columnWidth}px` }}
                                   >
-                                    {decadeLabel && (
-                                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] text-blue-300 font-semibold">
-                                        {cluster.year}s
-                                      </div>
-                                    )}
-                                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-gray-500">{cluster.year}</div>
+                                    <div
+                                      className={`absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] ${
+                                        cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'
+                                      }`}
+                                    >
+                                      {cluster.year}
+                                    </div>
 
                                     {laneRows.map((laneRow) => {
                                       const laneFilms = (cluster.lanes?.[laneRow.lane] || []).slice(0, visibleCount);
