@@ -211,6 +211,7 @@ export default function App() {
   const [timelineDragging, setTimelineDragging] = useState(false);
   const [timelineFullscreen, setTimelineFullscreen] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [expandedTimelineYears, setExpandedTimelineYears] = useState({});
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [traceFullscreen, setTraceFullscreen] = useState(false);
   const [expandedDecades, setExpandedDecades] = useState([]);
@@ -309,8 +310,6 @@ export default function App() {
   const tasteTimelineRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
   const tasteTimelineDragStartRef = React.useRef({ x: 0, left: 0 });
-  const timelinePanelLoadRafRef = React.useRef(null);
-  const timelineLastLoadedPanelRef = React.useRef(-1);
   const posterLoadInFlightRef = React.useRef(new Set());
   const posterFailedAtRef = React.useRef({});
   const omdbCacheAvailableRef = React.useRef(true);
@@ -3493,63 +3492,60 @@ const [user, setUser] = useState(null);
     return Math.max(2029, maxYear);
   }, [timelineMovies]);
 
-  const timelineDecades = React.useMemo(() => {
-    const list = [];
-    for (let d = timelineStartYear; d <= timelineEndYear; d += 10) list.push(d);
-    return list;
-  }, [timelineStartYear, timelineEndYear]);
+  const timelineYearClusters = React.useMemo(() => {
+    if (!timelineMovies.length) return [];
+    const years = [];
+    const map = new Map();
+    for (let y = timelineStartYear; y <= timelineEndYear; y += 1) {
+      map.set(y, []);
+      years.push(y);
+    }
 
-  const timelineDecadePanels = React.useMemo(() => {
-    return timelineDecades.map((decade) => {
-      const films = timelineMovies.filter((m) => Number(m.year) >= decade && Number(m.year) <= decade + 9);
-      const bucketCount = {};
-      const plotted = films.map((movie) => {
-        const year = Number(movie.year) || decade;
-        const key = String(year);
-        const inYearIndex = bucketCount[key] || 0;
-        bucketCount[key] = inYearIndex + 1;
-        const localX = ((year - decade) / 9) * 100;
-        const baseY = 50 - movie.styleScore * 38;
-        const spread = ((inYearIndex % 5) - 2) * 4;
-        const y = Math.max(7, Math.min(93, baseY + spread));
-        return {
-          ...movie,
-          localX,
-          y,
-          key: `${movie.title}_${movie.year}_${inYearIndex}`,
-        };
+    timelineMovies.forEach((movie, idx) => {
+      const year = Number(movie?.year) || timelineStartYear;
+      if (!map.has(year)) return;
+      const style = Number(movie?.styleScore || 0);
+      let lane = 'Hybrid';
+      if (style >= 0.42) lane = 'Mainstream';
+      else if (style <= -0.62) lane = 'Experimental';
+      else if (style <= -0.18) lane = 'Arthouse';
+
+      map.get(year).push({
+        ...movie,
+        lane,
+        timelineKey: `${String(movie?.title || '').toLowerCase()}_${year}_${idx}`,
       });
-      return { decade, films: plotted };
     });
-  }, [timelineDecades, timelineMovies]);
+
+    return years.map((year) => {
+      const films = (map.get(year) || []).sort((a, b) =>
+        (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) ||
+        (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0)
+      );
+      const lanes = {
+        Mainstream: films.filter((f) => f.lane === 'Mainstream'),
+        Hybrid: films.filter((f) => f.lane === 'Hybrid'),
+        Arthouse: films.filter((f) => f.lane === 'Arthouse'),
+        Experimental: films.filter((f) => f.lane === 'Experimental'),
+      };
+      return { year, films, lanes };
+    });
+  }, [timelineMovies, timelineStartYear, timelineEndYear]);
 
   const timelineRelated = React.useMemo(() => {
     if (!timelineHoverKey) return new Set();
-    const active = timelineMovies.find((m) => `${m.title}_${m.year}` === timelineHoverKey);
+    const active = timelineMovies.find((m, idx) => `${String(m?.title || '').toLowerCase()}_${Number(m?.year) || 0}_${idx}` === timelineHoverKey);
     if (!active) return new Set();
     const activeYear = Number(active.year) || 0;
     const activeScore = Number(active.styleScore) || 0;
-    return new Set(
-      timelineMovies
-        .filter((m) => Math.abs((Number(m.year) || 0) - activeYear) <= 2 && Math.abs((Number(m.styleScore) || 0) - activeScore) <= 0.3)
-        .map((m) => `${m.title}_${m.year}`)
-    );
-  }, [timelineHoverKey, timelineMovies]);
-
-  const loadTimelinePanelPosters = (panelIndex) => {
-    if (!timelineDecadePanels.length) return;
-    const safeIndex = Math.max(0, Math.min(timelineDecadePanels.length - 1, panelIndex));
-    const indices = [safeIndex - 1, safeIndex, safeIndex + 1]
-      .filter((idx) => idx >= 0 && idx < timelineDecadePanels.length);
-    const films = [];
-    indices.forEach((idx) => {
-      const panelFilms = timelineDecadePanels[idx]?.films || [];
-      panelFilms.forEach((film) => films.push(film));
+    const rel = new Set();
+    timelineMovies.forEach((m, idx) => {
+      if (Math.abs((Number(m.year) || 0) - activeYear) <= 2 && Math.abs((Number(m.styleScore) || 0) - activeScore) <= 0.3) {
+        rel.add(`${String(m?.title || '').toLowerCase()}_${Number(m?.year) || 0}_${idx}`);
+      }
     });
-    if (films.length) {
-      loadPostersForFilms(films.slice(0, 120));
-    }
-  };
+    return rel;
+  }, [timelineHoverKey, timelineMovies]);
 
   const worldFeatures = Array.isArray(worldGeoJson?.features) ? worldGeoJson.features : [];
   const mapFeatures = worldFeatures.filter((feature) => {
@@ -4824,29 +4820,8 @@ const [user, setUser] = useState(null);
 
   React.useEffect(() => {
     if (activeTab !== 'tastetimeline' || !timelineMovies.length) return;
-    timelineLastLoadedPanelRef.current = -1;
-    loadPostersForFilms(timelineMovies.slice(0, 80));
-    requestAnimationFrame(() => {
-      const el = tasteTimelineRef.current;
-      if (!el || !timelineDecadePanels.length) return;
-      const panelIndex = Math.max(
-        0,
-        Math.min(
-          timelineDecadePanels.length - 1,
-          Math.round(el.scrollLeft / Math.max(1, el.clientWidth))
-        )
-      );
-      timelineLastLoadedPanelRef.current = panelIndex;
-      loadTimelinePanelPosters(panelIndex);
-    });
+    loadPostersForFilms(timelineMovies.slice(0, 150));
   }, [activeTab, timelineMovies]);
-
-  React.useEffect(() => () => {
-    if (timelinePanelLoadRafRef.current) {
-      cancelAnimationFrame(timelinePanelLoadRafRef.current);
-      timelinePanelLoadRafRef.current = null;
-    }
-  }, []);
 
   React.useEffect(() => {
     const onFullscreenChange = () => {
@@ -4924,23 +4899,7 @@ const [user, setUser] = useState(null);
   };
 
   const onTimelineRailScroll = () => {
-    const el = tasteTimelineRef.current;
-    if (!el || !timelineDecadePanels.length) return;
-    if (timelinePanelLoadRafRef.current) {
-      cancelAnimationFrame(timelinePanelLoadRafRef.current);
-    }
-    timelinePanelLoadRafRef.current = requestAnimationFrame(() => {
-      const panelWidth = Math.max(1, el.clientWidth);
-      const panelIndex = Math.max(
-        0,
-        Math.min(timelineDecadePanels.length - 1, Math.round(el.scrollLeft / panelWidth))
-      );
-      if (timelineLastLoadedPanelRef.current !== panelIndex) {
-        timelineLastLoadedPanelRef.current = panelIndex;
-        loadTimelinePanelPosters(panelIndex);
-      }
-      timelinePanelLoadRafRef.current = null;
-    });
+    // No-op; reserved for future lazy pagination in timeline rail.
   };
 
   const onTimelineMouseDown = (e) => {
@@ -7713,19 +7672,21 @@ const [user, setUser] = useState(null);
                     </div>
 
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-3">
-                      <div className="relative">
-                        <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-20 w-16 rounded-l-xl border-r border-gray-800/70 bg-[#050811]/90">
-                          <span className="absolute top-4 left-2 text-[10px] text-gray-400 tracking-wide uppercase">Mainstream</span>
-                          <span className="absolute top-1/2 left-2 -translate-y-1/2 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
-                          <span className="absolute bottom-6 left-2 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
+                      <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 z-20 w-24 border-r border-gray-800/80 bg-[#050811]/95 backdrop-blur-sm">
+                          <span className="absolute top-[10%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
+                          <span className="absolute top-[35%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
+                          <span className="absolute top-[60%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
+                          <span className="absolute top-[84%] left-3 text-[10px] text-gray-500 tracking-wide uppercase">Experimental</span>
                         </div>
-                          <div
-                            ref={tasteTimelineRef}
-                            className="cinematic-rail flex gap-0 overflow-x-auto scroll-smooth rounded-xl border border-gray-800 bg-[#050811]"
-                            style={{ overscrollBehavior: 'contain', cursor: timelineDragging ? 'grabbing' : 'grab' }}
-                            onWheelCapture={onTimelineWheelCapture}
-                            onScroll={onTimelineRailScroll}
-                            onMouseDown={onTimelineMouseDown}
+
+                        <div
+                          ref={tasteTimelineRef}
+                          className="cinematic-rail overflow-x-auto scroll-smooth"
+                          style={{ overscrollBehavior: 'contain', cursor: timelineDragging ? 'grabbing' : 'grab' }}
+                          onWheelCapture={onTimelineWheelCapture}
+                          onScroll={onTimelineRailScroll}
+                          onMouseDown={onTimelineMouseDown}
                           onMouseMove={onTimelineMouseMove}
                           onMouseUp={stopTimelineDrag}
                           onMouseLeave={() => {
@@ -7733,71 +7694,134 @@ const [user, setUser] = useState(null);
                             setTimelineHoverKey(null);
                           }}
                         >
-                            {timelineDecadePanels.map((panel) => (
-                            <section
-                              key={`timeline-decade-${panel.decade}`}
-                              className="min-w-[95vw] lg:min-w-[980px] xl:min-w-[1080px] px-3"
-                            >
-                                <div className={`relative overflow-hidden ${timelineFullscreen ? 'h-[78vh]' : 'h-[520px]'}`}>
-                                  <div className="absolute left-20 right-6 top-2 z-20 flex items-center justify-between">
-                                    <h3 className="text-sm font-semibold text-white">{panel.decade}s</h3>
-                                    <span className="text-[11px] text-gray-400">{panel.films.length} films</span>
-                                  </div>
-                                  <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-700/80" />
-                                  <div className="absolute left-20 right-6 bottom-2 flex justify-between text-[10px] text-gray-500">
-                                    {Array.from({ length: 10 }).map((_, idx) => (
-                                      <span key={`${panel.decade}-year-${idx}`}>{panel.decade + idx}</span>
-                                    ))}
-                                  </div>
-                              {panel.films.map((movie) => {
-                                const posterKey = `${movie.title}_${movie.year}`;
-                                const hoverKey = `${movie.title}_${movie.year}`;
-                                const isHovered = timelineHoverKey === hoverKey;
-                                const isRelated = timelineRelated.has(hoverKey);
-                                const faded = timelineHoverKey && !isHovered && !isRelated;
+                          <div
+                            className={`relative ml-24 p-3 ${timelineFullscreen ? 'min-h-[76vh]' : 'min-h-[520px]'}`}
+                            style={{
+                              minWidth: `${Math.max(1200, timelineYearClusters.length * Math.round(95 * timelineZoom))}px`,
+                            }}
+                          >
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                              {timelineYearClusters.map((cluster, i) => {
+                                const x = 12 + (i * (92 * timelineZoom)) + 36;
+                                const isDecade = cluster.year % 10 === 0;
                                 return (
-                                  <button
-                                    key={movie.key}
-                                    type="button"
-                                    onClick={() => handleMovieClick(movie)}
-                                    onMouseEnter={() => setTimelineHoverKey(hoverKey)}
-                                    onMouseLeave={() => setTimelineHoverKey(null)}
-                                    className={`absolute transition-all duration-150 ${isHovered ? 'z-20 scale-[1.08]' : 'z-10'} ${faded ? 'opacity-60' : 'opacity-100'}`}
-                                      style={{
-                                        left: `calc(14% + ${movie.localX * 0.8 * timelineZoom}%)`,
-                                        top: `calc(${movie.y}% - 46px)`,
-                                        width: `${Math.max(44, Math.round(56 * timelineZoom))}px`,
-                                        boxShadow: isHovered ? '0 8px 20px rgba(37,99,235,.32)' : 'none',
-                                    }}
+                                  <g key={`grid-year-${cluster.year}`}>
+                                    <line
+                                      x1={x}
+                                      y1="0"
+                                      x2={x}
+                                      y2="100%"
+                                      stroke={isDecade ? 'rgba(96,165,250,0.18)' : 'rgba(71,85,105,0.16)'}
+                                      strokeDasharray={isDecade ? '2 2' : '1 4'}
+                                    />
+                                  </g>
+                                );
+                              })}
+                              <path d="M0 20% C15% 14%, 35% 22%, 50% 18% C65% 14%, 85% 24%, 100% 19%" stroke="rgba(96,165,250,0.14)" fill="none" />
+                              <path d="M0 62% C20% 58%, 40% 70%, 60% 64% C78% 60%, 92% 72%, 100% 66%" stroke="rgba(147,51,234,0.12)" fill="none" />
+                            </svg>
+
+                            <div className="absolute inset-x-3 top-[20%] border-t border-gray-700/40" />
+                            <div className="absolute inset-x-3 top-[45%] border-t border-gray-700/40" />
+                            <div className="absolute inset-x-3 top-[70%] border-t border-gray-700/40" />
+
+                            <div className="relative z-10 flex gap-4">
+                              {timelineYearClusters.map((cluster) => {
+                                const visibleCount = expandedTimelineYears[cluster.year] ? 5 : 3;
+                                const topCount = cluster.films.length;
+                                const moreCount = Math.max(0, topCount - visibleCount);
+                                const decadeLabel = cluster.year % 10 === 0;
+                                const columnWidth = Math.max(78, Math.round(84 * timelineZoom));
+                                const posterW = Math.max(44, Math.round(50 * timelineZoom));
+                                const posterH = Math.max(64, Math.round(74 * timelineZoom));
+
+                                const laneRows = [
+                                  { lane: 'Mainstream', top: '4%' },
+                                  { lane: 'Hybrid', top: '28%' },
+                                  { lane: 'Arthouse', top: '52%' },
+                                  { lane: 'Experimental', top: '76%' },
+                                ];
+
+                                return (
+                                  <div
+                                    key={`year-cluster-${cluster.year}`}
+                                    className="relative shrink-0"
+                                    style={{ width: `${columnWidth}px` }}
                                   >
-                                    {posters[posterKey] ? (
-                                      <img
-                                        src={posters[posterKey]}
-                                        alt={movie.title}
-                                        loading="lazy"
-                                        className="w-full object-cover rounded-md border border-gray-700"
-                                        style={{ height: `${Math.max(68, Math.round(86 * timelineZoom))}px` }}
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
-                                    ) : (
-                                      <div
-                                        className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center"
-                                        style={{ height: `${Math.max(68, Math.round(86 * timelineZoom))}px` }}
-                                      >
-                                        Poster
+                                    {decadeLabel && (
+                                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] text-blue-300 font-semibold">
+                                        {cluster.year}s
                                       </div>
                                     )}
-                                    <div className={`mt-1 text-left ${isHovered ? 'opacity-100' : 'opacity-0'} transition-opacity duration-150`}>
-                                      <p className="text-[11px] text-white truncate">{movie.title}</p>
-                                      <p className="text-[10px] text-blue-300">{movie.year}</p>
-                                      <p className="text-[10px] text-gray-300">{movie.timelineCategory}</p>
-                                    </div>
-                                  </button>
+                                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-gray-500">{cluster.year}</div>
+
+                                    {laneRows.map((laneRow) => {
+                                      const laneFilms = (cluster.lanes?.[laneRow.lane] || []).slice(0, visibleCount);
+                                      return (
+                                        <div key={`${cluster.year}-${laneRow.lane}`} className="absolute left-1/2 -translate-x-1/2" style={{ top: laneRow.top, width: `${posterW}px` }}>
+                                          <div className="space-y-2">
+                                            {laneFilms.map((movie) => {
+                                              const posterKey = `${movie.title}_${movie.year}`;
+                                              const hoverKey = movie.timelineKey;
+                                              const isHovered = timelineHoverKey === hoverKey;
+                                              const isRelated = timelineRelated.has(hoverKey);
+                                              const faded = timelineHoverKey && !isHovered && !isRelated;
+                                              const primary = Number(movie?.yourRating || 0) >= 9;
+                                              return (
+                                                <button
+                                                  key={hoverKey}
+                                                  type="button"
+                                                  onClick={() => handleMovieClick(movie)}
+                                                  onMouseEnter={() => setTimelineHoverKey(hoverKey)}
+                                                  onMouseLeave={() => setTimelineHoverKey(null)}
+                                                  className={`group block rounded-md transition-all duration-200 ${faded ? 'opacity-55 grayscale-[0.2]' : primary ? 'opacity-100' : 'opacity-85'} ${isHovered ? 'scale-[1.07] shadow-[0_0_0_1px_rgba(59,130,246,0.65),0_0_24px_rgba(59,130,246,0.25)]' : ''}`}
+                                                  style={{ width: `${posterW}px` }}
+                                                >
+                                                  {posters[posterKey] ? (
+                                                    <img
+                                                      src={posters[posterKey]}
+                                                      alt={movie.title}
+                                                      loading="lazy"
+                                                      className="w-full object-cover rounded-md border border-gray-700"
+                                                      style={{ height: `${posterH}px` }}
+                                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                    />
+                                                  ) : (
+                                                    <div className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center" style={{ height: `${posterH}px` }}>
+                                                      Poster
+                                                    </div>
+                                                  )}
+                                                  <div className={`mt-1 text-left transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+                                                    <p className="text-[10px] text-white truncate">{movie.title}</p>
+                                                    <p className="text-[9px] text-blue-300">{movie.year}</p>
+                                                  </div>
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+
+                                    {moreCount > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedTimelineYears((prev) => ({
+                                            ...prev,
+                                            [cluster.year]: !prev[cluster.year],
+                                          }))
+                                        }
+                                        className="absolute left-1/2 -translate-x-1/2 bottom-7 px-2 py-0.5 rounded-full border border-gray-700 bg-[#0b1220] text-[10px] text-gray-300 hover:bg-[#1f2937]"
+                                      >
+                                        {expandedTimelineYears[cluster.year] ? 'Show less' : `+${moreCount} more`}
+                                      </button>
+                                    )}
+                                  </div>
                                 );
                               })}
                             </div>
-                          </section>
-                          ))}
+                          </div>
                         </div>
                       </div>
                     </div>
