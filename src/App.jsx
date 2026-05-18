@@ -7702,10 +7702,14 @@ const [user, setUser] = useState(null);
                             setTimelineHoverKey(null);
                           }}
                         >
-                          <div
+                          {(() => {
+                            const timelineColumnWidth = Math.max(78, Math.round(84 * timelineZoom));
+                            const timelineRailWidth = Math.max(1200, timelineYearClusters.length * Math.round(95 * timelineZoom));
+                            return (
+                            <div
                             className={`relative ml-24 p-3`}
                             style={{
-                              minWidth: `${Math.max(1200, timelineYearClusters.length * Math.round(95 * timelineZoom))}px`,
+                              minWidth: `${timelineRailWidth}px`,
                               minHeight: `${Math.max(
                                 timelineFullscreen ? window.innerHeight * 0.76 : 520,
                                 230 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 4))
@@ -7720,7 +7724,7 @@ const [user, setUser] = useState(null);
                             <div className="absolute inset-x-3 top-[28%] border-t border-gray-700/40" />
                             <div className="absolute inset-x-3 top-[56%] border-t border-gray-700/40" />
 
-                            <div className="relative z-10 flex gap-4">
+                              <div className="relative z-10 flex gap-4">
                               {timelineYearClusters.map((cluster) => {
                                 const posterW = Math.max(36, Math.round(42 * timelineZoom));
                                 const posterH = Math.max(52, Math.round(60 * timelineZoom));
@@ -7730,7 +7734,7 @@ const [user, setUser] = useState(null);
                                   { lane: 'Hybrid', top: '36%' },
                                   { lane: 'Arthouse', top: '64%' },
                                 ];
-                                const columnWidth = Math.max(78, Math.round(84 * timelineZoom));
+                                const columnWidth = timelineColumnWidth;
 
                                 return (
                                   <div
@@ -7793,19 +7797,28 @@ const [user, setUser] = useState(null);
                                       })}
                                     </div>
 
-                                    <div
-                                      className={`absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] ${
-                                        cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'
-                                      }`}
-                                    >
-                                      {cluster.year}
-                                    </div>
-
                                     </div>
                                   );
                                 })}
                             </div>
+
+                            <div className="sticky bottom-0 z-20 mt-2 border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm">
+                              <div className="flex gap-4 px-3 py-1" style={{ minWidth: `${timelineRailWidth}px` }}>
+                                {timelineYearClusters.map((cluster) => (
+                                  <div
+                                    key={`timeline-bottom-year-${cluster.year}`}
+                                    className={`shrink-0 text-center text-[10px] ${
+                                      cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'
+                                    }`}
+                                    style={{ width: `${timelineColumnWidth}px` }}
+                                  >
+                                    {cluster.year}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
+                          )})()}
                         </div>
                       </div>
                     </div>
