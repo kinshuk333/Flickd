@@ -6255,7 +6255,33 @@ const [user, setUser] = useState(null);
                             <button type="button" onClick={() => zoomMap(-0.2)} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">-</button>
                             <button type="button" onClick={() => zoomMap(0.2)} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">+</button>
                             <button type="button" onClick={resetMapView} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">Reset</button>
-                            <button type="button" onClick={toggleMapFullscreen} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">{mapFullscreen ? 'Exit Full Screen' : 'Full Screen'}</button>
+                            <button
+                              type="button"
+                              onClick={toggleMapFullscreen}
+                              className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                              title={mapFullscreen ? 'Exit full screen' : 'Full screen'}
+                              aria-label={mapFullscreen ? 'Exit full screen' : 'Full screen'}
+                            >
+                              {mapFullscreen ? (
+                                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <polyline points="9 3 3 3 3 9" />
+                                  <line x1="3" y1="3" x2="10" y2="10" />
+                                  <polyline points="15 21 21 21 21 15" />
+                                  <line x1="14" y1="14" x2="21" y2="21" />
+                                  <polyline points="21 9 21 3 15 3" />
+                                  <line x1="14" y1="10" x2="21" y2="3" />
+                                  <polyline points="3 15 3 21 9 21" />
+                                  <line x1="3" y1="21" x2="10" y2="14" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <polyline points="15 3 21 3 21 9" />
+                                  <polyline points="9 21 3 21 3 15" />
+                                  <line x1="21" y1="3" x2="14" y2="10" />
+                                  <line x1="3" y1="21" x2="10" y2="14" />
+                                </svg>
+                              )}
+                            </button>
                           </div>
                       </div>
 
@@ -6519,7 +6545,25 @@ const [user, setUser] = useState(null);
                                title={traceFullscreen ? 'Exit full screen' : 'Full screen'}
                                aria-label={traceFullscreen ? 'Exit full screen' : 'Full screen'}
                              >
-                               {traceFullscreen ? 'â¤¢' : 'â›¶'}
+                               {traceFullscreen ? (
+                                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                   <polyline points="9 3 3 3 3 9" />
+                                   <line x1="3" y1="3" x2="10" y2="10" />
+                                   <polyline points="15 21 21 21 21 15" />
+                                   <line x1="14" y1="14" x2="21" y2="21" />
+                                   <polyline points="21 9 21 3 15 3" />
+                                   <line x1="14" y1="10" x2="21" y2="3" />
+                                   <polyline points="3 15 3 21 9 21" />
+                                   <line x1="3" y1="21" x2="10" y2="14" />
+                                 </svg>
+                               ) : (
+                                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                   <polyline points="15 3 21 3 21 9" />
+                                   <polyline points="9 21 3 21 3 15" />
+                                   <line x1="21" y1="3" x2="14" y2="10" />
+                                   <line x1="3" y1="21" x2="10" y2="14" />
+                                 </svg>
+                               )}
                              </button>
                              <button
                                type="button"
@@ -7293,7 +7337,25 @@ const [user, setUser] = useState(null);
                             title={timelineFullscreen ? 'Exit full screen' : 'Full screen'}
                             aria-label={timelineFullscreen ? 'Exit full screen' : 'Full screen'}
                           >
-                            {timelineFullscreen ? '⤢' : '⛶'}
+                            {timelineFullscreen ? (
+                              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <polyline points="9 3 3 3 3 9" />
+                                <line x1="3" y1="3" x2="10" y2="10" />
+                                <polyline points="15 21 21 21 21 15" />
+                                <line x1="14" y1="14" x2="21" y2="21" />
+                                <polyline points="21 9 21 3 15 3" />
+                                <line x1="14" y1="10" x2="21" y2="3" />
+                                <polyline points="3 15 3 21 9 21" />
+                                <line x1="3" y1="21" x2="10" y2="14" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <polyline points="15 3 21 3 21 9" />
+                                <polyline points="9 21 3 21 3 15" />
+                                <line x1="21" y1="3" x2="14" y2="10" />
+                                <line x1="3" y1="21" x2="10" y2="14" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </div>
