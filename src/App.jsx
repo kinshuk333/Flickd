@@ -1317,33 +1317,50 @@ const [user, setUser] = useState(null);
     }
   };
 
-  const loadPostersForFilms = async (films = []) => {
+  const loadPostersForFilms = async (
+    films = [],
+    options = {}
+  ) => {
     if (!Array.isArray(films) || films.length === 0) return;
+    const {
+      batchSize = 6,
+      retryPasses = 0,
+      retryDelayMs = 350,
+    } = options;
 
-    const unique = [];
-    const seen = new Set();
+    const getUnloadedUniqueFilms = () => {
+      const unique = [];
+      const seen = new Set();
+      films.forEach((film) => {
+        const title = String(film?.title || '').trim();
+        const year = Number(film?.year) || '';
+        if (!title) return;
+        const key = `${title}_${year}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        if (posters[key]) return;
+        unique.push(film);
+      });
+      return unique;
+    };
 
-    films.forEach((film) => {
-      const title = String(film?.title || '').trim();
-      const year = Number(film?.year) || '';
-      if (!title) return;
+    let pending = getUnloadedUniqueFilms();
+    if (pending.length === 0) return;
 
-      const key = `${title}_${year}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-
-      if (posters[key]) return;
-      unique.push(film);
-    });
-
-    if (unique.length === 0) return;
-
-    const batchSize = 6;
-    for (let i = 0; i < unique.length; i += batchSize) {
-      const batch = unique.slice(i, i + batchSize);
-      await Promise.all(
-        batch.map((film) => fetchPoster(film?.title, film?.year, film?.imdbId || film?.imdbID || null))
-      );
+    for (let pass = 0; pass <= retryPasses; pass += 1) {
+      for (let i = 0; i < pending.length; i += batchSize) {
+        const batch = pending.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map((film) => fetchPoster(film?.title, film?.year, film?.imdbId || film?.imdbID || null))
+        );
+        if (retryDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+      }
+      if (pass < retryPasses) {
+        pending = getUnloadedUniqueFilms();
+        if (pending.length === 0) break;
+      }
     }
   };
   
@@ -4808,7 +4825,11 @@ const [user, setUser] = useState(null);
 
   React.useEffect(() => {
     if (activeTab !== 'tastetimeline' || !timelineMovies.length) return;
-    loadPostersForFilms(timelineMovies);
+    loadPostersForFilms(timelineMovies, {
+      batchSize: 3,
+      retryPasses: 2,
+      retryDelayMs: 250,
+    });
   }, [activeTab, timelineMovies]);
 
   React.useEffect(() => {
