@@ -209,6 +209,7 @@ export default function App() {
   const [timelineHoverKey, setTimelineHoverKey] = useState(null);
   const [timelineDragging, setTimelineDragging] = useState(false);
   const [timelineFullscreen, setTimelineFullscreen] = useState(false);
+  const [timelineZoom, setTimelineZoom] = useState(1);
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [traceFullscreen, setTraceFullscreen] = useState(false);
   const [expandedDecades, setExpandedDecades] = useState([]);
@@ -3430,7 +3431,7 @@ const [user, setUser] = useState(null);
         (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0) ||
         (Number(b?.imdbVotes || b?.numVotes) || 0) - (Number(a?.imdbVotes || a?.numVotes) || 0)
       )
-      .slice(0, 100)
+      .slice(0, 150)
       .map((m) => {
         const styleScore = timelineStyleScore(m);
         return {
@@ -4839,6 +4840,12 @@ const [user, setUser] = useState(null);
     }
   };
 
+  const clampTimelineZoom = React.useCallback((value) => Math.max(0.75, Math.min(2.5, value)), []);
+  const zoomTimeline = React.useCallback((delta) => {
+    setTimelineZoom((prev) => clampTimelineZoom(Number((prev + delta).toFixed(2))));
+  }, [clampTimelineZoom]);
+  const resetTimelineZoom = React.useCallback(() => setTimelineZoom(1), []);
+
   const toggleMapFullscreen = async () => {
     const container = mapFullscreenRef.current;
     if (!container) return;
@@ -4870,6 +4877,13 @@ const [user, setUser] = useState(null);
   const onTimelineWheelCapture = (e) => {
     const el = e.currentTarget;
     if (el.scrollWidth <= el.clientWidth + 1) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      const step = e.deltaY < 0 ? 0.08 : -0.08;
+      zoomTimeline(step);
+      return;
+    }
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     if (!delta) return;
     e.preventDefault();
@@ -7357,6 +7371,33 @@ const [user, setUser] = useState(null);
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
+                            onClick={() => zoomTimeline(-0.1)}
+                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            title="Zoom out"
+                            aria-label="Zoom out"
+                          >
+                            -
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => zoomTimeline(0.1)}
+                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            title="Zoom in"
+                            aria-label="Zoom in"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            onClick={resetTimelineZoom}
+                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            title="Reset zoom"
+                            aria-label="Reset zoom"
+                          >
+                            Reset
+                          </button>
+                          <button
+                            type="button"
                             onClick={toggleTimelineFullscreen}
                             className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                             title={timelineFullscreen ? 'Exit full screen' : 'Full screen'}
@@ -7436,10 +7477,11 @@ const [user, setUser] = useState(null);
                                     onClick={() => handleMovieClick(movie)}
                                     onMouseEnter={() => setTimelineHoverKey(hoverKey)}
                                     onMouseLeave={() => setTimelineHoverKey(null)}
-                                    className={`absolute w-[56px] sm:w-[62px] transition-all duration-150 ${isHovered ? 'z-20 scale-[1.08]' : 'z-10'} ${faded ? 'opacity-60' : 'opacity-100'}`}
+                                    className={`absolute transition-all duration-150 ${isHovered ? 'z-20 scale-[1.08]' : 'z-10'} ${faded ? 'opacity-60' : 'opacity-100'}`}
                                       style={{
-                                        left: `calc(14% + ${movie.localX * 0.8}%)`,
+                                        left: `calc(14% + ${movie.localX * 0.8 * timelineZoom}%)`,
                                         top: `calc(${movie.y}% - 46px)`,
+                                        width: `${Math.max(44, Math.round(56 * timelineZoom))}px`,
                                         boxShadow: isHovered ? '0 8px 20px rgba(37,99,235,.32)' : 'none',
                                     }}
                                   >
@@ -7448,11 +7490,15 @@ const [user, setUser] = useState(null);
                                         src={posters[posterKey]}
                                         alt={movie.title}
                                         loading="lazy"
-                                        className="w-full h-[86px] sm:h-[94px] object-cover rounded-md border border-gray-700"
+                                        className="w-full object-cover rounded-md border border-gray-700"
+                                        style={{ height: `${Math.max(68, Math.round(86 * timelineZoom))}px` }}
                                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                       />
                                     ) : (
-                                      <div className="w-full h-[86px] sm:h-[94px] rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center">
+                                      <div
+                                        className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center"
+                                        style={{ height: `${Math.max(68, Math.round(86 * timelineZoom))}px` }}
+                                      >
                                         Poster
                                       </div>
                                     )}
