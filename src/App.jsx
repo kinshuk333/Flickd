@@ -211,6 +211,7 @@ export default function App() {
   const [timelineDragging, setTimelineDragging] = useState(false);
   const [timelineFullscreen, setTimelineFullscreen] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [timelineScrollLeft, setTimelineScrollLeft] = useState(0);
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [traceFullscreen, setTraceFullscreen] = useState(false);
   const [expandedDecades, setExpandedDecades] = useState([]);
@@ -3536,6 +3537,8 @@ const [user, setUser] = useState(null);
     });
     return maxCount;
   }, [timelineYearClusters]);
+  const timelineColumnWidth = Math.max(78, Math.round(84 * timelineZoom));
+  const timelineRailWidth = Math.max(1200, timelineYearClusters.length * Math.round(95 * timelineZoom));
 
   const timelineRelated = React.useMemo(() => {
     if (!timelineHoverKey) return new Set();
@@ -4908,7 +4911,9 @@ const [user, setUser] = useState(null);
   };
 
   const onTimelineRailScroll = () => {
-    // No-op; reserved for future lazy pagination in timeline rail.
+    const el = tasteTimelineRef.current;
+    if (!el) return;
+    setTimelineScrollLeft(el.scrollLeft || 0);
   };
 
   const onTimelineMouseDown = (e) => {
@@ -7702,12 +7707,8 @@ const [user, setUser] = useState(null);
                             setTimelineHoverKey(null);
                           }}
                         >
-                          {(() => {
-                            const timelineColumnWidth = Math.max(78, Math.round(84 * timelineZoom));
-                            const timelineRailWidth = Math.max(1200, timelineYearClusters.length * Math.round(95 * timelineZoom));
-                            return (
                             <div
-                            className={`relative ml-24 p-3`}
+                            className={`relative ml-24 px-3 pt-3 pb-10`}
                             style={{
                               minWidth: `${timelineRailWidth}px`,
                               minHeight: `${Math.max(
@@ -7802,23 +7803,29 @@ const [user, setUser] = useState(null);
                                 })}
                             </div>
 
-                            <div className="sticky bottom-0 z-20 mt-2 border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm">
-                              <div className="flex gap-4 px-3 py-1" style={{ minWidth: `${timelineRailWidth}px` }}>
-                                {timelineYearClusters.map((cluster) => (
-                                  <div
-                                    key={`timeline-bottom-year-${cluster.year}`}
-                                    className={`shrink-0 text-center text-[10px] ${
-                                      cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'
-                                    }`}
-                                    style={{ width: `${timelineColumnWidth}px` }}
-                                  >
-                                    {cluster.year}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
                           </div>
-                          )})()}
+                        </div>
+                        <div className="absolute left-24 right-0 bottom-0 z-30 border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm">
+                          <div
+                            className="flex gap-4 px-3 py-1"
+                            style={{
+                              minWidth: `${timelineRailWidth}px`,
+                              transform: `translateX(-${timelineScrollLeft}px)`,
+                              transition: timelineDragging ? 'none' : 'transform 80ms linear',
+                            }}
+                          >
+                            {timelineYearClusters.map((cluster) => (
+                              <div
+                                key={`timeline-bottom-year-${cluster.year}`}
+                                className={`shrink-0 text-center text-[10px] ${
+                                  cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'
+                                }`}
+                                style={{ width: `${timelineColumnWidth}px` }}
+                              >
+                                {cluster.year}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
