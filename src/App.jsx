@@ -35,6 +35,7 @@ const DATA_CACHE_KEY = 'imdb-ratings-dataset-v1';
 const datasetCacheKey = (userId) => `${DATA_CACHE_KEY}:${String(userId || 'guest')}`;
 const MEMBERS_LOCAL_CACHE_KEY = 'imdb-members-directory-v1';
 const memberDatasetKey = (userId) => `imdb-member-dataset-${userId}`;
+const moodboardsStorageKey = (userId) => `imdb-moodboards-${String(userId || 'guest')}`;
 
 const toShareableRows = (rows = []) => rows.map((row) => ({
   t: row?.title || '',
@@ -215,8 +216,9 @@ export default function App() {
   const [expandedDecades, setExpandedDecades] = useState([]);
   const [selectedFavoriteYear, setSelectedFavoriteYear] = useState(null);
   const [favoriteYearPage, setFavoriteYearPage] = useState(1);
-  const [favoriteYearShareOpen, setFavoriteYearShareOpen] = useState(false);
-  const [favoriteYearShareBusy, setFavoriteYearShareBusy] = useState(false);
+  const [shareCardOpen, setShareCardOpen] = useState(false);
+  const [shareCardBusy, setShareCardBusy] = useState(false);
+  const [shareCardConfig, setShareCardConfig] = useState(null);
   const [personalCanonPage, setPersonalCanonPage] = useState(1);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movieDetails, setMovieDetails] = useState(null);
@@ -226,10 +228,7 @@ export default function App() {
   const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 });
   const [loadedFromCache, setLoadedFromCache] = useState(false);
   const [lastDataSyncAt, setLastDataSyncAt] = useState(null);
-  const [moodboards, setMoodboards] = useState(() => {
-    const saved = localStorage.getItem('imdb-moodboards');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [moodboards, setMoodboards] = useState([]);
   const [activeMoodboard, setActiveMoodboard] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showFilmPicker, setShowFilmPicker] = useState(false);
@@ -391,6 +390,21 @@ const [user, setUser] = useState(null);
     setAboutMeDraft(value);
   }, [user?.id]);
 
+  useEffect(() => {
+    const key = moodboardsStorageKey(user?.id);
+    const saved = localStorage.getItem(key);
+    if (!saved) {
+      setMoodboards([]);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(saved);
+      setMoodboards(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setMoodboards([]);
+    }
+  }, [user?.id]);
+
   const currentProfileAvatarUrlRaw = memberViewUserId ? memberViewAvatarUrl : user?.user_metadata?.avatar_url;
   const currentProfileAvatarLabel = memberViewUserId
     ? (memberViewName || 'Member')
@@ -540,7 +554,7 @@ const [user, setUser] = useState(null);
       setLastDataSyncAt(null);
       setUser(null);
       setMoodboards([]);
-      localStorage.removeItem('imdb-moodboards');
+      localStorage.removeItem(moodboardsStorageKey(user?.id));
       setFollowedMemberIds([]);
       setSocialLinks({ instagram: '', x: '', facebook: '' });
       if (user?.id) {
@@ -641,7 +655,7 @@ const [user, setUser] = useState(null);
 
       if (data?.moodboards) {
         setMoodboards(data.moodboards);
-        localStorage.setItem('imdb-moodboards', JSON.stringify(data.moodboards));
+        localStorage.setItem(moodboardsStorageKey(user?.id), JSON.stringify(data.moodboards));
       }
       if (!followsTableEnabled && Array.isArray(data?.followings)) {
         setFollowedMemberIds(data.followings.map((id) => String(id)));
@@ -2011,7 +2025,7 @@ const [user, setUser] = useState(null);
         typeof nextOrUpdater === 'function'
           ? nextOrUpdater(prev)
           : nextOrUpdater;
-      localStorage.setItem('imdb-moodboards', JSON.stringify(next));
+      localStorage.setItem(moodboardsStorageKey(user?.id), JSON.stringify(next));
       return next;
     });
   };
@@ -2958,9 +2972,22 @@ const [user, setUser] = useState(null);
     : 0;
   const hiddenGems = getHiddenGems();
   const favoriteFilmPerYear = getFavoriteFilmPerYear();
-  const favoriteShareYear = selectedFavoriteYear || favoriteFilmPerYear?.[0]?.year || null;
-  const favoriteShareSelection = favoriteFilmPerYear.find((y) => y.year === favoriteShareYear) || favoriteFilmPerYear?.[0] || null;
-  const favoriteShareTop10Films = (favoriteShareSelection?.films || []).slice(0, 10);
+  const shareCardTop10Films = (shareCardConfig?.films || []).slice(0, 10);
+
+  const openShareCard = (config) => {
+    const safeFilms = (Array.isArray(config?.films) ? config.films : []).filter(Boolean);
+    if (!safeFilms.length) return;
+    setShareCardConfig({
+      title: config?.title || 'My Top 10',
+      subtitle: config?.subtitle || 'Personal Card',
+      filenameBase: config?.filenameBase || 'flickd-share',
+      films: safeFilms.map((film) => ({
+        ...film,
+        yourRating: Number.isFinite(Number(film?.yourRating)) ? Number(film.yourRating) : Number(film?.rating || 0),
+      })),
+    });
+    setShareCardOpen(true);
+  };
   const personalCanon = getPersonalCanonByDecade();
   const yearlyHighlight = getYearlyHighlight();
   const topFilmPerGenre = getTopFilmPerGenre();
@@ -5260,14 +5287,15 @@ const [user, setUser] = useState(null);
   }, [activeTab, directorFingerprintData]);
 
   React.useEffect(() => {
-    if (!favoriteYearShareOpen || !favoriteShareTop10Films.length) return;
-    loadPostersForFilms(favoriteShareTop10Films);
-  }, [favoriteYearShareOpen, favoriteShareTop10Films]);
+    if (!shareCardOpen || !shareCardTop10Films.length) return;
+    loadPostersForFilms(shareCardTop10Films);
+  }, [shareCardOpen, shareCardTop10Films]);
 
   const buildFavoriteYearShareCardBlob = async () => {
-    if (!favoriteShareSelection) return null;
-    const year = favoriteShareSelection.year;
-    const films = favoriteShareTop10Films;
+    if (!shareCardConfig) return null;
+    const title = shareCardConfig.title || 'My Top 10';
+    const subtitle = shareCardConfig.subtitle || 'Personal Card';
+    const films = shareCardTop10Films;
 
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
@@ -5291,10 +5319,10 @@ const [user, setUser] = useState(null);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#e5e7eb';
     ctx.font = '700 64px Segoe UI';
-    ctx.fillText(`My Top 10 of ${year}`, canvas.width / 2, 184);
+    ctx.fillText(title, canvas.width / 2, 184);
     ctx.font = '600 28px Segoe UI';
     ctx.fillStyle = '#93c5fd';
-    ctx.fillText('Personal Year Card', canvas.width / 2, 232);
+    ctx.fillText(subtitle, canvas.width / 2, 232);
 
     const listBoxX = panelX + 76;
     const listBoxW = panelW - 152;
@@ -5351,8 +5379,8 @@ const [user, setUser] = useState(null);
 
       ctx.fillStyle = '#f8fafc';
       ctx.font = '600 27px Segoe UI';
-      const title = String(film.title || '');
-      const trimmed = title.length > 36 ? `${title.slice(0, 33)}...` : title;
+      const titleText = String(film.title || '');
+      const trimmed = titleText.length > 36 ? `${titleText.slice(0, 33)}...` : titleText;
       ctx.textAlign = 'left';
       ctx.fillText(trimmed, textX, y + 26);
 
@@ -5383,8 +5411,8 @@ const [user, setUser] = useState(null);
   };
 
   const downloadFavoriteYearShareCard = async () => {
-    if (favoriteYearShareBusy) return;
-    setFavoriteYearShareBusy(true);
+    if (shareCardBusy) return;
+    setShareCardBusy(true);
     try {
       const blob = await buildFavoriteYearShareCardBlob();
       if (!blob) {
@@ -5394,39 +5422,40 @@ const [user, setUser] = useState(null);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `flickd-favorites-${favoriteShareYear || 'year'}.png`;
+      link.download = `${shareCardConfig?.filenameBase || 'flickd-share'}.png`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
     } finally {
-      setFavoriteYearShareBusy(false);
+      setShareCardBusy(false);
     }
   };
 
   const shareFavoriteYearCard = async () => {
-    if (favoriteYearShareBusy) return;
-    setFavoriteYearShareBusy(true);
+    if (shareCardBusy) return;
+    setShareCardBusy(true);
     try {
       const blob = await buildFavoriteYearShareCardBlob();
-      const year = favoriteShareYear || 'Selected Year';
-      const text = `My top films of ${year} on Flickd`;
+      const shareTitle = shareCardConfig?.title || 'My Top 10';
+      const text = `My top 10 picks on Flickd: ${shareTitle}`;
       if (!blob) {
-        if (navigator.share) await navigator.share({ title: `Favorites of ${year}`, text });
+        if (navigator.share) await navigator.share({ title: shareTitle, text });
         return;
       }
-      const file = new File([blob], `flickd-favorites-${year}.png`, { type: 'image/png' });
+
+      const file = new File([blob], `${(shareCardConfig?.filenameBase || 'flickd-share')}.png`, { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-        await navigator.share({ title: `Favorites of ${year}`, text, files: [file] });
+        await navigator.share({ title: shareTitle, text, files: [file] });
       } else if (navigator.share) {
-        await navigator.share({ title: `Favorites of ${year}`, text });
+        await navigator.share({ title: shareTitle, text });
       } else {
         await downloadFavoriteYearShareCard();
       }
     } catch {
       // user cancelled or share unavailable
     } finally {
-      setFavoriteYearShareBusy(false);
+      setShareCardBusy(false);
     }
   };
 
@@ -5808,17 +5837,17 @@ const [user, setUser] = useState(null);
         </div>
       )}
 
-      {favoriteYearShareOpen && favoriteShareSelection && (
+      {shareCardOpen && shareCardConfig && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-white">My Top 10 of {favoriteShareSelection.year}</h3>
-                <p className="text-xs text-gray-400 mt-1">Share your year card from Flickd</p>
+                <h3 className="text-lg font-semibold text-white">{shareCardConfig.title}</h3>
+                <p className="text-xs text-gray-400 mt-1">Share your card from Flickd</p>
               </div>
               <button
                 type="button"
-                onClick={() => setFavoriteYearShareOpen(false)}
+                onClick={() => setShareCardOpen(false)}
                 className="h-8 w-8 rounded-lg border border-gray-700 bg-[#0b1220] text-gray-300 hover:bg-[#1f2937]"
                 aria-label="Close"
               >
@@ -5828,10 +5857,10 @@ const [user, setUser] = useState(null);
 
             <div className="mt-4 rounded-xl border border-gray-700 bg-[#0b1220] p-3">
               <div className="space-y-2">
-                {favoriteShareTop10Films.map((film, idx) => {
+                {shareCardTop10Films.map((film, idx) => {
                   const key = `${film.title}_${film.year}`;
                   return (
-                    <div key={`share_year_${film.title}_${film.year}_${idx}`} className="flex items-center gap-3 rounded-lg bg-[#0f172a] border border-gray-800 p-2">
+                    <div key={`share_card_${film.title}_${film.year}_${idx}`} className="flex items-center gap-3 rounded-lg bg-[#0f172a] border border-gray-800 p-2">
                       {posters[key] ? (
                         <img src={posters[key]} alt={film.title} className="w-10 h-14 rounded object-cover" />
                       ) : (
@@ -5841,7 +5870,7 @@ const [user, setUser] = useState(null);
                         <p className="text-sm text-gray-100 truncate">
                           <span className="text-blue-300 mr-1">{idx + 1}.</span>{film.title}
                         </p>
-                        <p className="text-[11px] text-gray-400">{film.year} | ★ {film.yourRating}</p>
+                        <p className="text-[11px] text-gray-400">{film.year} | ★ {Number(film?.yourRating || film?.rating || 0).toFixed(1)}</p>
                       </div>
                     </div>
                   );
@@ -5853,25 +5882,24 @@ const [user, setUser] = useState(null);
               <button
                 type="button"
                 onClick={downloadFavoriteYearShareCard}
-                disabled={favoriteYearShareBusy}
+                disabled={shareCardBusy}
                 className="px-3 py-2 rounded-xl border border-gray-700 bg-[#0b1220] text-gray-100 hover:bg-[#1f2937] disabled:opacity-60"
               >
-                {favoriteYearShareBusy ? 'Preparing...' : 'Download Card'}
+                {shareCardBusy ? 'Preparing...' : 'Download Card'}
               </button>
               <button
                 type="button"
                 onClick={shareFavoriteYearCard}
-                disabled={favoriteYearShareBusy}
+                disabled={shareCardBusy}
                 className="px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {favoriteYearShareBusy ? 'Preparing...' : 'Share'}
+                {shareCardBusy ? 'Preparing...' : 'Share'}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-3 sm:py-6 h-full flex flex-col">
+<div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-3 sm:py-6 h-full flex flex-col">
         <div className="md:fixed md:top-0 md:left-1/2 md:-translate-x-1/2 z-50 w-full max-w-7xl px-3 sm:px-5 lg:px-8 pt-2 sm:pt-3 pb-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
             <div className="rounded-2xl border border-gray-700 bg-[#0f172a]/95 px-4 py-3 backdrop-blur w-full">
               <div className="flex items-center justify-between gap-3">
@@ -8657,9 +8685,7 @@ const [user, setUser] = useState(null);
                   <div className="order-last grid grid-cols-1 gap-4">
                     {hiddenGems.allFilms?.length > 0 && (
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h2 className="text-lg font-semibold">Hidden Gems</h2>
-                        </div>
+                        <div className="flex items-center justify-between gap-2 mb-1">\n                          <h2 className="text-lg font-semibold">Hidden Gems</h2>\n                          <button type="button" onClick={() => openShareCard({ title: 'Hidden Gems', subtitle: 'Personal Discovery Card', filenameBase: 'flickd-hidden-gems', films: hiddenGems.allFilms })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                        </div>
                         <p className="text-xs text-gray-400 mb-4">Films where your rating is significantly higher than IMDb consensus.</p>
                         <div className="mb-4 flex items-center justify-between gap-3">
                           <div className="text-xs text-gray-400">
@@ -8812,9 +8838,7 @@ const [user, setUser] = useState(null);
 
                     {hiddenTreasures.allFilms?.length > 0 && (
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h2 className="text-lg font-semibold"> Hidden Treasures</h2>
-                        </div>
+                        <div className="flex items-center justify-between gap-2 mb-1">\n                          <h2 className="text-lg font-semibold"> Hidden Treasures</h2>\n                          <button type="button" onClick={() => openShareCard({ title: 'Hidden Treasures', subtitle: 'Undiscovered Favorites', filenameBase: 'flickd-hidden-treasures', films: hiddenTreasures.allFilms })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                        </div>
                         <p className="text-xs text-gray-400 mb-4">Your highest-rated low-vote films that feel truly undiscovered.</p>
 
                         <div className="mb-4 flex items-center justify-between gap-3">
@@ -8984,7 +9008,12 @@ const [user, setUser] = useState(null);
                           <h2 className="text-lg font-semibold"> Favorites by Year</h2>
                           <button
                             type="button"
-                            onClick={() => setFavoriteYearShareOpen(true)}
+                            onClick={() => openShareCard({
+                              title: `My Top 10 of ${selected.year}`,
+                              subtitle: 'Personal Year Card',
+                              filenameBase: `flickd-favorites-${selected.year}`,
+                              films: selected.films,
+                            })}
                             className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                           >
                             Share
@@ -9161,9 +9190,7 @@ const [user, setUser] = useState(null);
                       const selected = personalCanon.find(d => d.decade === selectedDec) || personalCanon[personalCanon.length - 1];
     return (
                         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h2 className="text-lg font-semibold">Personal Canon</h2>
-                          </div>
+                          <div className="flex items-center justify-between gap-2 mb-1">\n                            <h2 className="text-lg font-semibold">Personal Canon</h2>\n                            <button type="button" onClick={() => openShareCard({ title: `${selected.decade} Personal Canon`, subtitle: 'Films That Define Your Taste', filenameBase: `flickd-personal-canon-${selected.decade}`, films: selected.films })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                          </div>
                           <p className="text-xs text-gray-400 mb-4">The films that define your taste, organized decade by decade.</p>
                           <div className="mb-4 flex flex-wrap items-center gap-3">
                             <label className="block text-gray-300 text-xs">Select Decade</label>
@@ -9339,9 +9366,7 @@ const [user, setUser] = useState(null);
                     const topGenrePageFilms = selectedGenreGroup.films.slice((topGenreSafePage - 1) * topGenreFilmsPerPage, topGenreSafePage * topGenreFilmsPerPage);
   return (
                         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <h2 className="text-lg font-semibold">Top Films by Genre</h2>
-                          </div>
+                          <div className="flex items-center justify-between gap-2 mb-3">\n                            <h2 className="text-lg font-semibold">Top Films by Genre</h2>\n                            <button type="button" onClick={() => openShareCard({ title: `Top 10 ${selectedGenreGroup.genre} Films`, subtitle: 'Genre Signature Card', filenameBase: `flickd-top-genre-${selectedGenreGroup.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, films: selectedGenreGroup.films })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                          </div>
                           <p className="text-xs text-gray-400 mb-4">
                             Explore your strongest films across each genre. Avg {selectedGenreGroup.avgGenreRating.toFixed(2)}
                           </p>
@@ -9545,6 +9570,15 @@ const [user, setUser] = useState(null);
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
 
 
 
