@@ -308,8 +308,10 @@ export default function App() {
   const mapFullscreenRef = React.useRef(null);
   const traceFullscreenRef = React.useRef(null);
   const tasteTimelineRef = React.useRef(null);
+  const tasteTimelineBottomScrollRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
   const tasteTimelineDragStartRef = React.useRef({ x: 0, left: 0 });
+  const timelineScrollSyncingRef = React.useRef(false);
   const posterLoadInFlightRef = React.useRef(new Set());
   const posterFailedAtRef = React.useRef({});
   const omdbCacheAvailableRef = React.useRef(true);
@@ -4913,7 +4915,29 @@ const [user, setUser] = useState(null);
   const onTimelineRailScroll = () => {
     const el = tasteTimelineRef.current;
     if (!el) return;
-    setTimelineScrollLeft(el.scrollLeft || 0);
+    const next = el.scrollLeft || 0;
+    setTimelineScrollLeft(next);
+    if (!timelineScrollSyncingRef.current && tasteTimelineBottomScrollRef.current) {
+      timelineScrollSyncingRef.current = true;
+      tasteTimelineBottomScrollRef.current.scrollLeft = next;
+      requestAnimationFrame(() => {
+        timelineScrollSyncingRef.current = false;
+      });
+    }
+  };
+
+  const onTimelineBottomScroll = () => {
+    const bottomEl = tasteTimelineBottomScrollRef.current;
+    const topEl = tasteTimelineRef.current;
+    if (!bottomEl || !topEl) return;
+    if (timelineScrollSyncingRef.current) return;
+    timelineScrollSyncingRef.current = true;
+    const next = bottomEl.scrollLeft || 0;
+    topEl.scrollLeft = next;
+    setTimelineScrollLeft(next);
+    requestAnimationFrame(() => {
+      timelineScrollSyncingRef.current = false;
+    });
   };
 
   const onTimelineMouseDown = (e) => {
@@ -7805,9 +7829,9 @@ const [user, setUser] = useState(null);
 
                           </div>
                         </div>
-                        <div className="absolute left-24 right-0 bottom-0 z-30 border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm">
+                        <div className="border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm px-3 py-1">
                           <div
-                            className="flex gap-4 px-3 py-1"
+                            className="flex gap-4"
                             style={{
                               minWidth: `${timelineRailWidth}px`,
                               transform: `translateX(-${timelineScrollLeft}px)`,
@@ -7825,6 +7849,13 @@ const [user, setUser] = useState(null);
                                 {cluster.year}
                               </div>
                             ))}
+                          </div>
+                          <div
+                            ref={tasteTimelineBottomScrollRef}
+                            className="mt-1 overflow-x-scroll overflow-y-hidden h-3 rounded bg-[#0b1220] border border-gray-800"
+                            onScroll={onTimelineBottomScroll}
+                          >
+                            <div style={{ width: `${timelineRailWidth}px`, height: '1px' }} />
                           </div>
                         </div>
                       </div>
