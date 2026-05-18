@@ -6449,25 +6449,28 @@ const [user, setUser] = useState(null);
                     ref={traceFullscreenRef}
                     className={`bg-[#111827] border border-gray-800 rounded-xl p-4 ${traceFullscreen ? 'h-screen overflow-auto' : ''}`}
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="text-lg font-semibold text-white">Director Fingerprint</h2>
-                        <div className="text-xs text-gray-400 mt-2 leading-relaxed max-w-4xl space-y-2">
-                          <p>This artwork visualizes your cinematic identity.</p>
-                          <p>
-                            Each segment represents a film director from your viewing history, and every arc represents a film you watched.
-                            The distance from the center reflects the film&apos;s release year, while color indicates the director&apos;s dominant genre.
-                            Brighter arcs represent films you rated more highly.
-                          </p>
-                          <p>
-                            Together these arcs form a unique fingerprint of the directors and films that shaped your taste in cinema.
-                          </p>
+                    {!traceFullscreen && (
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h2 className="text-lg font-semibold text-white">Director Fingerprint</h2>
+                          <div className="text-xs text-gray-400 mt-2 leading-relaxed max-w-4xl space-y-2">
+                            <p>This artwork visualizes your cinematic identity.</p>
+                            <p>
+                              Each segment represents a film director from your viewing history, and every arc represents a film you watched.
+                              The distance from the center reflects the film&apos;s release year, while color indicates the director&apos;s dominant genre.
+                              Brighter arcs represent films you rated more highly.
+                            </p>
+                            <p>
+                              Together these arcs form a unique fingerprint of the directors and films that shaped your taste in cinema.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                      {directorFingerprintData ? (
                         <>
+                         {!traceFullscreen && (
                          <div className="mt-4 mb-3 rounded-lg border border-gray-800 bg-[#0b1220] p-3 text-xs">
                            <div className="text-gray-200">
                              <span className="text-gray-400">Films Logged:</span> {directorFingerprintData.totalFilms}
@@ -6478,8 +6481,10 @@ const [user, setUser] = useState(null);
                              <span className="text-gray-400">Top Directors:</span> {directorFingerprintData.topDirectors.join(', ')}
                            </div>
                          </div>
+                         )}
 
                          {/* Trace summary (keep above the main visualization) */}
+                         {!traceFullscreen && (
                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                            <div className="bg-[#0b1220] border border-gray-800 rounded-lg p-3">
                              <div className="text-gray-400 text-xs">Directors Fingerprinted</div>
@@ -6494,6 +6499,7 @@ const [user, setUser] = useState(null);
                              <div className="text-white font-semibold text-sm mt-1 truncate">{directorFingerprintData.topDirectors.slice(0, 2).join(' + ')}</div>
                            </div>
                          </div>
+                         )}
 
                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-gray-400">
@@ -6509,9 +6515,11 @@ const [user, setUser] = useState(null);
                              <button
                                type="button"
                                onClick={toggleTraceFullscreen}
-                               className="px-3 py-1.5 text-xs rounded-lg bg-[#0b1220] border border-gray-700 text-gray-200 hover:bg-gray-800"
+                               className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                               title={traceFullscreen ? 'Exit full screen' : 'Full screen'}
+                               aria-label={traceFullscreen ? 'Exit full screen' : 'Full screen'}
                              >
-                               {traceFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+                               {traceFullscreen ? 'â¤¢' : 'â›¶'}
                              </button>
                              <button
                                type="button"
