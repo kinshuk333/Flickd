@@ -7087,7 +7087,25 @@ const [user, setUser] = useState(null);
                                       </>
                                     ) : (
                                       <>
-                                        <div className="text-white font-semibold text-lg">{traceSelectedDirector.name}</div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-white font-semibold text-lg">{traceSelectedDirector.name}</div>
+                                          <button
+                                            type="button"
+                                            onClick={() => openShareCard({
+                                              title: `Top ${Math.min(10, traceSelectedDirector.films?.length || 0)} of ${traceSelectedDirector.name}`,
+                                              subtitle: 'Director Signature Card',
+                                              filenameBase: `flickd-director-${String(traceSelectedDirector.name || 'director').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                                              films: (traceSelectedDirector.films || []).map((film) => ({
+                                                title: film.title,
+                                                year: film.year,
+                                                yourRating: Number(film.rating || 0),
+                                              })),
+                                            })}
+                                            className="px-2.5 py-1 text-[11px] rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-gray-800"
+                                          >
+                                            Share
+                                          </button>
+                                        </div>
                                         <div className="text-xs text-gray-400 mt-1">
                                           {traceSelectedDirector.count} films watched - Avg rating {Number(traceSelectedDirector.avgRating || 0).toFixed(2)}
                                         </div>
@@ -8685,7 +8703,16 @@ const [user, setUser] = useState(null);
                   <div className="order-last grid grid-cols-1 gap-4">
                     {hiddenGems.allFilms?.length > 0 && (
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center justify-between gap-2 mb-1">\n                          <h2 className="text-lg font-semibold">Hidden Gems</h2>\n                          <button type="button" onClick={() => openShareCard({ title: 'Hidden Gems', subtitle: 'Personal Discovery Card', filenameBase: 'flickd-hidden-gems', films: hiddenGems.allFilms })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                        </div>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h2 className="text-lg font-semibold">Hidden Gems</h2>
+                          <button
+                            type="button"
+                            onClick={() => openShareCard({ title: 'Hidden Gems', subtitle: 'Personal Discovery Card', filenameBase: 'flickd-hidden-gems', films: hiddenGems.allFilms })}
+                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                          >
+                            Share
+                          </button>
+                        </div>
                         <p className="text-xs text-gray-400 mb-4">Films where your rating is significantly higher than IMDb consensus.</p>
                         <div className="mb-4 flex items-center justify-between gap-3">
                           <div className="text-xs text-gray-400">
@@ -8838,7 +8865,16 @@ const [user, setUser] = useState(null);
 
                     {hiddenTreasures.allFilms?.length > 0 && (
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center justify-between gap-2 mb-1">\n                          <h2 className="text-lg font-semibold"> Hidden Treasures</h2>\n                          <button type="button" onClick={() => openShareCard({ title: 'Hidden Treasures', subtitle: 'Undiscovered Favorites', filenameBase: 'flickd-hidden-treasures', films: hiddenTreasures.allFilms })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                        </div>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h2 className="text-lg font-semibold">Hidden Treasures</h2>
+                          <button
+                            type="button"
+                            onClick={() => openShareCard({ title: 'Hidden Treasures', subtitle: 'Undiscovered Favorites', filenameBase: 'flickd-hidden-treasures', films: hiddenTreasures.allFilms })}
+                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                          >
+                            Share
+                          </button>
+                        </div>
                         <p className="text-xs text-gray-400 mb-4">Your highest-rated low-vote films that feel truly undiscovered.</p>
 
                         <div className="mb-4 flex items-center justify-between gap-3">
@@ -9190,7 +9226,16 @@ const [user, setUser] = useState(null);
                       const selected = personalCanon.find(d => d.decade === selectedDec) || personalCanon[personalCanon.length - 1];
     return (
                         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                          <div className="flex items-center justify-between gap-2 mb-1">\n                            <h2 className="text-lg font-semibold">Personal Canon</h2>\n                            <button type="button" onClick={() => openShareCard({ title: `${selected.decade} Personal Canon`, subtitle: 'Films That Define Your Taste', filenameBase: `flickd-personal-canon-${selected.decade}`, films: selected.films })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                          </div>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h2 className="text-lg font-semibold">Personal Canon</h2>
+                            <button
+                              type="button"
+                              onClick={() => openShareCard({ title: `${selected.decade} Personal Canon`, subtitle: 'Films That Define Your Taste', filenameBase: `flickd-personal-canon-${selected.decade}`, films: selected.films })}
+                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            >
+                              Share
+                            </button>
+                          </div>
                           <p className="text-xs text-gray-400 mb-4">The films that define your taste, organized decade by decade.</p>
                           <div className="mb-4 flex flex-wrap items-center gap-3">
                             <label className="block text-gray-300 text-xs">Select Decade</label>
@@ -9366,7 +9411,16 @@ const [user, setUser] = useState(null);
                     const topGenrePageFilms = selectedGenreGroup.films.slice((topGenreSafePage - 1) * topGenreFilmsPerPage, topGenreSafePage * topGenreFilmsPerPage);
   return (
                         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                          <div className="flex items-center justify-between gap-2 mb-3">\n                            <h2 className="text-lg font-semibold">Top Films by Genre</h2>\n                            <button type="button" onClick={() => openShareCard({ title: `Top 10 ${selectedGenreGroup.genre} Films`, subtitle: 'Genre Signature Card', filenameBase: `flickd-top-genre-${selectedGenreGroup.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, films: selectedGenreGroup.films })} className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]">Share</button>\n                          </div>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <h2 className="text-lg font-semibold">Top Films by Genre</h2>
+                            <button
+                              type="button"
+                              onClick={() => openShareCard({ title: `Top 10 ${selectedGenreGroup.genre} Films`, subtitle: 'Genre Signature Card', filenameBase: `flickd-top-genre-${selectedGenreGroup.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, films: selectedGenreGroup.films })}
+                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            >
+                              Share
+                            </button>
+                          </div>
                           <p className="text-xs text-gray-400 mb-4">
                             Explore your strongest films across each genre. Avg {selectedGenreGroup.avgGenreRating.toFixed(2)}
                           </p>
