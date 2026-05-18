@@ -4808,7 +4808,7 @@ const [user, setUser] = useState(null);
 
   React.useEffect(() => {
     if (activeTab !== 'tastetimeline' || !timelineMovies.length) return;
-    loadPostersForFilms(timelineMovies.slice(0, 150));
+    loadPostersForFilms(timelineMovies);
   }, [activeTab, timelineMovies]);
 
   React.useEffect(() => {
@@ -7750,9 +7750,18 @@ const [user, setUser] = useState(null);
                                                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                                       />
                                                     ) : (
-                                                      <div className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-500 flex items-center justify-center" style={{ height: `${posterH}px` }}>
-                                                        Poster
-                                                      </div>
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          fetchPoster(movie.title, movie.year, movie.imdbId);
+                                                        }}
+                                                        className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
+                                                        style={{ height: `${posterH}px` }}
+                                                        title="Load poster"
+                                                      >
+                                                        Load Poster
+                                                      </button>
                                                     )}
                                                   </button>
                                                 );
