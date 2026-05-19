@@ -44,6 +44,47 @@ body {
   display: none;
 }
 
+.timeline-blue-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  border-radius: 999px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  outline: none;
+}
+
+.timeline-blue-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #111827;
+}
+
+.timeline-blue-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;
+  height: 10px;
+  margin-top: -1px;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(90deg, #3b82f6, #7c3aed);
+}
+
+.timeline-blue-range::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #111827;
+}
+
+.timeline-blue-range::-moz-range-thumb {
+  width: 140px;
+  height: 10px;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(90deg, #3b82f6, #7c3aed);
+}
+
 @keyframes timelineFloat {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-4px); }

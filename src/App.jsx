@@ -212,6 +212,7 @@ export default function App() {
   const [timelineFullscreen, setTimelineFullscreen] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineScrollLeft, setTimelineScrollLeft] = useState(0);
+  const [timelineMaxScroll, setTimelineMaxScroll] = useState(0);
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [traceFullscreen, setTraceFullscreen] = useState(false);
   const [expandedDecades, setExpandedDecades] = useState([]);
@@ -308,10 +309,8 @@ export default function App() {
   const mapFullscreenRef = React.useRef(null);
   const traceFullscreenRef = React.useRef(null);
   const tasteTimelineRef = React.useRef(null);
-  const tasteTimelineBottomScrollRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
   const tasteTimelineDragStartRef = React.useRef({ x: 0, left: 0 });
-  const timelineScrollSyncingRef = React.useRef(false);
   const posterLoadInFlightRef = React.useRef(new Set());
   const posterFailedAtRef = React.useRef({});
   const omdbCacheAvailableRef = React.useRef(true);
@@ -4917,28 +4916,35 @@ const [user, setUser] = useState(null);
     if (!el) return;
     const next = el.scrollLeft || 0;
     setTimelineScrollLeft(next);
-    if (!timelineScrollSyncingRef.current && tasteTimelineBottomScrollRef.current) {
-      timelineScrollSyncingRef.current = true;
-      tasteTimelineBottomScrollRef.current.scrollLeft = next;
-      requestAnimationFrame(() => {
-        timelineScrollSyncingRef.current = false;
-      });
-    }
+    setTimelineMaxScroll(Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0)));
   };
 
-  const onTimelineBottomScroll = () => {
-    const bottomEl = tasteTimelineBottomScrollRef.current;
+  const onTimelineBottomScrubChange = (nextValue) => {
     const topEl = tasteTimelineRef.current;
-    if (!bottomEl || !topEl) return;
-    if (timelineScrollSyncingRef.current) return;
-    timelineScrollSyncingRef.current = true;
-    const next = bottomEl.scrollLeft || 0;
+    const next = Number(nextValue) || 0;
+    if (!topEl) {
+      setTimelineScrollLeft(next);
+      return;
+    }
     topEl.scrollLeft = next;
     setTimelineScrollLeft(next);
-    requestAnimationFrame(() => {
-      timelineScrollSyncingRef.current = false;
-    });
   };
+
+  useEffect(() => {
+    const el = tasteTimelineRef.current;
+    if (!el) return;
+    const recalc = () => {
+      setTimelineMaxScroll(Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0)));
+      setTimelineScrollLeft(el.scrollLeft || 0);
+    };
+    recalc();
+    const raf = requestAnimationFrame(recalc);
+    window.addEventListener('resize', recalc);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', recalc);
+    };
+  }, [timelineRailWidth, timelineZoom, timelineFullscreen, activeTab]);
 
   const onTimelineMouseDown = (e) => {
     const el = tasteTimelineRef.current;
@@ -7811,13 +7817,15 @@ const [user, setUser] = useState(null);
                               </div>
                             ))}
                           </div>
-                          <div
-                            ref={tasteTimelineBottomScrollRef}
-                            className="mt-1 overflow-x-scroll overflow-y-hidden h-3 rounded bg-[#0b1220] border border-gray-800"
-                            onScroll={onTimelineBottomScroll}
-                          >
-                            <div style={{ width: `${timelineRailWidth}px`, height: '1px' }} />
-                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={Math.max(1, Math.floor(timelineMaxScroll))}
+                            value={Math.min(Math.floor(timelineScrollLeft), Math.max(1, Math.floor(timelineMaxScroll)))}
+                            onChange={(e) => onTimelineBottomScrubChange(e.target.value)}
+                            className="timeline-blue-range mt-1 w-full"
+                            aria-label="Timeline horizontal scrubber"
+                          />
                         </div>
                       </div>
                     </div>
