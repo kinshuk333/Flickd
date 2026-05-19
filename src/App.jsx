@@ -279,6 +279,7 @@ export default function App() {
   const [memberViewSnapshot, setMemberViewSnapshot] = useState(null);
   const [hasHydratedCurrentUserData, setHasHydratedCurrentUserData] = useState(false);
   const [hasHydratedUserData, setHasHydratedUserData] = useState(false);
+  const [canSyncUserData, setCanSyncUserData] = useState(false);
   const [showTasteResonance, setShowTasteResonance] = useState(false);
   const [tasteResonanceLoading, setTasteResonanceLoading] = useState(false);
   const [followedMemberIds, setFollowedMemberIds] = useState([]);
@@ -373,6 +374,7 @@ const [user, setUser] = useState(null);
       setShowTasteResonance(false);
       setHasHydratedCurrentUserData(false);
       setHasHydratedUserData(false);
+      setCanSyncUserData(false);
     }
 
     lastAuthUserIdRef.current = nextUserId;
@@ -398,6 +400,7 @@ const [user, setUser] = useState(null);
     if (!saved) {
       setMoodboards([]);
       setHasHydratedUserData(false);
+      setCanSyncUserData(false);
       return;
     }
     try {
@@ -407,6 +410,7 @@ const [user, setUser] = useState(null);
       setMoodboards([]);
     }
     setHasHydratedUserData(false);
+    setCanSyncUserData(false);
   }, [user?.id]);
 
   const currentProfileAvatarUrlRaw = memberViewUserId ? memberViewAvatarUrl : user?.user_metadata?.avatar_url;
@@ -566,6 +570,7 @@ const [user, setUser] = useState(null);
       }
       setHasHydratedCurrentUserData(false);
       setHasHydratedUserData(false);
+      setCanSyncUserData(false);
     };
 
     try {
@@ -646,6 +651,7 @@ const [user, setUser] = useState(null);
     if (!user) return;
     if (!supabaseDataEnabled) {
       setHasHydratedUserData(true);
+      setCanSyncUserData(false);
       return;
     }
     try {
@@ -660,6 +666,7 @@ const [user, setUser] = useState(null);
           setSupabaseDataEnabled(false);
         }
         setHasHydratedUserData(true);
+        setCanSyncUserData(false);
         return;
       }
 
@@ -681,6 +688,7 @@ const [user, setUser] = useState(null);
         setSocialLinksDraft(normalized);
       }
       setHasHydratedUserData(true);
+      setCanSyncUserData(true);
     } catch (error) {
       if (isSupabaseNetworkError(error)) {
         console.warn('Supabase temporarily unreachable while loading user data.');
@@ -688,6 +696,7 @@ const [user, setUser] = useState(null);
         console.error('loadMoodboardsFromSupabase failed:', error);
       }
       setHasHydratedUserData(true);
+      setCanSyncUserData(false);
     }
   };
   
@@ -726,7 +735,7 @@ const [user, setUser] = useState(null);
   }, [user, membersEnabled, aboutMe]);
 
   useEffect(() => {
-    if (!user || !supabaseDataEnabled || !hasHydratedUserData) return;
+    if (!user || !supabaseDataEnabled || !hasHydratedUserData || !canSyncUserData) return;
     let cancelled = false;
     (async () => {
       try {
@@ -758,7 +767,7 @@ const [user, setUser] = useState(null);
     return () => {
       cancelled = true;
     };
-  }, [followedMemberIds, moodboards, user, supabaseDataEnabled, hasHydratedUserData]);
+  }, [followedMemberIds, moodboards, user, supabaseDataEnabled, hasHydratedUserData, canSyncUserData]);
 
   const handleSaveSocialLinks = async () => {
     if (!user || !supabaseDataEnabled || savingSocialLinks) return;
