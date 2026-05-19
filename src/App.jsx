@@ -7702,7 +7702,7 @@ const [user, setUser] = useState(null);
                         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                           <div
                             ref={tasteTimelineRef}
-                            className="cinematic-rail timeline-x-hidden overflow-x-auto overflow-y-visible scroll-smooth"
+                            className="cinematic-rail timeline-x-hidden overflow-x-hidden overflow-y-visible scroll-smooth"
                             style={{ overscrollBehavior: 'contain', cursor: timelineDragging ? 'grabbing' : 'grab' }}
                             onWheelCapture={onTimelineWheelCapture}
                             onScroll={onTimelineRailScroll}
