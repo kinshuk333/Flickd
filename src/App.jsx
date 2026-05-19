@@ -7699,7 +7699,7 @@ const [user, setUser] = useState(null);
                           <span className="absolute top-[70%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
                         </div>
 
-                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                        <div className="timeline-y-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                           <div
                             ref={tasteTimelineRef}
                             className="cinematic-rail timeline-x-hidden overflow-x-hidden overflow-y-visible scroll-smooth"
