@@ -3591,6 +3591,26 @@ const [user, setUser] = useState(null);
     setMapPan({ x: 0, y: 0 });
   };
 
+  const handleMapWheel = (event) => {
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect?.width || !rect?.height) return;
+
+    const pointerX = ((event.clientX - rect.left) / rect.width) * mapWidth;
+    const pointerY = ((event.clientY - rect.top) / rect.height) * mapHeight;
+    const delta = event.deltaY < 0 ? 0.15 : -0.15;
+
+    setMapZoom((prevZoom) => {
+      const nextZoom = clampZoom(Number((prevZoom + delta).toFixed(2)));
+      const ratio = nextZoom / prevZoom;
+      setMapPan((prevPan) => ({
+        x: Number((pointerX - (pointerX - prevPan.x) * ratio).toFixed(2)),
+        y: Number((pointerY - (pointerY - prevPan.y) * ratio).toFixed(2)),
+      }));
+      return nextZoom;
+    });
+  };
+
 
   const handleMapMouseDown = (event) => {
     setIsMapDragging(true);
@@ -6615,6 +6635,7 @@ const [user, setUser] = useState(null);
                               onMouseDown={handleMapMouseDown}
                               onMouseMove={handleMapMouseMove}
                               onMouseUp={stopMapDragging}
+                              onWheel={handleMapWheel}
                               onMouseLeave={() => {
                                 stopMapDragging();
                                 setHoveredMapCountry(null);
