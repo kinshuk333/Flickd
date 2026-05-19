@@ -278,6 +278,7 @@ export default function App() {
   const [memberViewMoodboards, setMemberViewMoodboards] = useState([]);
   const [memberViewSnapshot, setMemberViewSnapshot] = useState(null);
   const [hasHydratedCurrentUserData, setHasHydratedCurrentUserData] = useState(false);
+  const [hasHydratedUserData, setHasHydratedUserData] = useState(false);
   const [showTasteResonance, setShowTasteResonance] = useState(false);
   const [tasteResonanceLoading, setTasteResonanceLoading] = useState(false);
   const [followedMemberIds, setFollowedMemberIds] = useState([]);
@@ -371,6 +372,7 @@ const [user, setUser] = useState(null);
       setMemberViewMoodboards([]);
       setShowTasteResonance(false);
       setHasHydratedCurrentUserData(false);
+      setHasHydratedUserData(false);
     }
 
     lastAuthUserIdRef.current = nextUserId;
@@ -395,6 +397,7 @@ const [user, setUser] = useState(null);
     const saved = localStorage.getItem(key);
     if (!saved) {
       setMoodboards([]);
+      setHasHydratedUserData(false);
       return;
     }
     try {
@@ -403,6 +406,7 @@ const [user, setUser] = useState(null);
     } catch {
       setMoodboards([]);
     }
+    setHasHydratedUserData(false);
   }, [user?.id]);
 
   const currentProfileAvatarUrlRaw = memberViewUserId ? memberViewAvatarUrl : user?.user_metadata?.avatar_url;
@@ -561,6 +565,7 @@ const [user, setUser] = useState(null);
         localStorage.removeItem(`imdb-following-${user.id}`);
       }
       setHasHydratedCurrentUserData(false);
+      setHasHydratedUserData(false);
     };
 
     try {
@@ -638,18 +643,23 @@ const [user, setUser] = useState(null);
     setTasteResonanceLoading(false);
   };
   const loadMoodboardsFromSupabase = async () => {
-    if (!user || !supabaseDataEnabled) return;
+    if (!user) return;
+    if (!supabaseDataEnabled) {
+      setHasHydratedUserData(true);
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from('user_data')
         .select('moodboards, followings, social_links')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         if (error?.code === 'PGRST205' || error?.status === 404) {
           setSupabaseDataEnabled(false);
         }
+        setHasHydratedUserData(true);
         return;
       }
 
@@ -670,12 +680,14 @@ const [user, setUser] = useState(null);
         setSocialLinks(normalized);
         setSocialLinksDraft(normalized);
       }
+      setHasHydratedUserData(true);
     } catch (error) {
       if (isSupabaseNetworkError(error)) {
         console.warn('Supabase temporarily unreachable while loading user data.');
       } else {
         console.error('loadMoodboardsFromSupabase failed:', error);
       }
+      setHasHydratedUserData(true);
     }
   };
   
@@ -714,7 +726,7 @@ const [user, setUser] = useState(null);
   }, [user, membersEnabled, aboutMe]);
 
   useEffect(() => {
-    if (!user || !supabaseDataEnabled) return;
+    if (!user || !supabaseDataEnabled || !hasHydratedUserData) return;
     let cancelled = false;
     (async () => {
       try {
@@ -746,7 +758,7 @@ const [user, setUser] = useState(null);
     return () => {
       cancelled = true;
     };
-  }, [followedMemberIds, moodboards, user, supabaseDataEnabled]);
+  }, [followedMemberIds, moodboards, user, supabaseDataEnabled, hasHydratedUserData]);
 
   const handleSaveSocialLinks = async () => {
     if (!user || !supabaseDataEnabled || savingSocialLinks) return;
