@@ -33,6 +33,17 @@ body {
   background: linear-gradient(90deg, #60a5fa, #8b5cf6);
 }
 
+.timeline-x-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.timeline-x-hidden::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+  display: none;
+}
+
 @keyframes timelineFloat {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-4px); }

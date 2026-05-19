@@ -7651,33 +7651,9 @@ const [user, setUser] = useState(null);
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => zoomTimeline(-0.1)}
-                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                            title="Zoom out"
-                            aria-label="Zoom out"
-                          >
-                            -
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => zoomTimeline(0.1)}
-                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                            title="Zoom in"
-                            aria-label="Zoom in"
-                          >
-                            +
-                          </button>
-                          <button
-                            type="button"
-                            onClick={resetTimelineZoom}
-                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                            title="Reset zoom"
-                            aria-label="Reset zoom"
-                          >
-                            Reset
-                          </button>
+                          <button type="button" onClick={() => zoomTimeline(-0.1)} className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]" title="Zoom out" aria-label="Zoom out">-</button>
+                          <button type="button" onClick={() => zoomTimeline(0.1)} className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]" title="Zoom in" aria-label="Zoom in">+</button>
+                          <button type="button" onClick={resetTimelineZoom} className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]" title="Reset zoom" aria-label="Reset zoom">Reset</button>
                           <button
                             type="button"
                             onClick={toggleTimelineFullscreen}
@@ -7709,134 +7685,113 @@ const [user, setUser] = useState(null);
                       </div>
                     </div>
 
-                    <div
-                      className="bg-[#111827] border border-gray-800 rounded-xl p-3"
-                      style={timelineFullscreen ? { height: 'calc(100vh - 210px)' } : undefined}
-                    >
-                      <div
-                        className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full"
-                      >
+                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-3" style={timelineFullscreen ? { height: 'calc(100vh - 210px)' } : undefined}>
+                      <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full">
                         <div className="absolute left-0 top-0 bottom-0 z-20 w-24 border-r border-gray-800/80 bg-[#050811]/95 backdrop-blur-sm">
                           <span className="absolute top-[14%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
                           <span className="absolute top-[42%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
                           <span className="absolute top-[70%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
                         </div>
 
-                        <div
-                          ref={tasteTimelineRef}
-                          className="cinematic-rail overflow-x-auto overflow-y-hidden scroll-smooth flex-1 min-h-0"
-                          style={{
-                            overscrollBehavior: 'contain',
-                            cursor: timelineDragging ? 'grabbing' : 'grab',
-                          }}
-                          onWheelCapture={onTimelineWheelCapture}
-                          onScroll={onTimelineRailScroll}
-                          onMouseDown={onTimelineMouseDown}
-                          onMouseMove={onTimelineMouseMove}
-                          onMouseUp={stopTimelineDrag}
-                          onMouseLeave={() => {
-                            stopTimelineDrag();
-                            setTimelineHoverKey(null);
-                          }}
-                        >
-                            <div
-                            className={`relative ml-24 px-3 pt-3 pb-10`}
-                            style={{
-                              minWidth: `${timelineRailWidth}px`,
-                              minHeight: `${Math.max(
-                                timelineFullscreen ? 520 : 520,
-                                230 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 4))
-                              )}px`,
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                          <div
+                            ref={tasteTimelineRef}
+                            className="cinematic-rail timeline-x-hidden overflow-x-auto overflow-y-visible scroll-smooth"
+                            style={{ overscrollBehavior: 'contain', cursor: timelineDragging ? 'grabbing' : 'grab' }}
+                            onWheelCapture={onTimelineWheelCapture}
+                            onScroll={onTimelineRailScroll}
+                            onMouseDown={onTimelineMouseDown}
+                            onMouseMove={onTimelineMouseMove}
+                            onMouseUp={stopTimelineDrag}
+                            onMouseLeave={() => {
+                              stopTimelineDrag();
+                              setTimelineHoverKey(null);
                             }}
                           >
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                              <path d="M0 20% C15% 14%, 35% 22%, 50% 18% C65% 14%, 85% 24%, 100% 19%" stroke="rgba(96,165,250,0.14)" fill="none" />
-                              <path d="M0 62% C20% 58%, 40% 70%, 60% 64% C78% 60%, 92% 72%, 100% 66%" stroke="rgba(147,51,234,0.12)" fill="none" />
-                            </svg>
+                            <div
+                              className="relative ml-24 px-3 pt-3 pb-3"
+                              style={{
+                                minWidth: `${timelineRailWidth}px`,
+                                minHeight: `${Math.max(520, 230 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 4)))}px`,
+                              }}
+                            >
+                              <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                                <path d="M0 20% C15% 14%, 35% 22%, 50% 18% C65% 14%, 85% 24%, 100% 19%" stroke="rgba(96,165,250,0.14)" fill="none" />
+                                <path d="M0 62% C20% 58%, 40% 70%, 60% 64% C78% 60%, 92% 72%, 100% 66%" stroke="rgba(147,51,234,0.12)" fill="none" />
+                              </svg>
 
-                            <div className="absolute inset-x-3 top-[28%] border-t border-gray-700/40" />
-                            <div className="absolute inset-x-3 top-[56%] border-t border-gray-700/40" />
+                              <div className="absolute inset-x-3 top-[28%] border-t border-gray-700/40" />
+                              <div className="absolute inset-x-3 top-[56%] border-t border-gray-700/40" />
 
                               <div className="relative z-10 flex gap-4">
-                              {timelineYearClusters.map((cluster) => {
-                                const posterW = Math.max(36, Math.round(42 * timelineZoom));
-                                const posterH = Math.max(52, Math.round(60 * timelineZoom));
+                                {timelineYearClusters.map((cluster) => {
+                                  const posterW = Math.max(36, Math.round(42 * timelineZoom));
+                                  const posterH = Math.max(52, Math.round(60 * timelineZoom));
+                                  const laneRows = ['Mainstream', 'Hybrid', 'Arthouse'];
+                                  const columnWidth = timelineColumnWidth;
 
-                                const laneRows = [
-                                  { lane: 'Mainstream', top: '8%' },
-                                  { lane: 'Hybrid', top: '36%' },
-                                  { lane: 'Arthouse', top: '64%' },
-                                ];
-                                const columnWidth = timelineColumnWidth;
+                                  return (
+                                    <div key={`year-cluster-${cluster.year}`} className="relative shrink-0 border-l border-gray-800/40" style={{ width: `${columnWidth}px` }}>
+                                      <div className="pt-2 pb-5 flex flex-col gap-3">
+                                        {laneRows.map((laneName) => {
+                                          const laneFilms = cluster.lanes?.[laneName] || [];
+                                          return (
+                                            <div key={`${cluster.year}-${laneName}`} className="min-h-[68px] flex justify-center">
+                                              <div className="space-y-0.5">
+                                                {laneFilms.map((movie) => {
+                                                  const posterKey = `${movie.title}_${movie.year}`;
+                                                  const hoverKey = movie.timelineKey;
+                                                  const isHovered = timelineHoverKey === hoverKey;
+                                                  const isRelated = timelineRelated.has(hoverKey);
+                                                  const faded = timelineHoverKey && !isHovered && !isRelated;
+                                                  const primary = Number(movie?.yourRating || 0) >= 9;
 
-                                return (
-                                  <div
-                                    key={`year-cluster-${cluster.year}`}
-                                    className="relative shrink-0 border-l border-gray-800/40"
-                                    style={{ width: `${columnWidth}px` }}
-                                  >
-                                    <div className="pt-2 pb-5 flex flex-col gap-3">
-                                      {laneRows.map((laneRow) => {
-                                        const laneFilms = cluster.lanes?.[laneRow.lane] || [];
-                                        return (
-                                          <div key={`${cluster.year}-${laneRow.lane}`} className="min-h-[68px] flex justify-center">
-                                            <div className="space-y-0.5">
-                                              {laneFilms.map((movie) => {
-                                                const posterKey = `${movie.title}_${movie.year}`;
-                                                const hoverKey = movie.timelineKey;
-                                                const isHovered = timelineHoverKey === hoverKey;
-                                                const isRelated = timelineRelated.has(hoverKey);
-                                                const faded = timelineHoverKey && !isHovered && !isRelated;
-                                                const primary = Number(movie?.yourRating || 0) >= 9;
-                                                return (
-                                                  <button
-                                                    key={hoverKey}
-                                                    type="button"
-                                                    onClick={() => handleMovieClick(movie)}
-                                                    onMouseEnter={() => setTimelineHoverKey(hoverKey)}
-                                                    onMouseLeave={() => setTimelineHoverKey(null)}
-                                                    className={`group block rounded-md transition-all duration-200 ${faded ? 'opacity-55 grayscale-[0.2]' : primary ? 'opacity-100' : 'opacity-85'} ${isHovered ? 'scale-[1.07] shadow-[0_0_0_1px_rgba(59,130,246,0.65),0_0_24px_rgba(59,130,246,0.25)]' : ''}`}
-                                                    style={{ width: `${posterW}px` }}
-                                                  >
-                                                    {posters[posterKey] ? (
-                                                      <img
-                                                        src={posters[posterKey]}
-                                                        alt={movie.title}
-                                                        loading="lazy"
-                                                        className="w-full object-cover rounded-md border border-gray-700"
-                                                        style={{ height: `${posterH}px` }}
-                                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                                      />
-                                                    ) : (
-                                                      <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          fetchPoster(movie.title, movie.year, movie.imdbId);
-                                                        }}
-                                                        className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
-                                                        style={{ height: `${posterH}px` }}
-                                                        title="Load poster"
-                                                      >
-                                                        Load Poster
-                                                      </button>
-                                                    )}
-                                                  </button>
-                                                );
-                                              })}
+                                                  return (
+                                                    <div
+                                                      key={hoverKey}
+                                                      className={`group rounded-md transition-all duration-200 ${faded ? 'opacity-55 grayscale-[0.2]' : primary ? 'opacity-100' : 'opacity-85'} ${isHovered ? 'scale-[1.07] shadow-[0_0_0_1px_rgba(59,130,246,0.65),0_0_24px_rgba(59,130,246,0.25)]' : ''}`}
+                                                      style={{ width: `${posterW}px` }}
+                                                      onMouseEnter={() => setTimelineHoverKey(hoverKey)}
+                                                      onMouseLeave={() => setTimelineHoverKey(null)}
+                                                    >
+                                                      {posters[posterKey] ? (
+                                                        <button type="button" onClick={() => handleMovieClick(movie)} className="block w-full">
+                                                          <img
+                                                            src={posters[posterKey]}
+                                                            alt={movie.title}
+                                                            loading="lazy"
+                                                            className="w-full object-cover rounded-md border border-gray-700"
+                                                            style={{ height: `${posterH}px` }}
+                                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                          />
+                                                        </button>
+                                                      ) : (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => fetchPoster(movie.title, movie.year, movie.imdbId)}
+                                                          className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
+                                                          style={{ height: `${posterH}px` }}
+                                                          title="Load poster"
+                                                        >
+                                                          Load Poster
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
                                             </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-
+                                          );
+                                        })}
+                                      </div>
                                     </div>
                                   );
                                 })}
+                              </div>
                             </div>
-
                           </div>
                         </div>
+
                         <div className="border-t border-gray-800 bg-[#050811]/95 backdrop-blur-sm px-3 py-1 shrink-0">
                           <div
                             className="flex gap-4"
@@ -7849,9 +7804,7 @@ const [user, setUser] = useState(null);
                             {timelineYearClusters.map((cluster) => (
                               <div
                                 key={`timeline-bottom-year-${cluster.year}`}
-                                className={`shrink-0 text-center text-[10px] ${
-                                  cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'
-                                }`}
+                                className={`shrink-0 text-center text-[10px] ${cluster.year % 10 === 0 ? 'text-blue-300 font-semibold' : 'text-gray-500'}`}
                                 style={{ width: `${timelineColumnWidth}px` }}
                               >
                                 {cluster.year}
