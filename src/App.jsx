@@ -7691,7 +7691,7 @@ const [user, setUser] = useState(null);
                       </div>
                     </div>
 
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-3" style={timelineFullscreen ? { height: 'calc(100vh - 210px)' } : undefined}>
+                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-3" style={timelineFullscreen ? { height: 'calc(100vh - 150px)' } : undefined}>
                       <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full">
                         <div className="absolute left-0 top-0 bottom-0 z-20 w-24 border-r border-gray-800/80 bg-[#050811]/95 backdrop-blur-sm">
                           <span className="absolute top-[14%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
