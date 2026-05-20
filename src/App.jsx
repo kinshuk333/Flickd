@@ -4677,7 +4677,7 @@ const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (!user) return;
-    if (activeTab === 'followers') return;
+    if (activeTab !== 'followers') return;
     if (!newFollowersList.length) return;
     const ids = followersMembersList.map((member) => String(member.userId));
     setLastSeenFollowerIds(ids);
@@ -6298,8 +6298,8 @@ const [user, setUser] = useState(null);
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <div className="hidden lg:block fixed top-[96px] left-1/2 -translate-x-1/2 w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-40 pointer-events-none">
                 <div className="grid grid-cols-[320px_1fr] gap-4 items-start">
-                  <div style={{ height: '768px' }}>
-                    <aside className="bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-6 space-y-4 overflow-hidden flex flex-col h-full pointer-events-auto">
+                  <div className="h-[calc(100vh-112px)]">
+                    <aside className="bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-6 space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full pointer-events-auto">
                   <div className="flex flex-col items-center text-center">
                 {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                   <img
