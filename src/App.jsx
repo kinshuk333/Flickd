@@ -36,6 +36,8 @@ const datasetCacheKey = (userId) => `${DATA_CACHE_KEY}:${String(userId || 'guest
 const MEMBERS_LOCAL_CACHE_KEY = 'imdb-members-directory-v1';
 const memberDatasetKey = (userId) => `imdb-member-dataset-${userId}`;
 const moodboardsStorageKey = (userId) => `imdb-moodboards-${String(userId || 'guest')}`;
+const moodboardsBackupStorageKey = (userId) => `imdb-moodboards-backup-${String(userId || 'guest')}`;
+const moodboardsBackupMetaKey = (userId) => `imdb-moodboards-backup-meta-${String(userId || 'guest')}`;
 
 const toShareableRows = (rows = []) => rows.map((row) => ({
   t: row?.title || '',
@@ -394,20 +396,50 @@ const [user, setUser] = useState(null);
     setAboutMeDraft(value);
   }, [user?.id]);
 
+  const writeMoodboardsLocalCache = React.useCallback((nextMoodboards) => {
+    const primaryKey = moodboardsStorageKey(user?.id);
+    const backupKey = moodboardsBackupStorageKey(user?.id);
+    const metaKey = moodboardsBackupMetaKey(user?.id);
+    const payload = JSON.stringify(Array.isArray(nextMoodboards) ? nextMoodboards : []);
+    localStorage.setItem(primaryKey, payload);
+    localStorage.setItem(backupKey, payload);
+    localStorage.setItem(metaKey, JSON.stringify({ savedAt: new Date().toISOString() }));
+  }, [user?.id]);
+
   useEffect(() => {
     const key = moodboardsStorageKey(user?.id);
+    const backupKey = moodboardsBackupStorageKey(user?.id);
     const saved = localStorage.getItem(key);
-    if (!saved) {
+    const backup = localStorage.getItem(backupKey);
+    if (!saved && !backup) {
       setMoodboards([]);
       setHasHydratedUserData(false);
       setCanSyncUserData(false);
       return;
     }
     try {
-      const parsed = JSON.parse(saved);
-      setMoodboards(Array.isArray(parsed) ? parsed : []);
+      const parsed = saved ? JSON.parse(saved) : [];
+      const parsedBackup = backup ? JSON.parse(backup) : [];
+      const primaryList = Array.isArray(parsed) ? parsed : [];
+      const backupList = Array.isArray(parsedBackup) ? parsedBackup : [];
+      const recovered = primaryList.length ? primaryList : backupList;
+      setMoodboards(recovered);
+      if (!primaryList.length && backupList.length) {
+        localStorage.setItem(key, JSON.stringify(backupList));
+      }
     } catch {
-      setMoodboards([]);
+      try {
+        const parsedBackup = backup ? JSON.parse(backup) : [];
+        const backupList = Array.isArray(parsedBackup) ? parsedBackup : [];
+        setMoodboards(backupList);
+        if (backupList.length) {
+          localStorage.setItem(key, JSON.stringify(backupList));
+        } else {
+          setMoodboards([]);
+        }
+      } catch {
+        setMoodboards([]);
+      }
     }
     setHasHydratedUserData(false);
     setCanSyncUserData(false);
@@ -672,7 +704,7 @@ const [user, setUser] = useState(null);
 
       if (data?.moodboards) {
         setMoodboards(data.moodboards);
-        localStorage.setItem(moodboardsStorageKey(user?.id), JSON.stringify(data.moodboards));
+        writeMoodboardsLocalCache(data.moodboards);
       }
       if (!followsTableEnabled && Array.isArray(data?.followings)) {
         setFollowedMemberIds(data.followings.map((id) => String(id)));
@@ -702,7 +734,7 @@ const [user, setUser] = useState(null);
   
   useEffect(() => {
     if (user && supabaseDataEnabled) loadMoodboardsFromSupabase();
-  }, [user, supabaseDataEnabled, followsTableEnabled]);
+  }, [user, supabaseDataEnabled, followsTableEnabled, writeMoodboardsLocalCache]);
 
   useEffect(() => {
     if (!user || !membersEnabled) return;
@@ -2063,7 +2095,7 @@ const [user, setUser] = useState(null);
         typeof nextOrUpdater === 'function'
           ? nextOrUpdater(prev)
           : nextOrUpdater;
-      localStorage.setItem(moodboardsStorageKey(user?.id), JSON.stringify(next));
+      writeMoodboardsLocalCache(next);
       return next;
     });
   };
