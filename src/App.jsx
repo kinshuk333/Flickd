@@ -174,6 +174,35 @@ const GENRE_ARCHETYPE_MAP = {
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 
+const deriveMemberStatsFromRows = (rows = []) => {
+  const safeRows = Array.isArray(rows) ? rows.filter((row) => row?.title && Number(row?.yourRating) > 0) : [];
+  if (!safeRows.length) {
+    return {
+      totalFilms: 0,
+      avgYourRating: 0,
+      mostRatedGenre: 'N/A',
+    };
+  }
+
+  const avgYourRating = safeRows.reduce((sum, row) => sum + (Number(row?.yourRating) || 0), 0) / safeRows.length;
+  const genreCount = {};
+  safeRows.forEach((row) => {
+    String(row?.genres || '')
+      .split(',')
+      .map((g) => g.trim())
+      .filter(Boolean)
+      .forEach((g) => {
+        genreCount[g] = (genreCount[g] || 0) + 1;
+      });
+  });
+
+  return {
+    totalFilms: safeRows.length,
+    avgYourRating: Number(avgYourRating || 0),
+    mostRatedGenre: Object.keys(genreCount).sort((a, b) => genreCount[b] - genreCount[a])[0] || 'N/A',
+  };
+};
+
 const ratingToWeight = (rating) => {
   const numeric = Number(rating) || 0;
   if (numeric >= 9) return 2.5;
@@ -4561,6 +4590,50 @@ const [user, setUser] = useState(null);
     [followersMembersList, followersSearchQuery, filterMembersByQuery]
   );
 
+  const memberCardStatsByUserId = React.useMemo(() => {
+    const map = new Map();
+    const allMembers = Array.isArray(membersDirectory) ? membersDirectory : [];
+
+    allMembers.forEach((member) => {
+      const userId = String(member?.userId || '');
+      if (!userId) return;
+
+      let resolvedStats = member?.snapshot?.stats || null;
+
+      const snapshotRows = Array.isArray(member?.snapshot?.dataset)
+        ? member.snapshot.dataset
+        : Array.isArray(member?.snapshot?.rows)
+        ? member.snapshot.rows
+        : Array.isArray(member?.snapshot?.data)
+        ? member.snapshot.data
+        : null;
+
+      if (Array.isArray(snapshotRows) && snapshotRows.length) {
+        resolvedStats = deriveMemberStatsFromRows(fromShareableRows(snapshotRows));
+      } else {
+        try {
+          const cachedRaw = localStorage.getItem(memberDatasetKey(userId));
+          if (cachedRaw) {
+            const cachedRows = JSON.parse(cachedRaw);
+            if (Array.isArray(cachedRows) && cachedRows.length) {
+              resolvedStats = deriveMemberStatsFromRows(fromShareableRows(cachedRows));
+            }
+          }
+        } catch {
+          // ignore local cache parse failures
+        }
+      }
+
+      map.set(userId, {
+        totalFilms: Number(resolvedStats?.totalFilms || 0),
+        avgYourRating: Number(resolvedStats?.avgYourRating || 0),
+        mostRatedGenre: String(resolvedStats?.mostRatedGenre || 'N/A'),
+      });
+    });
+
+    return map;
+  }, [membersDirectory]);
+
   const newFollowersList = React.useMemo(() => {
     const seen = new Set((lastSeenFollowerIds || []).map((id) => String(id)));
     return followersMembersList.filter((member) => !seen.has(String(member.userId)));
@@ -4733,6 +4806,27 @@ const [user, setUser] = useState(null);
       setMembersError('Shared dashboard data is present but invalid for this member.');
       return;
     }
+
+    const normalizedMemberStats = deriveMemberStatsFromRows(sharedDataset);
+    resolvedSnapshot = {
+      ...(resolvedSnapshot || {}),
+      stats: normalizedMemberStats,
+    };
+
+    setMembersDirectory((prev) =>
+      (Array.isArray(prev) ? prev : []).map((entry) =>
+        String(entry?.userId || '') === String(memberRecord?.userId || '')
+          ? {
+              ...entry,
+              snapshot: {
+                ...(entry?.snapshot || {}),
+                ...(resolvedSnapshot || {}),
+                stats: normalizedMemberStats,
+              },
+            }
+          : entry
+      )
+    );
 
     if (!memberViewUserId) {
       ownDashboardDataRef.current = data;
@@ -7445,6 +7539,14 @@ const [user, setUser] = useState(null);
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filteredMembersDirectory.map((member) => (
                       <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-4">
+                        {(() => {
+                          const cardStats = memberCardStatsByUserId.get(String(member?.userId || '')) || {
+                            totalFilms: 0,
+                            avgYourRating: 0,
+                            mostRatedGenre: 'N/A',
+                          };
+                          return (
+                            <>
                         <div className="flex items-center gap-3 mb-3">
                           {member.avatarUrl ? (
                             <img src={member.avatarUrl} alt={member.name} className="w-10 h-10 rounded-full object-cover" />
@@ -7462,15 +7564,15 @@ const [user, setUser] = useState(null);
                         <div className="grid grid-cols-3 gap-2 mb-3">
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Films</div>
-                            <div className="text-sm font-semibold text-white">{member.snapshot?.stats?.totalFilms || 0}</div>
+                            <div className="text-sm font-semibold text-white">{cardStats.totalFilms || 0}</div>
                           </div>
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Avg</div>
-                            <div className="text-sm font-semibold text-white">{Number(member.snapshot?.stats?.avgYourRating || 0).toFixed(1)}</div>
+                            <div className="text-sm font-semibold text-white">{Number(cardStats.avgYourRating || 0).toFixed(1)}</div>
                           </div>
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Genre</div>
-                            <div className="text-xs font-semibold text-white truncate">{member.snapshot?.stats?.mostRatedGenre || 'N/A'}</div>
+                            <div className="text-xs font-semibold text-white truncate">{cardStats.mostRatedGenre || 'N/A'}</div>
                           </div>
                         </div>
 
@@ -7481,6 +7583,9 @@ const [user, setUser] = useState(null);
                         >
                           View Full Dashboard
                         </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -7539,6 +7644,14 @@ const [user, setUser] = useState(null);
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filteredFollowedMembersList.map((member) => (
                       <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-4">
+                        {(() => {
+                          const cardStats = memberCardStatsByUserId.get(String(member?.userId || '')) || {
+                            totalFilms: 0,
+                            avgYourRating: 0,
+                            mostRatedGenre: 'N/A',
+                          };
+                          return (
+                            <>
                         <div className="flex items-center gap-3 mb-3">
                           {member.avatarUrl ? (
                             <img src={member.avatarUrl} alt={member.name} className="w-10 h-10 rounded-full object-cover" />
@@ -7556,15 +7669,15 @@ const [user, setUser] = useState(null);
                         <div className="grid grid-cols-3 gap-2 mb-3">
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Films</div>
-                            <div className="text-sm font-semibold text-white">{member.snapshot?.stats?.totalFilms || 0}</div>
+                            <div className="text-sm font-semibold text-white">{cardStats.totalFilms || 0}</div>
                           </div>
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Avg</div>
-                            <div className="text-sm font-semibold text-white">{Number(member.snapshot?.stats?.avgYourRating || 0).toFixed(1)}</div>
+                            <div className="text-sm font-semibold text-white">{Number(cardStats.avgYourRating || 0).toFixed(1)}</div>
                           </div>
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Genre</div>
-                            <div className="text-xs font-semibold text-white truncate">{member.snapshot?.stats?.mostRatedGenre || 'N/A'}</div>
+                            <div className="text-xs font-semibold text-white truncate">{cardStats.mostRatedGenre || 'N/A'}</div>
                           </div>
                         </div>
 
@@ -7584,6 +7697,9 @@ const [user, setUser] = useState(null);
                             Unfollow
                           </button>
                         </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -7642,6 +7758,11 @@ const [user, setUser] = useState(null);
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filteredFollowersMembersList.map((member) => {
                       const isNewFollower = newFollowersList.some((item) => String(item.userId) === String(member.userId));
+                      const cardStats = memberCardStatsByUserId.get(String(member?.userId || '')) || {
+                        totalFilms: 0,
+                        avgYourRating: 0,
+                        mostRatedGenre: 'N/A',
+                      };
                       return (
                       <div
                         key={member.id}
@@ -7674,15 +7795,15 @@ const [user, setUser] = useState(null);
                         <div className="grid grid-cols-3 gap-2 mb-3">
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Films</div>
-                            <div className="text-sm font-semibold text-white">{member.snapshot?.stats?.totalFilms || 0}</div>
+                            <div className="text-sm font-semibold text-white">{cardStats.totalFilms || 0}</div>
                           </div>
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Avg</div>
-                            <div className="text-sm font-semibold text-white">{Number(member.snapshot?.stats?.avgYourRating || 0).toFixed(1)}</div>
+                            <div className="text-sm font-semibold text-white">{Number(cardStats.avgYourRating || 0).toFixed(1)}</div>
                           </div>
                           <div className="bg-[#0b1220] border border-gray-700 rounded-lg p-2">
                             <div className="text-[10px] text-gray-400">Genre</div>
-                            <div className="text-xs font-semibold text-white truncate">{member.snapshot?.stats?.mostRatedGenre || 'N/A'}</div>
+                            <div className="text-xs font-semibold text-white truncate">{cardStats.mostRatedGenre || 'N/A'}</div>
                           </div>
                         </div>
 
