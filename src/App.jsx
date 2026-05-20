@@ -315,6 +315,7 @@ export default function App() {
   const [tasteResonanceLoading, setTasteResonanceLoading] = useState(false);
   const [followedMemberIds, setFollowedMemberIds] = useState([]);
   const [followerUserIds, setFollowerUserIds] = useState([]);
+  const [followerFollowKeys, setFollowerFollowKeys] = useState([]);
   const [followsTableEnabled, setFollowsTableEnabled] = useState(true);
   const [lastSeenFollowerIds, setLastSeenFollowerIds] = useState([]);
   const [profileAvatarFailed, setProfileAvatarFailed] = useState(false);
@@ -414,7 +415,12 @@ const [user, setUser] = useState(null);
   useEffect(() => {
     const key = user?.id ? `imdb-followers-seen-${user.id}` : 'imdb-followers-seen-guest';
     const saved = localStorage.getItem(key);
-    setLastSeenFollowerIds(saved ? JSON.parse(saved) : []);
+    try {
+      const parsed = saved ? JSON.parse(saved) : [];
+      setLastSeenFollowerIds(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setLastSeenFollowerIds([]);
+    }
   }, [user?.id]);
 
   useEffect(() => {
@@ -700,7 +706,7 @@ const [user, setUser] = useState(null);
             'follows:followers:post_toggle',
             () => supabase
               .from('follows')
-              .select('follower_user_id')
+              .select('follower_user_id,created_at')
               .eq('followed_user_id', user.id)
               .limit(500),
             { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
@@ -713,10 +719,20 @@ const [user, setUser] = useState(null);
           setFollowedMemberIds(followingIds);
         }
         if (!followersRes.error) {
-          const followerIds = (followersRes.data || [])
+          const followerRows = Array.isArray(followersRes.data) ? followersRes.data : [];
+          const followerIds = followerRows
             .map((row) => String(row?.follower_user_id || '').trim())
             .filter(Boolean);
           setFollowerUserIds(followerIds);
+          const followerKeys = followerRows
+            .map((row) => {
+              const idVal = String(row?.follower_user_id || '').trim();
+              if (!idVal) return '';
+              const atVal = row?.created_at ? String(row.created_at) : '';
+              return `${idVal}|${atVal}`;
+            })
+            .filter(Boolean);
+          setFollowerFollowKeys(followerKeys);
         }
       } catch (error) {
         console.error('toggleFollowMember failed:', error);
@@ -4542,7 +4558,7 @@ const [user, setUser] = useState(null);
             'follows:followers',
             () => supabase
               .from('follows')
-              .select('follower_user_id')
+              .select('follower_user_id,created_at')
               .eq('followed_user_id', user.id)
               .limit(500),
             { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
@@ -4555,10 +4571,20 @@ const [user, setUser] = useState(null);
           setFollowedMemberIds(followingIds);
         }
         if (!followersRes.error) {
-          const followerIds = (followersRes.data || [])
+          const followerRows = Array.isArray(followersRes.data) ? followersRes.data : [];
+          const followerIds = followerRows
             .map((row) => String(row?.follower_user_id || '').trim())
             .filter(Boolean);
           setFollowerUserIds(followerIds);
+          const followerKeys = followerRows
+            .map((row) => {
+              const idVal = String(row?.follower_user_id || '').trim();
+              if (!idVal) return '';
+              const atVal = row?.created_at ? String(row.created_at) : '';
+              return `${idVal}|${atVal}`;
+            })
+            .filter(Boolean);
+          setFollowerFollowKeys(followerKeys);
         }
       } catch {
         // keep last known local state
@@ -4602,6 +4628,20 @@ const [user, setUser] = useState(null);
         : false;
     });
   }, [membersDirectory, user, followerUserIds, followsTableEnabled]);
+
+  const followerFollowKeyByUserId = React.useMemo(() => {
+    const map = new Map();
+    (followerFollowKeys || []).forEach((entry) => {
+      const raw = String(entry || '');
+      if (!raw) return;
+      const sep = raw.indexOf('|');
+      if (sep <= 0) return;
+      const id = raw.slice(0, sep);
+      if (!id) return;
+      map.set(id, raw);
+    });
+    return map;
+  }, [followerFollowKeys]);
 
   const filterMembersByQuery = React.useCallback((list, query) => {
     const q = String(query || '').trim().toLowerCase();
@@ -4672,21 +4712,32 @@ const [user, setUser] = useState(null);
 
   const newFollowersList = React.useMemo(() => {
     const seen = new Set((lastSeenFollowerIds || []).map((id) => String(id)));
-    return followersMembersList.filter((member) => !seen.has(String(member.userId)));
-  }, [followersMembersList, lastSeenFollowerIds]);
+    return followersMembersList.filter((member) => {
+      const userId = String(member?.userId || '');
+      if (!userId) return false;
+      const followKey = followerFollowKeyByUserId.get(userId) || userId; // fallback supports legacy seen format
+      return !seen.has(followKey);
+    });
+  }, [followersMembersList, lastSeenFollowerIds, followerFollowKeyByUserId]);
 
   useEffect(() => {
     if (!user) return;
     if (activeTab !== 'followers') return;
     if (!newFollowersList.length) return;
-    const ids = followersMembersList.map((member) => String(member.userId));
-    setLastSeenFollowerIds(ids);
+    const seenKeys = followersMembersList
+      .map((member) => {
+        const userId = String(member?.userId || '');
+        if (!userId) return '';
+        return followerFollowKeyByUserId.get(userId) || userId;
+      })
+      .filter(Boolean);
+    setLastSeenFollowerIds(seenKeys);
     try {
-      localStorage.setItem(`imdb-followers-seen-${user.id}`, JSON.stringify(ids));
+      localStorage.setItem(`imdb-followers-seen-${user.id}`, JSON.stringify(seenKeys));
     } catch {
       // ignore storage errors
     }
-  }, [activeTab, followersMembersList, newFollowersList.length, user]);
+  }, [activeTab, followersMembersList, newFollowersList.length, user, followerFollowKeyByUserId]);
 
   const fetchMemberSnapshot = async (memberUserId) => {
     if (!memberUserId || !membersEnabled) return { snapshot: null, updatedAt: null, error: null };
@@ -6299,7 +6350,7 @@ const [user, setUser] = useState(null);
               <div className="hidden lg:block fixed top-[96px] left-1/2 -translate-x-1/2 w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-40 pointer-events-none">
                 <div className="grid grid-cols-[320px_1fr] gap-4 items-start">
                   <div className="h-[calc(100vh-112px)]">
-                    <aside className="bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-6 space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full pointer-events-auto">
+                    <aside className="profile-scroll bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-6 space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full pointer-events-auto">
                   <div className="flex flex-col items-center text-center">
                 {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                   <img
@@ -6466,7 +6517,7 @@ const [user, setUser] = useState(null);
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <>
                 <div className="hidden lg:block w-[320px]" />
-                <aside className="lg:hidden bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 space-y-4 overflow-hidden flex flex-col h-auto pointer-events-auto">
+                <aside className="profile-scroll lg:hidden bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 space-y-4 overflow-hidden flex flex-col h-auto pointer-events-auto">
                   <div className="flex flex-col items-center text-center">
                     {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                       <img
