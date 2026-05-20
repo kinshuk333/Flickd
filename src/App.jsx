@@ -653,6 +653,7 @@ const [user, setUser] = useState(null);
   const toggleFollowMember = (memberId, memberName = '') => {
     const id = String(memberId || '');
     if (!id) return;
+    if (String(id) === String(user?.id || '')) return;
     const previous = Array.isArray(followedMemberIds) ? [...followedMemberIds] : [];
     const alreadyFollowing = previous.includes(id);
     const next = alreadyFollowing ? previous.filter((item) => item !== id) : [...previous, id];
@@ -677,20 +678,53 @@ const [user, setUser] = useState(null);
         } else {
           const { error } = await supabase
             .from('follows')
-            .upsert(
-              {
-                follower_user_id: user.id,
-                followed_user_id: id,
-              },
-              { onConflict: 'follower_user_id,followed_user_id' }
-            );
-          if (error) throw error;
+            .insert({
+              follower_user_id: user.id,
+              followed_user_id: id,
+            });
+          // Duplicate relation is fine; treat as success.
+          if (error && String(error?.code || '') !== '23505') throw error;
+        }
+        // Refresh immediately so Following/Followers tabs reflect latest server truth.
+        const [followingRes, followersRes] = await Promise.all([
+          runSupabaseResilient(
+            'follows:following:post_toggle',
+            () => supabase
+              .from('follows')
+              .select('followed_user_id')
+              .eq('follower_user_id', user.id)
+              .limit(500),
+            { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
+          ),
+          runSupabaseResilient(
+            'follows:followers:post_toggle',
+            () => supabase
+              .from('follows')
+              .select('follower_user_id')
+              .eq('followed_user_id', user.id)
+              .limit(500),
+            { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
+          ),
+        ]);
+        if (!followingRes.error) {
+          const followingIds = (followingRes.data || [])
+            .map((row) => String(row?.followed_user_id || '').trim())
+            .filter(Boolean);
+          setFollowedMemberIds(followingIds);
+        }
+        if (!followersRes.error) {
+          const followerIds = (followersRes.data || [])
+            .map((row) => String(row?.follower_user_id || '').trim())
+            .filter(Boolean);
+          setFollowerUserIds(followerIds);
         }
       } catch (error) {
+        console.error('toggleFollowMember failed:', error);
         if (error?.code === 'PGRST205' || error?.status === 404) {
           setFollowsTableEnabled(false);
         }
         setFollowedMemberIds(previous);
+        alert('Could not update follow status right now. Please try again.');
       }
     })();
   };
@@ -4530,6 +4564,8 @@ const [user, setUser] = useState(null);
         // keep last known local state
       }
     };
+
+    refresh();
 
     const channel = supabase
       .channel('follows_changes')
