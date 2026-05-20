@@ -884,20 +884,49 @@ const [user, setUser] = useState(null);
     if (!user || !supabaseDataEnabled || savingSocialLinks) return;
     setSavingSocialLinks(true);
     try {
+      const nextLinks = {
+        instagram: socialLinksDraft.instagram || '',
+        x: socialLinksDraft.x || '',
+        facebook: socialLinksDraft.facebook || '',
+      };
       const payload = {
         user_id: user.id,
-        social_links: {
-          instagram: socialLinksDraft.instagram || '',
-          x: socialLinksDraft.x || '',
-          facebook: socialLinksDraft.facebook || '',
-        },
+        social_links: nextLinks,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
         .from('user_data')
         .upsert(payload, { onConflict: 'user_id' });
       if (!error) {
-        setSocialLinks(payload.social_links);
+        setSocialLinks(nextLinks);
+
+        // Keep shared member profile snapshot in sync so other users can see links.
+        if (membersEnabled) {
+          const updatedAt = new Date().toISOString();
+          const snapshotBase = currentMemberSnapshot && typeof currentMemberSnapshot === 'object' ? currentMemberSnapshot : {};
+          const snapshot = toPublicMemberSnapshot({
+            ...snapshotBase,
+            profileLinks: nextLinks,
+            updatedAt,
+          });
+
+          const memberPayload = {
+            user_id: user.id,
+            display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Member',
+            email: user.email || null,
+            avatar_url: user.user_metadata?.avatar_url || null,
+            snapshot,
+            updated_at: updatedAt,
+          };
+
+          const { error: memberProfileError } = await supabase
+            .from('member_profiles')
+            .upsert(memberPayload, { onConflict: 'user_id' });
+
+          if (memberProfileError) {
+            console.error('member_profiles upsert failed (social links):', memberProfileError);
+          }
+        }
       } else if (error?.code === 'PGRST205' || error?.status === 404) {
         setSupabaseDataEnabled(false);
       }
@@ -3613,9 +3642,12 @@ const [user, setUser] = useState(null);
   }, [timelineMovies]);
 
   const timelineEndYear = React.useMemo(() => {
-    if (!timelineMovies.length) return 2029;
-    const maxYear = Math.ceil(Math.max(...timelineMovies.map((m) => Number(m.year) || 2029)) / 10) * 10 + 9;
-    return Math.max(2029, maxYear);
+    const currentYear = new Date().getFullYear();
+    if (!timelineMovies.length) return currentYear;
+    const maxMovieYear = Math.max(...timelineMovies.map((m) => Number(m.year) || currentYear));
+    const clampedToCurrentYear = Math.min(currentYear, maxMovieYear);
+    const roundedToDecadeEnd = Math.ceil(clampedToCurrentYear / 10) * 10 + 9;
+    return Math.min(currentYear, Math.max(2029, roundedToDecadeEnd));
   }, [timelineMovies]);
 
   const timelineYearClusters = React.useMemo(() => {
@@ -4540,52 +4572,61 @@ const [user, setUser] = useState(null);
     };
   }, [membersEnabled, user]);
 
+  const refreshFollowsState = React.useCallback(async () => {
+    if (!user || !followsTableEnabled) return;
+    try {
+      const [followingRes, followersRes] = await Promise.all([
+        runSupabaseResilient(
+          'follows:following',
+          () => supabase
+            .from('follows')
+            .select('followed_user_id')
+            .eq('follower_user_id', user.id)
+            .limit(500),
+          { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
+        ),
+        runSupabaseResilient(
+          'follows:followers',
+          () => supabase
+            .from('follows')
+            .select('follower_user_id,created_at')
+            .eq('followed_user_id', user.id)
+            .limit(500),
+          { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
+        ),
+      ]);
+      if (!followingRes.error) {
+        const followingIds = (followingRes.data || [])
+          .map((row) => String(row?.followed_user_id || '').trim())
+          .filter(Boolean);
+        setFollowedMemberIds(followingIds);
+      }
+      if (!followersRes.error) {
+        const followerRows = Array.isArray(followersRes.data) ? followersRes.data : [];
+        const followerIds = followerRows
+          .map((row) => String(row?.follower_user_id || '').trim())
+          .filter(Boolean);
+        setFollowerUserIds(followerIds);
+        const followerKeys = followerRows
+          .map((row) => {
+            const idVal = String(row?.follower_user_id || '').trim();
+            if (!idVal) return '';
+            const atVal = row?.created_at ? String(row.created_at) : '';
+            return `${idVal}|${atVal}`;
+          })
+          .filter(Boolean);
+        setFollowerFollowKeys(followerKeys);
+      }
+    } catch {
+      // keep last known local state
+    }
+  }, [user, followsTableEnabled]);
+
   useEffect(() => {
     if (!user || !followsTableEnabled) return;
     const refresh = async () => {
       try {
-        const [followingRes, followersRes] = await Promise.all([
-          runSupabaseResilient(
-            'follows:following',
-            () => supabase
-              .from('follows')
-              .select('followed_user_id')
-              .eq('follower_user_id', user.id)
-              .limit(500),
-            { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
-          ),
-          runSupabaseResilient(
-            'follows:followers',
-            () => supabase
-              .from('follows')
-              .select('follower_user_id,created_at')
-              .eq('followed_user_id', user.id)
-              .limit(500),
-            { timeoutMs: 10000, retries: 2, baseDelayMs: 300 }
-          ),
-        ]);
-        if (!followingRes.error) {
-          const followingIds = (followingRes.data || [])
-            .map((row) => String(row?.followed_user_id || '').trim())
-            .filter(Boolean);
-          setFollowedMemberIds(followingIds);
-        }
-        if (!followersRes.error) {
-          const followerRows = Array.isArray(followersRes.data) ? followersRes.data : [];
-          const followerIds = followerRows
-            .map((row) => String(row?.follower_user_id || '').trim())
-            .filter(Boolean);
-          setFollowerUserIds(followerIds);
-          const followerKeys = followerRows
-            .map((row) => {
-              const idVal = String(row?.follower_user_id || '').trim();
-              if (!idVal) return '';
-              const atVal = row?.created_at ? String(row.created_at) : '';
-              return `${idVal}|${atVal}`;
-            })
-            .filter(Boolean);
-          setFollowerFollowKeys(followerKeys);
-        }
+        await refreshFollowsState();
       } catch {
         // keep last known local state
       }
@@ -4604,10 +4645,26 @@ const [user, setUser] = useState(null);
       )
       .subscribe();
 
+    const refreshInterval = setInterval(() => {
+      refresh();
+    }, 12000);
+
+    const onWindowFocus = () => {
+      refresh();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    window.addEventListener('focus', onWindowFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
+      clearInterval(refreshInterval);
+      window.removeEventListener('focus', onWindowFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       supabase.removeChannel(channel);
     };
-  }, [user?.id, followsTableEnabled]);
+  }, [user?.id, followsTableEnabled, refreshFollowsState]);
 
   const followedMembersList = React.useMemo(
     () => membersDirectory.filter((member) => followedMemberIds.includes(String(member.userId))),
@@ -4653,10 +4710,12 @@ const [user, setUser] = useState(null);
     });
   }, []);
 
-  const filteredMembersDirectory = React.useMemo(
-    () => filterMembersByQuery(membersDirectory, membersSearchQuery),
-    [membersDirectory, membersSearchQuery, filterMembersByQuery]
-  );
+  const filteredMembersDirectory = React.useMemo(() => {
+    const base = filterMembersByQuery(membersDirectory, membersSearchQuery);
+    const selfId = String(user?.id || '');
+    if (!selfId) return base;
+    return (Array.isArray(base) ? base : []).filter((member) => String(member?.userId || '') !== selfId);
+  }, [membersDirectory, membersSearchQuery, filterMembersByQuery, user?.id]);
   const filteredFollowedMembersList = React.useMemo(
     () => filterMembersByQuery(followedMembersList, followingSearchQuery),
     [followedMembersList, followingSearchQuery, filterMembersByQuery]
@@ -4720,9 +4779,13 @@ const [user, setUser] = useState(null);
     });
   }, [followersMembersList, lastSeenFollowerIds, followerFollowKeyByUserId]);
 
+  const previousTopTabRef = React.useRef(activeTab);
   useEffect(() => {
     if (!user) return;
-    if (activeTab !== 'followers') return;
+    const prevTab = previousTopTabRef.current;
+    previousTopTabRef.current = activeTab;
+    const leftFollowersTab = prevTab === 'followers' && activeTab !== 'followers';
+    if (!leftFollowersTab) return;
     if (!newFollowersList.length) return;
     const seenKeys = followersMembersList
       .map((member) => {
