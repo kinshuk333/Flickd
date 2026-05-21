@@ -21,6 +21,7 @@ import {
   ChartCard,
   PremiumTabs,
   SidebarStat,
+  MetricCard,
   Button,
   Card,
   CardHeader,
@@ -28,7 +29,24 @@ import {
   CardDescription,
   CardContent,
 } from './components/ui';
-import { Sparkles, BarChart3, Clapperboard, Activity, Blend, CalendarRange, HeartHandshake } from 'lucide-react';
+import {
+  Sparkles,
+  BarChart3,
+  Clapperboard,
+  Activity,
+  Blend,
+  CalendarRange,
+  HeartHandshake,
+  Brain,
+  Compass,
+  Repeat,
+  Clock3,
+  Star,
+  Film,
+  Gauge,
+  Layers,
+  Palette,
+} from 'lucide-react';
 
 const ACCENT_COLOR = '#3b82f6';
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
@@ -8212,167 +8230,164 @@ const [user, setUser] = useState(null);
                   </div>
                 )}
                 {activeTab === 'personality' && personality && (
-                  <div className="space-y-6">
+                  <Motion.div
+                    className="space-y-6"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                  >
+                    <Card className="relative overflow-hidden border-blue-500/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(8,13,26,0.98))]">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                          <Brain className="h-5 w-5 text-blue-300" />
+                          Your Cinematic Identity
+                        </CardTitle>
+                        <CardDescription>A psychological reading of your movie taste patterns.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-5">
+                        <div>
+                          <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
+                            {personality.archetype}
+                          </h2>
+                          <p className="text-slate-300 mt-4 text-base sm:text-lg leading-relaxed max-w-5xl">
+                            {personality.description}
+                          </p>
+                        </div>
 
-                  <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <h3 className="text-lg font-semibold text-white">Your Cinematic Identity</h3>
-                    </div>
+                        <div className="flex flex-wrap gap-2">
+                          {personality.traits.map((trait, idx) => (
+                            <Motion.span
+                              key={trait}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: idx * 0.035, duration: 0.25 }}
+                              className="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/10 border border-blue-400/20 text-blue-100"
+                            >
+                              {trait}
+                            </Motion.span>
+                          ))}
+                        </div>
 
-                    <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight">{personality.archetype}</h2>
-                    <p className="text-gray-300 mt-3 text-base leading-relaxed max-w-4xl">
-                      {personality.description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {personality.traits.map((trait, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#0b1220] border border-gray-700 text-gray-200"
-                        >
-                          {trait}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5">
-                      <div className="bg-[#0b1220] border border-gray-800 rounded-lg p-3">
-                        <div className="text-gray-400 text-xs">Top Genre</div>
-                        <div className="text-white font-semibold text-sm mt-1 truncate">{personality.topGenres[0]}</div>
-                      </div>
-                      <div className="bg-[#0b1220] border border-gray-800 rounded-lg p-3">
-                        <div className="text-gray-400 text-xs">Era</div>
-                        <div className="text-white font-semibold text-sm mt-1">{personality.mostWatchedDecade}s</div>
-                      </div>
-                      <div className="bg-[#0b1220] border border-gray-800 rounded-lg p-3">
-                        <div className="text-gray-400 text-xs">Avg Runtime</div>
-                        <div className="text-white font-semibold text-sm mt-1">{personality.avgRuntime} min</div>
-                      </div>
-                      <div className="bg-[#0b1220] border border-gray-800 rounded-lg p-3">
-                        <div className="text-gray-400 text-xs">Niche</div>
-                        <div className="text-white font-semibold text-sm mt-1">{personality.nichePercentage}%</div>
-                      </div>
-                      <div className="bg-[#0b1220] border border-gray-800 rounded-lg p-3 col-span-2 sm:col-span-1">
-                        <div className="text-gray-400 text-xs">Your Avg</div>
-                        <div className="text-white font-semibold text-sm mt-1">{"\u2605"} {personality.avgRating}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                          <MetricCard label="Top Genre" value={personality.topGenres[0]} />
+                          <MetricCard label="Era" value={`${personality.mostWatchedDecade}s`} />
+                          <MetricCard label="Avg Runtime" value={`${personality.avgRuntime} min`} />
+                          <MetricCard label="Niche" value={`${personality.nichePercentage}%`} />
+                          <MetricCard className="col-span-2 sm:col-span-1" label="Your Avg" value={`★ ${personality.avgRating}`} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Motion.div>
               )}
 
-              {activeTab === 'personality' && patterns && (
-                <div className="mt-6">
+              {activeTab === 'personality' && patterns && (() => {
+                const patternCards = [
+                  {
+                    title: 'Exploration',
+                    subtitle: 'New directors discovered',
+                    value: `${patterns.explorationScore}%`,
+                    progress: patterns.explorationScore,
+                    detail: 'How often your library opens a new cinematic doorway.',
+                    Icon: Compass,
+                    accent: 'from-purple-500 to-pink-500',
+                  },
+                  {
+                    title: 'Loyalty',
+                    subtitle: 'Repeat director visits',
+                    value: `${patterns.loyaltyScore}%`,
+                    progress: patterns.loyaltyScore,
+                    detail: 'The pull of familiar filmmakers and recurring sensibilities.',
+                    Icon: Repeat,
+                    accent: 'from-blue-500 to-cyan-400',
+                  },
+                  {
+                    title: 'Era Bias',
+                    subtitle: 'Most watched decade',
+                    value: `${patterns.dominantDecade}s`,
+                    progress: patterns.eraPercentage,
+                    detail: `${patterns.eraPercentage}% of your library lives in this era.`,
+                    Icon: CalendarRange,
+                    accent: 'from-yellow-400 to-orange-500',
+                  },
+                  {
+                    title: 'Genre Breadth',
+                    subtitle: 'Distinct genres explored',
+                    value: patterns.genreBreadth,
+                    progress: Math.min(100, (patterns.genreBreadth / 30) * 100),
+                    detail: 'A measure of how wide your viewing vocabulary stretches.',
+                    Icon: Layers,
+                    accent: 'from-emerald-400 to-green-500',
+                  },
+                  {
+                    title: 'Rating Consistency',
+                    subtitle: 'How steady your ratings are',
+                    value: patterns.ratingConsistency,
+                    progress: patterns.ratingConsistency,
+                    detail: `Std dev: ${patterns.ratingStdDev}`,
+                    Icon: Gauge,
+                    accent: 'from-rose-500 to-red-500',
+                  },
+                  {
+                    title: 'Niche Score',
+                    subtitle: 'Films with <50k votes',
+                    value: `${patterns.nicheScore}%`,
+                    progress: patterns.nicheScore,
+                    detail: `${patterns.mainstreamCount} mainstream  ${data?.length - patterns.mainstreamCount} niche`,
+                    Icon: Star,
+                    accent: 'from-indigo-500 to-violet-500',
+                  },
+                ];
 
-                  {/* Pattern Cards Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Exploration Score */}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 hover:-translate-y-1 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-white font-semibold">Exploration</div>
-                          <div className="text-gray-400 text-xs">New directors discovered</div>
-                        </div>
-                        <div className="text-2xl font-bold text-purple-400">{patterns.explorationScore}%</div>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-1000"
-                          style={{ width: `${patterns.explorationScore}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Loyalty Score */}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 hover:-translate-y-1 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-white font-semibold">Loyalty</div>
-                          <div className="text-gray-400 text-xs">Repeat director visits</div>
-                        </div>
-                        <div className="text-2xl font-bold text-blue-400">{patterns.loyaltyScore}%</div>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-1000"
-                          style={{ width: `${patterns.loyaltyScore}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Era Bias */}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 hover:-translate-y-1 hover:border-yellow-500/30 hover:shadow-lg hover:shadow-yellow-500/10 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-white font-semibold">Era Bias</div>
-                          <div className="text-gray-400 text-xs">Most watched decade</div>
-                        </div>
-                        <div className="text-2xl font-bold text-yellow-400">{patterns.dominantDecade}s</div>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-1000"
-                          style={{ width: `${patterns.eraPercentage}%` }}
-                        />
-                      </div>
-                      <div className="text-right text-xs text-gray-400 mt-1">{patterns.eraPercentage}% of your library</div>
-                    </div>
-
-                    {/* Genre Breadth */}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 hover:-translate-y-1 hover:border-green-500/30 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-white font-semibold">Genre Breadth</div>
-                          <div className="text-gray-400 text-xs">Distinct genres explored</div>
-                        </div>
-                        <div className="text-2xl font-bold text-green-400">{patterns.genreBreadth}</div>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-1000"
-                          style={{ width: `${Math.min(100, (patterns.genreBreadth / 30) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Rating Consistency */}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 hover:-translate-y-1 hover:border-red-500/30 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-white font-semibold">Rating Consistency</div>
-                          <div className="text-gray-400 text-xs">How steady your ratings are</div>
-                        </div>
-                        <div className="text-2xl font-bold text-red-400">{patterns.ratingConsistency}</div>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-red-500 to-rose-500 rounded-full transition-all duration-1000"
-                          style={{ width: `${patterns.ratingConsistency}%` }}
-                        />
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">Std dev: {patterns.ratingStdDev}</div>
-                    </div>
-
-                    {/* Mainstream vs Niche */}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 hover:-translate-y-1 hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-white font-semibold">Niche Score</div>
-                          <div className="text-gray-400 text-xs">Films with &lt;50k votes</div>
-                        </div>
-                        <div className="text-2xl font-bold text-indigo-400">{patterns.nicheScore}%</div>
-                      </div>
-                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000"
-                          style={{ width: `${patterns.nicheScore}%` }}
-                        />
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">{patterns.mainstreamCount} mainstream  {data?.length - patterns.mainstreamCount} niche</div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                return (
+                  <Motion.div
+                    className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                      hidden: {},
+                      show: { transition: { staggerChildren: 0.055 } },
+                    }}
+                  >
+                    {patternCards.map(({ title, subtitle, value, progress, detail, Icon, accent }) => (
+                      <Motion.div
+                        key={title}
+                        variants={{
+                          hidden: { opacity: 0, y: 14 },
+                          show: { opacity: 1, y: 0 },
+                        }}
+                        transition={{ duration: 0.32, ease: 'easeOut' }}
+                        whileHover={{ y: -4 }}
+                      >
+                        <Card className="h-full overflow-hidden border-slate-700/70 bg-slate-950/60">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-3">
+                                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-blue-200">
+                                  {React.createElement(Icon, { className: 'h-4 w-4' })}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-white">{title}</div>
+                                  <div className="text-xs text-slate-400">{subtitle}</div>
+                                </div>
+                              </div>
+                              <div className="text-2xl font-black tracking-tight text-white">{value}</div>
+                            </div>
+                            <div className="mt-4 h-2 rounded-full bg-slate-800/90 overflow-hidden">
+                              <Motion.div
+                                className={`h-full rounded-full bg-gradient-to-r ${accent}`}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                transition={{ duration: 0.9, ease: 'easeOut' }}
+                              />
+                            </div>
+                            <p className="mt-3 text-xs leading-relaxed text-slate-400">{detail}</p>
+                          </CardContent>
+                        </Card>
+                      </Motion.div>
+                    ))}
+                  </Motion.div>
+                );
+              })()}
 
               {/* CINEMATIC TASTE CARD */}
               {/* CINEMATIC TASTE CARD */}
@@ -8383,13 +8398,30 @@ const [user, setUser] = useState(null);
                 const runtime = calculateRuntimeDistribution(data);
                 
   return (
-                  <div className="space-y-6 mt-8">
-                    {/* SECTION 1: Taste Sliders */}
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                      <h3 className="text-lg font-semibold text-white mb-6">Taste Spectrum</h3>
+                  <Motion.div
+                    className="space-y-6 mt-8"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                  >
+                    <Card className="overflow-hidden border-slate-700/70 bg-slate-950/60">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center gap-2 text-xl">
+                          <Palette className="h-5 w-5 text-fuchsia-300" />
+                          Taste Spectrum
+                        </CardTitle>
+                        <CardDescription>How your viewing instincts move across cinematic opposites.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
                       <div className="space-y-4">
                         {spectrums?.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-4" style={{ animationDelay: `${idx * 0.05}s` }}>
+                          <Motion.div
+                            key={idx}
+                            className="flex items-center gap-4"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.035, duration: 0.25 }}
+                          >
                             <span className="text-gray-400 text-sm w-24 text-right flex-shrink-0">{item.left}</span>
                             <div className="flex-1 relative h-2 bg-gray-800 rounded-full overflow-hidden">
                               <div 
@@ -8405,16 +8437,23 @@ const [user, setUser] = useState(null);
                               />
                             </div>
                             <span className="text-gray-400 text-sm w-24 flex-shrink-0">{item.right}</span>
-                          </div>
+                          </Motion.div>
                         ))}
                       </div>
-                    </div>
+                      </CardContent>
+                    </Card>
 
                     {/* SECTIONS 2-4: Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* By Popularity */}
-                      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                        <h4 className="text-base font-semibold text-white mb-4">By Popularity</h4>
+                      <Card className="border-slate-700/70 bg-slate-950/60">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <Film className="h-4 w-4 text-blue-300" />
+                            By Popularity
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
                         <div className="space-y-3">
                           {popularity.map((item, idx) => (
                             <div key={idx}>
@@ -8432,11 +8471,18 @@ const [user, setUser] = useState(null);
                             </div>
                           ))}
                         </div>
-                      </div>
+                        </CardContent>
+                      </Card>
 
                       {/* By Decade */}
-                      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                        <h4 className="text-base font-semibold text-white mb-4">By Era</h4>
+                      <Card className="border-slate-700/70 bg-slate-950/60">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <CalendarRange className="h-4 w-4 text-violet-300" />
+                            By Era
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
                         <div className="space-y-3">
                           {decades.slice(0, 6).map((item, idx) => (
                             <div key={idx} className="flex items-center gap-3">
@@ -8451,11 +8497,18 @@ const [user, setUser] = useState(null);
                             </div>
                           ))}
                         </div>
-                      </div>
+                        </CardContent>
+                      </Card>
 
                       {/* By Runtime */}
-                      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                        <h4 className="text-base font-semibold text-white mb-4">By Runtime</h4>
+                      <Card className="border-slate-700/70 bg-slate-950/60">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <Clock3 className="h-4 w-4 text-cyan-300" />
+                            By Runtime
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
                         <div className="space-y-3">
                           {runtime.buckets.map((item, idx) => (
                             <div key={idx}>
@@ -8476,39 +8529,53 @@ const [user, setUser] = useState(null);
                             <span className="text-white font-medium text-sm">{runtime.totalHours.toLocaleString()} hours</span>
                           </div>
                         </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </div>
+                  </Motion.div>
                 );
               })()}
               {activeTab === 'personality' && cinemaMindProfile && (
-                <div className="space-y-6 mt-8">
-                  <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-                      <h3 className="text-lg font-semibold text-white">Cinema Mind Profile</h3>
-                      <p className="text-sm text-gray-400 mt-1">
+                <Motion.div
+                  className="space-y-6 mt-8"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                >
+                  <Card className="overflow-hidden border-slate-700/70 bg-slate-950/60">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Brain className="h-5 w-5 text-blue-300" />
+                        Cinema Mind Profile
+                      </CardTitle>
+                      <CardDescription>
                         Calculated from your movie ratings, preferred genres, and the storytelling styles of the films you like.
-                      </p>
-
-                    <div className="mt-5">
-                      <h4 className="text-base font-semibold text-white mb-4">Cinema Mind</h4>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <div>
+                      <h4 className="flex items-center gap-2 text-base font-semibold text-white mb-4">
+                        <BarChart3 className="h-4 w-4 text-blue-300" />
+                        Cinema Mind
+                      </h4>
                       <div className="h-[460px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={cinemaMindProfile.archetypes} layout="vertical" margin={{ top: 8, right: 20, left: 20, bottom: 8 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" horizontal={false} />
-                            <XAxis type="number" domain={[0, 100]} tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
+                            <CartesianGrid {...CHART_THEME.grid} horizontal={false} />
+                            <XAxis type="number" domain={[0, 100]} tick={CHART_THEME.axis.tick} axisLine={false} tickLine={false} />
                             <YAxis
                               type="category"
                               dataKey="name"
                               width={130}
-                              tick={{ fill: '#d1d5db', fontSize: 11 }}
+                              tick={{ ...CHART_THEME.axis.tick, fill: '#cbd5e1' }}
                               axisLine={false}
                               tickLine={false}
                             />
                             <Tooltip
                               cursor={{ fill: 'rgba(59,130,246,0.08)' }}
-                              contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '10px' }}
-                              labelStyle={{ color: '#e5e7eb' }}
-                              itemStyle={{ color: '#93c5fd' }}
+                              contentStyle={CHART_THEME.tooltip.contentStyle}
+                              labelStyle={CHART_THEME.tooltip.labelStyle}
+                              itemStyle={CHART_THEME.tooltip.itemStyle}
                               formatter={(value) => [`${value}%`, 'Affinity']}
                             />
                             <Bar dataKey="value" radius={[0, 8, 8, 0]}>
@@ -8525,8 +8592,9 @@ const [user, setUser] = useState(null);
                         </ResponsiveContainer>
                       </div>
                     </div>
-                  </div>
-                </div>
+                    </CardContent>
+                  </Card>
+                </Motion.div>
               )}
               {activeTab === 'settings' && (
                 <div className="space-y-6">
