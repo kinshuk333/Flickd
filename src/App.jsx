@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@supabase/supabase-js';
 import * as d3 from 'd3';
 import * as XLSX from 'xlsx';
@@ -3152,9 +3153,18 @@ const [user, setUser] = useState(null);
   const favoriteFilmPerYear = getFavoriteFilmPerYear();
   const shareCardTop10Films = (shareCardConfig?.films || []).slice(0, 10);
 
-  const openShareCard = (config) => {
+  const openShareCard = async (config) => {
     const safeFilms = (Array.isArray(config?.films) ? config.films : []).filter(Boolean);
     if (!safeFilms.length) return;
+    // If browser fullscreen is active, global fixed overlays rendered outside that element
+    // may appear hidden. Exit fullscreen first, then open the share card.
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // ignore fullscreen exit errors and still attempt to open share card
+    }
     setShareCardConfig({
       title: config?.title || 'My Top 10',
       subtitle: config?.subtitle || 'Personal Card',
@@ -6045,6 +6055,15 @@ const [user, setUser] = useState(null);
               <div className="rounded-xl border border-gray-700 bg-[#111827] p-6 text-center text-gray-300">Composing resonance map...</div>
             ) : (
               <>
+                <div className="rounded-xl border border-fuchsia-500/30 bg-gradient-to-br from-[#131b2f] to-[#1a1a33] p-5">
+                  <p className="text-xs uppercase tracking-[0.22em] text-fuchsia-300/80">Cinematic Relationship Type</p>
+                  <h3 className="text-2xl font-bold text-white mt-2">{tasteResonance?.relationshipType?.name || 'Parallel Dreamers'}</h3>
+                  <p className="text-sm text-blue-100/90 mt-2">{tasteResonance?.relationshipType?.line || ''}</p>
+                  <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-fuchsia-500/35 bg-fuchsia-500/10 px-3 py-1 text-xs text-fuchsia-200">
+                    Resonance Signature  {(tasteResonance?.score ?? 0) >= 75 ? 'High' : (tasteResonance?.score ?? 0) >= 60 ? 'Layered' : 'Contrasting'}
+                  </div>
+                </div>
+
                 <div className="rounded-xl border border-gray-700 bg-[#111827] p-5">
                   <h3 className="text-xl font-semibold text-white mb-3">Shared Taste DNA</h3>
                   <div className="space-y-3">
@@ -6119,23 +6138,13 @@ const [user, setUser] = useState(null);
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-gray-700 bg-[#111827] p-5">
-                    <h3 className="text-xl font-semibold text-white mb-3">Where You Diverge</h3>
-                    <ul className="space-y-2">
-                      {(tasteResonance?.differences || []).map((line, i) => (
-                        <li key={`diff_${i}`} className="text-sm text-gray-300 leading-relaxed border-l-2 border-fuchsia-500/40 pl-3">{line}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="rounded-xl border border-fuchsia-500/30 bg-gradient-to-br from-[#131b2f] to-[#1a1a33] p-5">
-                    <p className="text-xs uppercase tracking-[0.22em] text-fuchsia-300/80">Cinematic Relationship Type</p>
-                    <h3 className="text-2xl font-bold text-white mt-2">{tasteResonance?.relationshipType?.name || 'Parallel Dreamers'}</h3>
-                    <p className="text-sm text-blue-100/90 mt-2">{tasteResonance?.relationshipType?.line || ''}</p>
-                    <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-fuchsia-500/35 bg-fuchsia-500/10 px-3 py-1 text-xs text-fuchsia-200">
-                      Resonance Signature  {(tasteResonance?.score ?? 0) >= 75 ? 'High' : (tasteResonance?.score ?? 0) >= 60 ? 'Layered' : 'Contrasting'}
-                    </div>
-                  </div>
+                <div className="rounded-xl border border-gray-700 bg-[#111827] p-5">
+                  <h3 className="text-xl font-semibold text-white mb-3">Where You Diverge</h3>
+                  <ul className="space-y-2">
+                    {(tasteResonance?.differences || []).map((line, i) => (
+                      <li key={`diff_${i}`} className="text-sm text-gray-300 leading-relaxed border-l-2 border-fuchsia-500/40 pl-3">{line}</li>
+                    ))}
+                  </ul>
                 </div>
               </>
             )}
@@ -6157,68 +6166,80 @@ const [user, setUser] = useState(null);
         </div>
       )}
 
-      {shareCardOpen && shareCardConfig && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-white">{shareCardConfig.title}</h3>
-                <p className="text-xs text-gray-400 mt-1">Share your card from Flickd</p>
+      {shareCardOpen && shareCardConfig && (() => {
+        const shareModal = (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
+            <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{shareCardConfig.title}</h3>
+                  <p className="text-xs text-gray-400 mt-1">Share your card from Flickd</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShareCardOpen(false)}
+                  className="h-8 w-8 rounded-lg border border-gray-700 bg-[#0b1220] text-gray-300 hover:bg-[#1f2937]"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShareCardOpen(false)}
-                className="h-8 w-8 rounded-lg border border-gray-700 bg-[#0b1220] text-gray-300 hover:bg-[#1f2937]"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
 
-            <div className="mt-4 rounded-xl border border-gray-700 bg-[#0b1220] p-3">
-              <div className="space-y-2">
-                {shareCardTop10Films.map((film, idx) => {
-                  const key = `${film.title}_${film.year}`;
-                  return (
-                    <div key={`share_card_${film.title}_${film.year}_${idx}`} className="flex items-center gap-3 rounded-lg bg-[#0f172a] border border-gray-800 p-2">
-                      {posters[key] ? (
-                        <img src={posters[key]} alt={film.title} className="w-10 h-14 rounded object-cover" />
-                      ) : (
-                        <div className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center text-[10px] text-gray-500">Poster</div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-gray-100 truncate">
-                          <span className="text-blue-300 mr-1">{idx + 1}.</span>{film.title}
-                        </p>
-                        <p className="text-[11px] text-gray-400">{film.year} | ★ {Number(film?.yourRating || film?.rating || 0).toFixed(1)}</p>
+              <div className="mt-4 rounded-xl border border-gray-700 bg-[#0b1220] p-3">
+                <div className="space-y-2">
+                  {shareCardTop10Films.map((film, idx) => {
+                    const key = `${film.title}_${film.year}`;
+                    return (
+                      <div key={`share_card_${film.title}_${film.year}_${idx}`} className="flex items-center gap-3 rounded-lg bg-[#0f172a] border border-gray-800 p-2">
+                        {posters[key] ? (
+                          <img src={posters[key]} alt={film.title} className="w-10 h-14 rounded object-cover" />
+                        ) : (
+                          <div className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center text-[10px] text-gray-500">Poster</div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-gray-100 truncate">
+                            <span className="text-blue-300 mr-1">{idx + 1}.</span>{film.title}
+                          </p>
+                          <p className="text-[11px] text-gray-400">{film.year} | ★ {Number(film?.yourRating || film?.rating || 0).toFixed(1)}</p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={downloadFavoriteYearShareCard}
-                disabled={shareCardBusy}
-                className="px-3 py-2 rounded-xl border border-gray-700 bg-[#0b1220] text-gray-100 hover:bg-[#1f2937] disabled:opacity-60"
-              >
-                {shareCardBusy ? 'Preparing...' : 'Download Card'}
-              </button>
-              <button
-                type="button"
-                onClick={shareFavoriteYearCard}
-                disabled={shareCardBusy}
-                className="px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {shareCardBusy ? 'Preparing...' : 'Share'}
-              </button>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={downloadFavoriteYearShareCard}
+                  disabled={shareCardBusy}
+                  className="px-3 py-2 rounded-xl border border-gray-700 bg-[#0b1220] text-gray-100 hover:bg-[#1f2937] disabled:opacity-60"
+                >
+                  {shareCardBusy ? 'Preparing...' : 'Download Card'}
+                </button>
+                <button
+                  type="button"
+                  onClick={shareFavoriteYearCard}
+                  disabled={shareCardBusy}
+                  className="px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {shareCardBusy ? 'Preparing...' : 'Share'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+
+        const fullscreenHost = typeof document !== 'undefined' ? document.fullscreenElement : null;
+        const useFullscreenPortal = Boolean(
+          fullscreenHost && (
+            fullscreenHost === traceFullscreenRef.current ||
+            fullscreenHost === tasteTimelineFullscreenRef.current ||
+            fullscreenHost === mapFullscreenRef.current
+          )
+        );
+        return useFullscreenPortal ? createPortal(shareModal, fullscreenHost) : shareModal;
+      })()}
 <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-3 sm:py-6 h-full flex flex-col">
         <div className="md:fixed md:top-0 md:left-1/2 md:-translate-x-1/2 z-50 w-full max-w-7xl px-3 sm:px-5 lg:px-8 pt-2 sm:pt-3 pb-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
             <div className="rounded-2xl border border-gray-700 bg-[#0f172a]/95 px-4 py-3 backdrop-blur w-full">
@@ -9997,6 +10018,9 @@ const [user, setUser] = useState(null);
     </div>
   );
 }
+
+
+
 
 
 
