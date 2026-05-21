@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { motion as Motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import * as d3 from 'd3';
 import * as XLSX from 'xlsx';
@@ -20,7 +21,14 @@ import {
   ChartCard,
   PremiumTabs,
   SidebarStat,
+  Button,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
 } from './components/ui';
+import { Sparkles, BarChart3, Clapperboard, Activity, Blend, CalendarRange, HeartHandshake } from 'lucide-react';
 
 const ACCENT_COLOR = '#3b82f6';
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
@@ -2609,7 +2617,7 @@ const [user, setUser] = useState(null);
     const avgRating = ratingSum.count > 0 ? ratingSum.total / ratingSum.count : 0;
 
     // Std dev is more interpretable than the old "rating * runtime" intensity.
-    // Convert it to a 0–100 "consistency" score: lower spread => higher score.
+    // Convert it to a 0�100 "consistency" score: lower spread => higher score.
     let ratingStdDev = 0;
     if (ratingValues.length > 1) {
       const mean = avgRating;
@@ -4166,7 +4174,7 @@ const [user, setUser] = useState(null);
       if (score >= 74) return { name: 'Parallel Dreamers', line: 'Different paths, same horizon of feeling and form.' };
       if (score >= 64) return { name: 'Neon & Dust', line: 'A vivid blend of overlap and friction that keeps discovery alive.' };
       if (score >= 54) return { name: 'Chaos and Stillness', line: 'One heart seeks velocity, the other seeks still frames.' };
-      return { name: 'Opposite Lenses', line: 'Contrasting film souls that challenge each other’s cinematic comfort zone.' };
+      return { name: 'Opposite Lenses', line: 'Contrasting film souls that challenge each other�s cinematic comfort zone.' };
     })();
 
     const poetic = score >= 75
@@ -5954,7 +5962,7 @@ const [user, setUser] = useState(null);
                       </div>
                       <div className="bg-gray-800 p-3 rounded-lg text-center">
                         <p className="text-gray-400 text-xs">Your Rating</p>
-                        <p className="text-2xl font-bold text-green-400"> {selectedMovie?.yourRating ?? '—'}</p>
+                        <p className="text-2xl font-bold text-green-400"> {selectedMovie?.yourRating ?? '�'}</p>
                       </div>
                     </div>
 
@@ -6163,7 +6171,7 @@ const [user, setUser] = useState(null);
         <div className="fixed bottom-6 right-6 z-[120] max-w-md w-[92vw] sm:w-auto">
           <div className="rounded-2xl border border-blue-400/30 bg-[#0b1220]/95 backdrop-blur shadow-[0_0_30px_rgba(59,130,246,0.25)] p-4">
             <p className="text-sm text-blue-100 font-medium">
-              🎬 You&apos;re now following &quot;{followToast.name}&quot;
+              ?? You&apos;re now following &quot;{followToast.name}&quot;
             </p>
             <p className="text-xs text-blue-200/90 mt-2 leading-relaxed">
               Their cinematic world has been added to your orbit.
@@ -6188,7 +6196,7 @@ const [user, setUser] = useState(null);
                   className="h-8 w-8 rounded-lg border border-gray-700 bg-[#0b1220] text-gray-300 hover:bg-[#1f2937]"
                   aria-label="Close"
                 >
-                  ×
+                  �
                 </button>
               </div>
 
@@ -6207,7 +6215,7 @@ const [user, setUser] = useState(null);
                           <p className="text-sm text-gray-100 truncate">
                             <span className="text-blue-300 mr-1">{idx + 1}.</span>{film.title}
                           </p>
-                          <p className="text-[11px] text-gray-400">{film.year} | ★ {Number(film?.yourRating || film?.rating || 0).toFixed(1)}</p>
+                          <p className="text-[11px] text-gray-400">{film.year} | ? {Number(film?.yourRating || film?.rating || 0).toFixed(1)}</p>
                         </div>
                       </div>
                     );
@@ -6693,8 +6701,29 @@ const [user, setUser] = useState(null);
               <div className="space-y-4 sm:space-y-5 pb-6 pt-3 sm:pt-2">
               {activeTab === 'overview' && (
                 <>
+                  <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
+                  <Card className="overflow-hidden border-blue-500/20">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-2xl">
+                        <Sparkles className="h-5 w-5 text-blue-300" />
+                        Overview Studio
+                      </CardTitle>
+                      <CardDescription className="text-base">
+                        Your cinematic dashboard at a glance, with premium insights across ratings, genres, eras, and directors.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                        <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1">Live profile summary</span>
+                        <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1">Cinematic trend tracking</span>
+                        <span className="rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1">Taste pattern discovery</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  </Motion.div>
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <ChartCard title="Rating Distribution" className="h-full" bodyClassName="flex-1 min-h-[340px]">
+                    <ChartCard title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-300" /> Rating Distribution</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={ratingDist}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
@@ -6709,7 +6738,7 @@ const [user, setUser] = useState(null);
                     </ChartCard>
 
                     {mostWatchedGenres.genres.length > 0 && (
-                      <ChartCard title="Most Watched Genres" className="h-full" bodyClassName="flex-1 min-h-[340px]">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Most Watched Genres</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="mb-4 text-sm text-gray-300">
                           Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>
                           {mostWatchedGenres.topGenre && (
@@ -6742,7 +6771,7 @@ const [user, setUser] = useState(null);
                   {yearlyHighlight.length > 0 && (
                     <DashboardCard className="p-4">
                       <div className="flex items-center gap-2 mb-4">
-                        <h2 className="text-lg font-semibold">Yearly Rating Activity</h2>
+                        <h2 className="text-lg font-semibold inline-flex items-center gap-2"><Activity className="h-4 w-4 text-pink-300" /> Yearly Rating Activity</h2>
                       </div>
                       <ResponsiveContainer width="100%" height={320}>
                         <BarChart data={yearlyHighlight}>
@@ -6760,7 +6789,7 @@ const [user, setUser] = useState(null);
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {genreAffinity.length > 0 && (
-                      <ChartCard title="Genre Affinity" className="h-full" bodyClassName="flex-1 min-h-[340px]">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="flex-1 min-h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={genreAffinity} layout="vertical">
@@ -6785,7 +6814,7 @@ const [user, setUser] = useState(null);
                     )}
 
                     {eraPreference.length > 0 && (
-                      <ChartCard title="Era Preference" className="h-full" bodyClassName="flex-1 min-h-[340px]">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><CalendarRange className="h-4 w-4 text-amber-300" /> Era Preference</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="flex-1 min-h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={eraPreference}>
@@ -6809,7 +6838,7 @@ const [user, setUser] = useState(null);
                       </ChartCard>
                     )}
                     {consistentlyLovedDirectors.length > 0 && (
-                      <ChartCard title="Most Consistently Loved Directors" className="lg:col-span-2">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><HeartHandshake className="h-4 w-4 text-fuchsia-300" /> Most Consistently Loved Directors</span>} className="lg:col-span-2">
                         <ResponsiveContainer width="100%" height={380}>
                           <BarChart data={consistentlyLovedDirectors} layout="vertical">
                             <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
@@ -6853,9 +6882,9 @@ const [user, setUser] = useState(null);
                               <option value={0}>All My Films</option>
                             </select>
                             {null}
-                            <button type="button" onClick={() => zoomMap(-0.2)} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">-</button>
-                            <button type="button" onClick={() => zoomMap(0.2)} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">+</button>
-                            <button type="button" onClick={resetMapView} className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1f2937] hover:border-gray-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">Reset</button>
+                            <Button type="button" size="sm" variant="subtle" onClick={() => zoomMap(-0.2)}>-</Button>
+                            <Button type="button" size="sm" variant="subtle" onClick={() => zoomMap(0.2)}>+</Button>
+                            <Button type="button" size="sm" variant="ghost" onClick={resetMapView}>Reset</Button>
                             <button
                               type="button"
                               onClick={toggleMapFullscreen}
@@ -7621,7 +7650,7 @@ const [user, setUser] = useState(null);
 
                   <div className="flex flex-wrap items-center justify-between gap-2 bg-[#111827] border border-gray-800 rounded-xl p-3">
                     <p className="text-xs text-gray-400">
-                      Page {membersPage + 1}  •  Showing up to 30 members
+                      Page {membersPage + 1}  �  Showing up to 30 members
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -9972,6 +10001,7 @@ const [user, setUser] = useState(null);
     </div>
   );
 }
+
 
 
 

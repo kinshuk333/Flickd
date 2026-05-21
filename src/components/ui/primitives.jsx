@@ -40,14 +40,20 @@ export function DashboardCard({
   children,
   ...props
 }) {
-  return React.createElement(
-    Component,
-    {
-      className: cx('ui-card ui-dashboard-card', interactive && 'ui-card--interactive', className),
-      ...props,
-    },
-    children,
-  );
+  const baseProps = {
+    className: cx('ui-card ui-dashboard-card', interactive && 'ui-card--interactive', className),
+    ...props,
+  };
+  if (Component === 'section') {
+    return (
+      <section
+        {...baseProps}
+      >
+        {children}
+      </section>
+    );
+  }
+  return React.createElement(Component, baseProps, children);
 }
 
 export function ChartCard({
@@ -60,7 +66,10 @@ export function ChartCard({
   ...props
 }) {
   return (
-    <section className={cx('ui-card ui-chart-card', className)} {...props}>
+    <section
+      className={cx('ui-card ui-chart-card', className)}
+      {...props}
+    >
       {(title || description || actions) ? (
         <div className="ui-chart-card__header">
           <div>
