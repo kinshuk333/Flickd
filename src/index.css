@@ -1481,3 +1481,506 @@ body {
     display: none;
   }
 }
+
+/* Editorial quieting pass: extend the cinematic profile rail language into the main app. */
+:root {
+  --flickd-quiet-bg: #050811;
+  --flickd-quiet-surface: rgba(10, 16, 30, 0.78);
+  --flickd-quiet-surface-2: rgba(7, 12, 23, 0.86);
+  --flickd-quiet-line: rgba(148, 163, 184, 0.12);
+  --flickd-quiet-line-strong: rgba(148, 163, 184, 0.2);
+  --flickd-quiet-blue: rgba(88, 126, 255, 0.72);
+  --flickd-quiet-blue-soft: rgba(88, 126, 255, 0.11);
+}
+
+.flickd-immersive-shell {
+  background:
+    radial-gradient(circle at 82% -10%, rgba(58, 91, 182, 0.08), transparent 34%),
+    linear-gradient(180deg, #060a13 0%, #03060d 100%) !important;
+}
+
+.flickd-immersive-shell::before {
+  opacity: 0.22;
+  background-size: 132px 132px;
+}
+
+.flickd-shell-header {
+  background: rgba(9, 15, 29, 0.92) !important;
+  border-bottom-color: var(--flickd-quiet-line) !important;
+  box-shadow: none !important;
+}
+
+.flickd-shell-header::after {
+  opacity: 0.18;
+}
+
+.flickd-primary-nav button,
+.flickd-secondary-nav .ui-premium-tabs__button,
+.flickd-content-stack :where(button):not(.ui-premium-tabs__button) {
+  box-shadow: none !important;
+}
+
+.flickd-primary-nav button {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: transparent !important;
+  color: rgba(219, 230, 246, 0.78) !important;
+}
+
+.flickd-primary-nav button:hover {
+  border-color: rgba(180, 196, 224, 0.28) !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.flickd-primary-nav button.bg-blue-600,
+.flickd-primary-nav button[class*="bg-blue"] {
+  border-color: rgba(105, 139, 255, 0.34) !important;
+  background: rgba(77, 111, 241, 0.16) !important;
+  color: #ffffff !important;
+}
+
+.flickd-secondary-nav {
+  background: rgba(4, 8, 16, 0.76) !important;
+  box-shadow: none !important;
+  padding-top: 18px !important;
+}
+
+.flickd-secondary-nav::after {
+  opacity: 0.65;
+  background: linear-gradient(90deg, var(--flickd-quiet-line-strong), transparent 72%);
+}
+
+.flickd-secondary-nav .ui-premium-tabs__button {
+  min-height: 36px !important;
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  color: rgba(218, 229, 247, 0.72) !important;
+  font-size: 0.83rem !important;
+}
+
+.flickd-secondary-nav .ui-premium-tabs__button:hover {
+  border-color: rgba(180, 196, 224, 0.26) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.flickd-secondary-nav .ui-premium-tabs__button[aria-selected="true"] {
+  border-color: rgba(112, 145, 255, 0.36) !important;
+  background: rgba(70, 104, 238, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.flickd-main-scroll {
+  background:
+    radial-gradient(circle at 92% 10%, rgba(79, 132, 255, 0.045), transparent 32%),
+    linear-gradient(180deg, rgba(3, 6, 13, 0.98), rgba(2, 5, 10, 1)) !important;
+}
+
+.flickd-content-stack {
+  --flickd-panel-bg: rgba(10, 16, 30, 0.72);
+  --flickd-panel-bg-subtle: rgba(7, 12, 23, 0.72);
+  --flickd-panel-border: var(--flickd-quiet-line);
+  --flickd-panel-border-soft: rgba(148, 163, 184, 0.1);
+  --flickd-panel-shadow: none;
+}
+
+.flickd-content-stack.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: clamp(26px, 2.6vw, 46px) !important;
+}
+
+.flickd-content-stack :where(section, article, div).rounded-2xl.border,
+.flickd-content-stack :where(section, article, div).rounded-xl.border,
+.flickd-content-stack .ui-card,
+.flickd-content-stack .ui-dashboard-card,
+.flickd-content-stack .ui-chart-card {
+  border-color: var(--flickd-quiet-line) !important;
+  background: var(--flickd-quiet-surface) !important;
+  box-shadow: none !important;
+}
+
+.flickd-content-stack :where(section, article, div).rounded-2xl.border:hover,
+.flickd-content-stack :where(section, article, div).rounded-xl.border:hover,
+.flickd-content-stack .ui-card:hover,
+.flickd-content-stack .ui-dashboard-card:hover,
+.flickd-content-stack .ui-chart-card:hover {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.flickd-content-stack :where(section, article, div).rounded-lg.border {
+  border-color: rgba(148, 163, 184, 0.1) !important;
+  background: rgba(3, 8, 18, 0.42) !important;
+}
+
+.flickd-content-stack :where(h1) {
+  font-size: clamp(2rem, 3.6vw, 4.4rem);
+  line-height: 0.98;
+}
+
+.flickd-content-stack :where(h2, h3),
+.ui-chart-card__title,
+.flickd-content-stack .ui-chart-card__title {
+  font-weight: 780 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.flickd-content-stack :where(label, small, .text-xs) {
+  color: rgba(168, 189, 219, 0.68) !important;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.flickd-content-stack :where(p, .text-sm, .text-slate-300, .text-slate-400, .text-gray-300, .text-gray-400) {
+  color: rgba(180, 199, 228, 0.68) !important;
+}
+
+.ui-chart-card__header,
+.flickd-content-stack .ui-chart-card__header {
+  border-bottom-color: var(--flickd-quiet-line) !important;
+  background: transparent !important;
+}
+
+.ui-chart-card__body,
+.flickd-chart-stage {
+  background: transparent !important;
+}
+
+.recharts-cartesian-grid line {
+  stroke: rgba(148, 163, 184, 0.12) !important;
+}
+
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: rgba(148, 163, 184, 0.2) !important;
+}
+
+.recharts-text,
+.recharts-label,
+.recharts-cartesian-axis-tick text {
+  fill: rgba(166, 185, 215, 0.62) !important;
+  font-size: 11px !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background: rgba(6, 10, 20, 0.94) !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34) !important;
+}
+
+.flickd-overview-hero {
+  border-color: rgba(148, 163, 184, 0.13) !important;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(82, 116, 218, 0.13), transparent 34%),
+    linear-gradient(135deg, rgba(13, 21, 39, 0.86), rgba(5, 9, 17, 0.96) 64%) !important;
+  box-shadow: none !important;
+}
+
+.flickd-overview-hero__eyebrow,
+.flickd-overview-section-heading span {
+  color: rgba(168, 189, 219, 0.74) !important;
+  letter-spacing: 0.22em;
+}
+
+.flickd-overview-hero__stats {
+  border-color: rgba(148, 163, 184, 0.11) !important;
+  background: transparent !important;
+}
+
+.flickd-overview-hero__stats > div {
+  background: rgba(2, 6, 14, 0.34) !important;
+}
+
+.flickd-overview-hero__chips span,
+.flickd-content-stack :where(.rounded-full.border) {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Poster shelves should feel curated rather than widget-heavy. */
+.flickd-content-stack :where(.grid) :where(img[alt*="poster"], img[alt*="Poster"]),
+.flickd-content-stack :where(img.object-cover) {
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.28);
+}
+
+.flickd-content-stack :where(.grid) :where(button, article, div).rounded-xl:has(img),
+.flickd-content-stack :where(.grid) :where(button, article, div).rounded-lg:has(img) {
+  border-color: rgba(148, 163, 184, 0.11) !important;
+  background: rgba(5, 10, 20, 0.54) !important;
+}
+
+.flickd-content-stack :where(.grid) :where(button, article, div).rounded-xl:has(img):hover,
+.flickd-content-stack :where(.grid) :where(button, article, div).rounded-lg:has(img):hover {
+  border-color: rgba(179, 198, 232, 0.22) !important;
+  background: rgba(10, 16, 30, 0.74) !important;
+}
+
+/* Timeline and artifact views: quieter gallery surface. */
+.timeline-shell,
+.timeline-viewport,
+.director-fingerprint-stage,
+.global-map-shell {
+  border-color: rgba(148, 163, 184, 0.12) !important;
+  background: rgba(3, 7, 15, 0.82) !important;
+}
+
+.timeline-year-marker,
+.timeline-lane-label,
+.timeline-axis-label {
+  color: rgba(168, 189, 219, 0.62) !important;
+  letter-spacing: 0.08em;
+}
+
+@media (min-width: 1024px) {
+  .flickd-content-stack {
+    padding-top: clamp(18px, 1.6vw, 30px) !important;
+  }
+
+  .flickd-overview-primary-grid,
+  .flickd-overview-support-grid {
+    gap: clamp(22px, 2.2vw, 34px) !important;
+  }
+}
+
+/* Profile-language refinement: make the main content borrow the quiet editorial rail style. */
+:root {
+  --flickd-rail-ink: rgba(244, 247, 252, 0.94);
+  --flickd-rail-muted: rgba(174, 194, 224, 0.66);
+  --flickd-rail-faint: rgba(137, 156, 190, 0.48);
+  --flickd-rail-line: rgba(150, 166, 198, 0.105);
+  --flickd-rail-line-hover: rgba(170, 188, 220, 0.18);
+  --flickd-rail-surface: rgba(7, 12, 22, 0.74);
+  --flickd-rail-surface-soft: rgba(4, 8, 16, 0.58);
+  --flickd-rail-accent: rgba(96, 132, 255, 0.72);
+  --flickd-rail-accent-soft: rgba(96, 132, 255, 0.105);
+}
+
+.flickd-main-scroll {
+  color: var(--flickd-rail-ink);
+  background:
+    linear-gradient(90deg, rgba(5, 9, 17, 0.98), rgba(3, 7, 14, 0.98) 42%, rgba(4, 8, 16, 1)) !important;
+}
+
+/* Navigation should read as annotation, not bright SaaS controls. */
+.flickd-primary-nav,
+.flickd-secondary-nav {
+  --tab-active-bg: rgba(96, 132, 255, 0.12);
+  --tab-active-border: rgba(96, 132, 255, 0.28);
+}
+
+.flickd-primary-nav button,
+.flickd-secondary-nav .ui-premium-tabs__button,
+.flickd-content-stack :where(button, select, input, textarea) {
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.flickd-primary-nav button.bg-blue-600,
+.flickd-primary-nav button[class*="bg-blue"],
+.flickd-secondary-nav .ui-premium-tabs__button[aria-selected="true"],
+.flickd-content-stack :where(button).bg-blue-600,
+.flickd-content-stack :where(button)[class*="bg-blue"] {
+  background: var(--flickd-rail-accent-soft) !important;
+  border-color: var(--tab-active-border, rgba(96, 132, 255, 0.28)) !important;
+  color: rgba(248, 251, 255, 0.96) !important;
+  box-shadow: inset 0 0 0 1px rgba(96, 132, 255, 0.035) !important;
+}
+
+.flickd-primary-nav button:hover,
+.flickd-secondary-nav .ui-premium-tabs__button:hover,
+.flickd-content-stack :where(button, select):hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(176, 194, 226, 0.22) !important;
+}
+
+/* Main surfaces: fewer boxes, less blue, closer to the sidebar rail. */
+.flickd-content-stack :where(.ui-dashboard-card, .ui-chart-card, .ui-card),
+.flickd-content-stack :where(section, article, div).rounded-2xl.border,
+.flickd-content-stack :where(section, article, div).rounded-xl.border {
+  border-color: var(--flickd-rail-line) !important;
+  background:
+    linear-gradient(180deg, rgba(9, 15, 28, 0.74), rgba(5, 10, 19, 0.78)) !important;
+  box-shadow: none !important;
+}
+
+.flickd-content-stack :where(.ui-dashboard-card, .ui-chart-card, .ui-card):hover,
+.flickd-content-stack :where(section, article, div).rounded-2xl.border:hover,
+.flickd-content-stack :where(section, article, div).rounded-xl.border:hover {
+  border-color: var(--flickd-rail-line-hover) !important;
+}
+
+.flickd-content-stack :where(.bg-\[\#111827\], .bg-\[\#0f172a\], .bg-slate-900, .bg-gray-900) {
+  background: var(--flickd-rail-surface) !important;
+}
+
+.flickd-content-stack :where(.border-gray-700, .border-gray-800, .border-slate-700, .border-slate-800) {
+  border-color: var(--flickd-rail-line) !important;
+}
+
+.flickd-content-stack :where(.shadow-lg, .shadow-xl, .shadow-2xl) {
+  box-shadow: none !important;
+}
+
+/* Editorial typography: labels and captions should echo the sidebar metadata. */
+.flickd-content-stack :where(h1, h2, h3, .ui-chart-card__title) {
+  color: var(--flickd-rail-ink) !important;
+  text-wrap: balance;
+}
+
+.flickd-content-stack :where(h2, h3, .ui-chart-card__title) {
+  font-size: clamp(1.02rem, 1vw, 1.34rem) !important;
+  font-weight: 760 !important;
+}
+
+.flickd-content-stack :where(.text-xs, label, small, .ui-chart-card__eyebrow) {
+  color: var(--flickd-rail-faint) !important;
+  font-size: 0.69rem !important;
+  letter-spacing: 0.135em !important;
+  text-transform: uppercase;
+}
+
+.flickd-content-stack :where(p, .text-sm, .text-base) {
+  line-height: 1.65;
+}
+
+.flickd-content-stack :where(.text-slate-300, .text-slate-400, .text-gray-300, .text-gray-400, .text-blue-200, .text-blue-300) {
+  color: var(--flickd-rail-muted) !important;
+}
+
+.flickd-content-stack :where(.font-extrabold, .font-bold) {
+  letter-spacing: -0.035em;
+}
+
+/* Chart framing: gallery-like and calmer, while preserving Recharts sizing. */
+.flickd-content-stack .ui-chart-card,
+.flickd-overview-composition .ui-chart-card {
+  overflow: hidden;
+}
+
+.flickd-content-stack .ui-chart-card__header {
+  min-height: 60px;
+  padding: 1rem 1.15rem !important;
+  border-bottom-color: rgba(150, 166, 198, 0.085) !important;
+}
+
+.flickd-content-stack .ui-chart-card__body,
+.flickd-chart-stage {
+  padding-top: 0.75rem;
+}
+
+.recharts-cartesian-grid line {
+  stroke: rgba(148, 163, 184, 0.085) !important;
+  stroke-dasharray: 3 5 !important;
+}
+
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: rgba(148, 163, 184, 0.15) !important;
+}
+
+.recharts-text,
+.recharts-label,
+.recharts-cartesian-axis-tick text {
+  fill: rgba(161, 181, 213, 0.56) !important;
+  font-weight: 520 !important;
+}
+
+.recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.045) !important;
+  stroke: rgba(170, 188, 220, 0.16) !important;
+}
+
+/* Overview hero should feel like editorial identity, not an analytics banner. */
+.flickd-overview-hero {
+  border-color: rgba(150, 166, 198, 0.11) !important;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.045), transparent 26%),
+    linear-gradient(135deg, rgba(8, 13, 25, 0.96), rgba(4, 8, 16, 0.98) 62%, rgba(7, 11, 22, 0.96)) !important;
+}
+
+.flickd-overview-hero::before {
+  opacity: 0.18 !important;
+}
+
+.flickd-overview-hero__stats,
+.flickd-overview-hero__stats > div {
+  border-color: rgba(150, 166, 198, 0.09) !important;
+  background: rgba(4, 8, 16, 0.32) !important;
+}
+
+.flickd-overview-section-heading,
+.flickd-overview-section-heading span {
+  color: var(--flickd-rail-faint) !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase;
+}
+
+/* Poster shelves: curated film rows rather than boxed inventory cards. */
+.flickd-content-stack :where(.grid) > :where(button, article, div).rounded-xl:has(img),
+.flickd-content-stack :where(.grid) > :where(button, article, div).rounded-lg:has(img) {
+  border-color: rgba(150, 166, 198, 0.09) !important;
+  background: rgba(4, 8, 16, 0.5) !important;
+  box-shadow: none !important;
+}
+
+.flickd-content-stack :where(.grid) > :where(button, article, div).rounded-xl:has(img):hover,
+.flickd-content-stack :where(.grid) > :where(button, article, div).rounded-lg:has(img):hover {
+  border-color: rgba(170, 188, 220, 0.2) !important;
+  background: rgba(8, 13, 25, 0.72) !important;
+  transform: translateY(-2px);
+}
+
+.flickd-content-stack :where(.grid) :where(img) {
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+.flickd-content-stack :where(.grid) :where(a, button, h3, h4) {
+  letter-spacing: -0.02em;
+}
+
+/* Inputs and filters should be quiet editorial controls. */
+.flickd-content-stack :where(input, select, textarea) {
+  border-color: rgba(150, 166, 198, 0.15) !important;
+  background: rgba(3, 7, 15, 0.54) !important;
+  color: rgba(244, 247, 252, 0.92) !important;
+  box-shadow: none !important;
+}
+
+.flickd-content-stack :where(input, select, textarea):focus {
+  border-color: rgba(96, 132, 255, 0.36) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px rgba(96, 132, 255, 0.1) !important;
+}
+
+/* Artifact/timeline panels: keep them calm and archival. */
+.timeline-shell,
+.timeline-viewport,
+.global-map-shell,
+.director-fingerprint-stage {
+  border-color: rgba(150, 166, 198, 0.1) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(82, 116, 218, 0.055), transparent 30%),
+    rgba(3, 7, 15, 0.88) !important;
+  box-shadow: none !important;
+}
+
+.timeline-lane-label,
+.timeline-axis-label,
+.timeline-year-marker {
+  color: rgba(170, 190, 220, 0.58) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+}
+
+/* Directory/social cards should also reduce widget chrome. */
+.flickd-main-scroll--directory :where(.rounded-xl.border, .rounded-2xl.border) {
+  border-color: rgba(150, 166, 198, 0.11) !important;
+  background: rgba(8, 13, 25, 0.72) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 1023px) {
+  .flickd-content-stack.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 24px !important;
+  }
+
+  .flickd-secondary-nav .ui-premium-tabs__button {
+    min-height: 34px !important;
+  }
+}
