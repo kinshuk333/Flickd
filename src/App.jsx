@@ -6315,7 +6315,7 @@ const [user, setUser] = useState(null);
               <div className="flex h-full items-center justify-between gap-3">
                 <div className="flickd-brand-lockup">
                   <img
-                    src="/flickd-wordmark.png"
+                    src="/flickd-nav-logo.png?v=1"
                     alt="Flickd"
                     className="h-9 w-auto object-contain"
                   />
