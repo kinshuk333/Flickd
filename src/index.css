@@ -1115,3 +1115,369 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Global editorial platform pass: cinematic self-portrait system. */
+:root {
+  --flickd-ink: #f8fbff;
+  --flickd-muted: rgba(190, 207, 235, 0.72);
+  --flickd-dim: rgba(143, 161, 196, 0.58);
+  --flickd-line: rgba(108, 132, 177, 0.18);
+  --flickd-line-strong: rgba(120, 151, 211, 0.28);
+  --flickd-atmosphere-blue: rgba(59, 103, 246, 0.15);
+  --flickd-atmosphere-rose: rgba(217, 70, 239, 0.08);
+  --flickd-panel-editorial: linear-gradient(180deg, rgba(13, 22, 43, 0.74), rgba(7, 12, 24, 0.9));
+  --flickd-panel-artifact: linear-gradient(180deg, rgba(15, 27, 54, 0.64), rgba(8, 14, 28, 0.88));
+  --flickd-soft-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #03060d;
+}
+
+body {
+  color: var(--flickd-ink);
+  background:
+    radial-gradient(circle at 72% -12%, rgba(59, 103, 246, 0.12), transparent 34%),
+    radial-gradient(circle at 7% 18%, rgba(217, 70, 239, 0.055), transparent 28%),
+    linear-gradient(180deg, #050911 0%, #02050b 100%);
+}
+
+.flickd-immersive-shell {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 76% -18%, rgba(59, 103, 246, 0.16), transparent 32%),
+    radial-gradient(circle at 0% 18%, rgba(103, 64, 255, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(5, 9, 18, 0.98), rgba(2, 5, 12, 1)) !important;
+}
+
+.flickd-immersive-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 96px 96px;
+  mask-image: radial-gradient(circle at 50% 0%, black 0%, transparent 78%);
+  opacity: 0.45;
+}
+
+.flickd-shell-header {
+  height: 64px !important;
+  border-bottom: 1px solid rgba(103, 128, 176, 0.16) !important;
+  background:
+    linear-gradient(180deg, rgba(13, 20, 37, 0.94), rgba(7, 12, 24, 0.86)) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.025), 0 18px 60px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(22px) saturate(125%);
+}
+
+.flickd-shell-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(92, 132, 255, 0.42), transparent);
+  opacity: 0.38;
+}
+
+.flickd-shell-header__inner {
+  padding-inline: clamp(18px, 2.2vw, 34px) !important;
+}
+
+.flickd-brand-lockup {
+  min-width: 190px;
+}
+
+.flickd-brand-lockup img {
+  height: 42px !important;
+  filter: drop-shadow(0 10px 22px rgba(38, 91, 255, 0.16));
+}
+
+.flickd-primary-nav {
+  gap: 7px !important;
+}
+
+.flickd-primary-nav button {
+  min-height: 36px !important;
+  border-radius: 999px !important;
+  border-color: rgba(132, 154, 196, 0.24) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  color: rgba(225, 235, 250, 0.82) !important;
+  font-size: 0.86rem !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.015em;
+  box-shadow: none !important;
+}
+
+.flickd-primary-nav button:hover {
+  border-color: rgba(147, 197, 253, 0.38) !important;
+  background: rgba(79, 132, 255, 0.09) !important;
+  color: #ffffff !important;
+}
+
+.flickd-primary-nav button.bg-blue-600,
+.flickd-primary-nav button[class*="bg-blue"] {
+  border-color: rgba(116, 160, 255, 0.5) !important;
+  background: linear-gradient(135deg, rgba(52, 102, 247, 0.96), rgba(64, 87, 229, 0.9)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 34px rgba(47, 103, 246, 0.24) !important;
+}
+
+.flickd-shell-body-desktop {
+  top: 64px !important;
+  grid-template-columns: 286px minmax(0, 1fr) !important;
+}
+
+.flickd-main-scroll {
+  height: calc(100vh - 64px) !important;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(79, 132, 255, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(3, 7, 15, 0.2), rgba(3, 7, 15, 0.96)) !important;
+}
+
+.flickd-main-scroll:not(.flickd-main-scroll--directory) {
+  padding-left: 302px !important;
+  padding-right: clamp(18px, 2.2vw, 34px) !important;
+}
+
+.flickd-main-scroll--directory {
+  padding: clamp(22px, 3vw, 44px) !important;
+}
+
+.flickd-secondary-nav {
+  border-bottom: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(5, 9, 18, 0.96), rgba(5, 9, 18, 0.76)) !important;
+  padding: 14px 18px 12px !important;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+}
+
+.flickd-secondary-nav::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-top: 12px;
+  background: linear-gradient(90deg, rgba(80, 112, 180, 0.24), transparent 82%);
+}
+
+.flickd-secondary-nav .ui-premium-tabs {
+  gap: 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.flickd-secondary-nav .ui-premium-tabs__button {
+  min-height: 38px !important;
+  border-radius: 999px !important;
+  border-color: rgba(119, 141, 180, 0.22) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: rgba(218, 229, 247, 0.78) !important;
+  font-weight: 720 !important;
+  letter-spacing: -0.018em;
+}
+
+.flickd-secondary-nav .ui-premium-tabs__button:hover {
+  border-color: rgba(147, 197, 253, 0.34) !important;
+  background: rgba(79, 132, 255, 0.09) !important;
+  color: #ffffff !important;
+}
+
+.flickd-secondary-nav .ui-premium-tabs__button[aria-selected="true"] {
+  border-color: rgba(112, 156, 255, 0.58) !important;
+  background: linear-gradient(135deg, rgba(54, 105, 248, 0.94), rgba(66, 83, 220, 0.86)) !important;
+  box-shadow: 0 14px 34px rgba(47, 103, 246, 0.22) !important;
+}
+
+.flickd-content-stack {
+  width: 100%;
+  max-width: 1720px;
+  margin-inline: 0;
+  padding-top: clamp(14px, 1.4vw, 24px) !important;
+  padding-bottom: 72px !important;
+}
+
+.flickd-content-stack.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: clamp(20px, 2vw, 34px) !important;
+}
+
+.flickd-content-stack :where(section, article, div).rounded-2xl.border,
+.flickd-content-stack :where(section, article, div).rounded-xl.border,
+.flickd-content-stack .ui-card,
+.flickd-content-stack .ui-dashboard-card,
+.flickd-content-stack .ui-chart-card {
+  border-color: rgba(112, 139, 190, 0.22) !important;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(79, 132, 255, 0.055), transparent 30%),
+    var(--flickd-panel-artifact) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22) !important;
+}
+
+.flickd-content-stack :where(section, article, div).rounded-2xl.border:hover,
+.flickd-content-stack :where(section, article, div).rounded-xl.border:hover,
+.flickd-content-stack .ui-card:hover,
+.flickd-content-stack .ui-dashboard-card:hover,
+.flickd-content-stack .ui-chart-card:hover {
+  border-color: rgba(127, 161, 224, 0.34) !important;
+}
+
+.flickd-content-stack :where(h1, h2, h3) {
+  color: rgba(255, 255, 255, 0.97);
+  letter-spacing: -0.045em !important;
+}
+
+.flickd-content-stack :where(p, small, label, .text-slate-300, .text-slate-400, .text-gray-300, .text-gray-400) {
+  color: var(--flickd-muted) !important;
+}
+
+.flickd-content-stack :where(.text-xs, small) {
+  letter-spacing: 0.02em;
+}
+
+.ui-chart-card__header,
+.flickd-content-stack .ui-chart-card__header {
+  border-bottom-color: rgba(112, 139, 190, 0.16) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent) !important;
+}
+
+.ui-chart-card__title,
+.flickd-content-stack .ui-chart-card__title {
+  font-size: clamp(1.05rem, 1.15vw, 1.42rem) !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.flickd-content-stack :where(input, select, textarea) {
+  border-color: rgba(128, 151, 194, 0.28) !important;
+  background: rgba(2, 7, 16, 0.62) !important;
+}
+
+.flickd-content-stack :where(button):not(.ui-premium-tabs__button) {
+  border-color: rgba(128, 151, 194, 0.28);
+}
+
+.flickd-content-stack :where(button):not(.ui-premium-tabs__button):hover {
+  border-color: rgba(147, 197, 253, 0.42) !important;
+  background-color: rgba(79, 132, 255, 0.1);
+}
+
+.flickd-tab-personality .flickd-content-stack > :first-child,
+.flickd-tab-mytrace .flickd-content-stack > :first-child,
+.flickd-tab-tastetimeline .flickd-content-stack > :first-child,
+.flickd-tab-moodboard .flickd-content-stack > :first-child,
+.flickd-tab-deepdive .flickd-content-stack > :first-child,
+.flickd-tab-allwatched .flickd-content-stack > :first-child {
+  border-color: rgba(112, 156, 255, 0.24) !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(79, 132, 255, 0.12), transparent 34%),
+    radial-gradient(circle at 92% 20%, rgba(217, 70, 239, 0.07), transparent 30%),
+    linear-gradient(180deg, rgba(15, 27, 54, 0.72), rgba(8, 14, 28, 0.9)) !important;
+}
+
+.flickd-tab-members .flickd-content-stack,
+.flickd-tab-following .flickd-content-stack,
+.flickd-tab-followers .flickd-content-stack,
+.flickd-tab-settings .flickd-content-stack {
+  max-width: 1480px;
+  padding-top: clamp(20px, 2.8vw, 46px) !important;
+}
+
+.flickd-tab-members .flickd-content-stack > .grid,
+.flickd-tab-following .flickd-content-stack > .grid,
+.flickd-tab-followers .flickd-content-stack > .grid {
+  gap: clamp(16px, 1.8vw, 28px) !important;
+}
+
+.flickd-tab-members .flickd-content-stack :where(button).bg-blue-600,
+.flickd-tab-following .flickd-content-stack :where(button).bg-blue-600,
+.flickd-tab-followers .flickd-content-stack :where(button).bg-blue-600 {
+  background: linear-gradient(135deg, rgba(50, 101, 247, 0.95), rgba(63, 86, 224, 0.88)) !important;
+}
+
+.flickd-overview-composition {
+  gap: clamp(22px, 2.6vw, 42px) !important;
+}
+
+.flickd-overview-hero {
+  border-color: rgba(112, 156, 255, 0.22) !important;
+  background:
+    radial-gradient(circle at 78% 16%, rgba(79, 132, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 4% 108%, rgba(217, 70, 239, 0.1), transparent 34%),
+    linear-gradient(135deg, rgba(18, 30, 58, 0.76), rgba(5, 9, 18, 0.94) 58%, rgba(2, 5, 12, 0.98)) !important;
+  box-shadow: 0 34px 110px rgba(0, 0, 0, 0.34) !important;
+}
+
+.flickd-overview-hero__eyebrow,
+.flickd-overview-section-heading span {
+  color: rgba(144, 178, 255, 0.88) !important;
+}
+
+.flickd-overview-hero__title {
+  text-shadow: 0 22px 70px rgba(0, 0, 0, 0.36);
+}
+
+.flickd-overview-primary-grid,
+.flickd-overview-support-grid {
+  gap: clamp(18px, 2vw, 28px) !important;
+}
+
+.flickd-overview-composition .ui-chart-card,
+.flickd-overview-composition .ui-dashboard-card,
+.flickd-overview-wide-panel {
+  border-color: rgba(112, 139, 190, 0.2) !important;
+}
+
+.flickd-overview-composition .ui-chart-card__header {
+  padding: 22px 24px 17px !important;
+}
+
+@media (min-width: 1536px) {
+  .flickd-main-scroll:not(.flickd-main-scroll--directory) {
+    padding-right: 42px !important;
+  }
+
+  .flickd-content-stack {
+    max-width: 1820px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .flickd-shell-header {
+    height: 60px !important;
+  }
+
+  .flickd-brand-lockup {
+    min-width: 0;
+  }
+
+  .flickd-brand-lockup img {
+    height: 36px !important;
+  }
+
+  .flickd-main-scroll,
+  .flickd-main-scroll:not(.flickd-main-scroll--directory) {
+    padding: 14px !important;
+  }
+
+  .flickd-content-stack {
+    max-width: none;
+    padding-top: 12px !important;
+  }
+
+  .flickd-secondary-nav {
+    border-radius: 18px;
+    border: 1px solid rgba(112, 139, 190, 0.18) !important;
+    padding: 10px !important;
+  }
+
+  .flickd-secondary-nav::after {
+    display: none;
+  }
+}
