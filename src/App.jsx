@@ -6751,33 +6751,73 @@ const [user, setUser] = useState(null);
                   </div>
                 </>
               )}
-              <div className="flickd-content-stack space-y-4 pb-5 pt-2">
+              <div className="flickd-content-stack space-y-5 pb-5 pt-2">
               {activeTab === 'overview' && (
-                <>
+                <div className="flickd-overview-composition">
                   <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
-                  <Card className="overflow-hidden border-blue-500/20">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-2xl">
-                        <Sparkles className="h-5 w-5 text-blue-300" />
-                        Overview Studio
-                      </CardTitle>
-                      <CardDescription className="text-base">
-                        Your cinematic dashboard at a glance, with premium insights across ratings, genres, eras, and directors.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                        <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1">Live profile summary</span>
-                        <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1">Cinematic trend tracking</span>
-                        <span className="rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1">Taste pattern discovery</span>
+                  <Card className="flickd-overview-hero overflow-hidden border-blue-500/20">
+                    <CardContent className="p-0">
+                      <div className="flickd-overview-hero__content">
+                        <div className="flickd-overview-hero__eyebrow">
+                          <Sparkles className="h-4 w-4 text-blue-300" />
+                          Profile Snapshot
+                        </div>
+                        <div>
+                          <CardTitle className="flickd-overview-hero__title">
+                            Overview Studio
+                          </CardTitle>
+                          <CardDescription className="flickd-overview-hero__description">
+                            Your cinema history, shaped into an editorial read of ratings, genres, eras, and director loyalties.
+                          </CardDescription>
+                        </div>
+                        <div className="flickd-overview-hero__stats">
+                          <div>
+                            <span>Total films</span>
+                            <strong>{stats?.totalFilms ?? 0}</strong>
+                          </div>
+                          <div>
+                            <span>Average rating</span>
+                            <strong>{stats?.avgYourRating ?? 0}</strong>
+                          </div>
+                          <div>
+                            <span>Signature genre</span>
+                            <strong>{stats?.mostRatedGenre ?? 'N/A'}</strong>
+                          </div>
+                          <div>
+                            <span>Most active era</span>
+                            <strong>{eraPreference.length > 0 ? ([...eraPreference].sort((a, b) => b.count - a.count)[0]?.decade ?? 'N/A') : 'N/A'}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flickd-overview-hero__side">
+                        <span className="text-xs uppercase tracking-[0.28em] text-blue-200/70">Taste Signals</span>
+                        <p>
+                          {mostWatchedGenres.topGenre
+                            ? `${mostWatchedGenres.topGenre.genre} anchors your watched library, while rating movement and era patterns reveal where your taste sharpens.`
+                            : 'Upload more films to reveal the shape of your cinematic rhythm.'}
+                        </p>
+                        <div className="flickd-overview-hero__chips">
+                          <span>Ratings</span>
+                          <span>Genres</span>
+                          <span>Eras</span>
+                          <span>Directors</span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                   </Motion.div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <ChartCard title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-300" /> Rating Distribution</span>} className="h-full">
-                        <ResponsiveContainer width="100%" height={340}>
+                  <div className="flickd-overview-section-heading">
+                    <div>
+                      <span>Watching Patterns</span>
+                      <h2>How your ratings move</h2>
+                    </div>
+                    <p>Primary signals from your watched history.</p>
+                  </div>
+
+                  <div className="flickd-overview-primary-grid">
+                    <ChartCard title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-300" /> Rating Distribution</span>} className="flickd-overview-feature-chart h-full" bodyClassName="flickd-chart-stage flickd-chart-stage--feature">
+                        <ResponsiveContainer width="100%" height={390}>
                           <BarChart data={ratingDist} margin={CHART_THEME.margin.vertical}>
                             <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
                             <XAxis dataKey="rating" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
@@ -6791,7 +6831,7 @@ const [user, setUser] = useState(null);
                     </ChartCard>
 
                     {mostWatchedGenres.genres.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Most Watched Genres</span>} className="h-full">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Most Watched Genres</span>} className="flickd-overview-support-chart h-full" bodyClassName="flickd-chart-stage">
                         <div className="mb-4 text-sm text-gray-300">
                           Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>
                           {mostWatchedGenres.topGenre && (
@@ -6821,9 +6861,12 @@ const [user, setUser] = useState(null);
                   </div>
 
                   {yearlyHighlight.length > 0 && (
-                    <DashboardCard className="p-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h2 className="text-lg font-semibold inline-flex items-center gap-2"><Activity className="h-4 w-4 text-pink-300" /> Yearly Rating Activity</h2>
+                    <DashboardCard className="flickd-overview-wide-panel p-4">
+                      <div className="flickd-overview-card-heading">
+                        <div>
+                          <h2 className="text-lg font-semibold inline-flex items-center gap-2"><Activity className="h-4 w-4 text-pink-300" /> Yearly Rating Activity</h2>
+                          <p>Release-year rhythm across your library.</p>
+                        </div>
                       </div>
                       <ResponsiveContainer width="100%" height={320}>
                         <BarChart data={yearlyHighlight} margin={CHART_THEME.margin.vertical}>
@@ -6839,9 +6882,17 @@ const [user, setUser] = useState(null);
                     </DashboardCard>
                   )}
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="flickd-overview-section-heading">
+                    <div>
+                      <span>Taste Landscape</span>
+                      <h2>Where your preferences settle</h2>
+                    </div>
+                    <p>Genre, era, and director signals arranged as deeper context.</p>
+                  </div>
+
+                  <div className="flickd-overview-support-grid">
                     {genreAffinity.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full" bodyClassName="flickd-chart-stage">
                         <div>
                           <ResponsiveContainer width="100%" height={340}>
                             <BarChart data={genreAffinity} layout="vertical" margin={CHART_THEME.margin.horizontal}>
@@ -6865,7 +6916,7 @@ const [user, setUser] = useState(null);
                     )}
 
                     {eraPreference.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><CalendarRange className="h-4 w-4 text-amber-300" /> Era Preference</span>} className="h-full">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><CalendarRange className="h-4 w-4 text-amber-300" /> Era Preference</span>} className="h-full" bodyClassName="flickd-chart-stage">
                         <div>
                           <ResponsiveContainer width="100%" height={340}>
                             <BarChart data={eraPreference} margin={CHART_THEME.margin.vertical}>
@@ -6888,7 +6939,7 @@ const [user, setUser] = useState(null);
                       </ChartCard>
                     )}
                     {consistentlyLovedDirectors.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><HeartHandshake className="h-4 w-4 text-fuchsia-300" /> Most Consistently Loved Directors</span>} className="lg:col-span-2">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><HeartHandshake className="h-4 w-4 text-fuchsia-300" /> Most Consistently Loved Directors</span>} className="flickd-overview-director-panel">
                         <ResponsiveContainer width="100%" height={380}>
                           <BarChart data={consistentlyLovedDirectors} layout="vertical" margin={CHART_THEME.margin.horizontal}>
                             <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
@@ -6912,7 +6963,7 @@ const [user, setUser] = useState(null);
                     )}
                     <div
                       ref={mapFullscreenRef}
-                      className={`bg-[#111827] border border-gray-800 rounded-xl p-4 lg:col-span-2 ${mapFullscreen ? 'h-screen overflow-auto' : ''}`}
+                      className={`flickd-overview-map-panel bg-[#111827] border border-gray-800 rounded-xl p-4 ${mapFullscreen ? 'h-screen overflow-auto' : ''}`}
                     >
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
                         <div>
@@ -7028,7 +7079,7 @@ const [user, setUser] = useState(null);
                         </div>
                     </div>
                   </div>
-                </>
+                </div>
               )}
 {activeTab === 'allwatched' && (
                 <div className="space-y-4">
