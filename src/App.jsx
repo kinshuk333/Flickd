@@ -6158,7 +6158,7 @@ const [user, setUser] = useState(null);
       )}
 
       {shareCardOpen && shareCardConfig && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <div>
