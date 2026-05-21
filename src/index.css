@@ -875,3 +875,243 @@ body {
     font-size: 3.1rem;
   }
 }
+
+/* Cinematic identity rail: sidebar-only composition refinement. */
+.flickd-sidebar-rail {
+  position: relative;
+  gap: 0;
+  border-color: rgba(75, 95, 135, 0.16) !important;
+  background:
+    radial-gradient(circle at 50% -8%, rgba(79, 132, 255, 0.13), transparent 28%),
+    linear-gradient(180deg, rgba(16, 25, 46, 0.94) 0%, rgba(10, 16, 30, 0.98) 44%, rgba(6, 10, 20, 0.99) 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.025);
+}
+
+.flickd-sidebar-rail::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent 28%),
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.045), transparent 18%);
+  opacity: 0.7;
+}
+
+.flickd-sidebar-rail > * {
+  position: relative;
+  z-index: 1;
+}
+
+.flickd-profile-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(18px, 3vh, 34px) 10px 20px;
+}
+
+.flickd-profile-avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 30px;
+  border: 1px solid rgba(159, 180, 220, 0.34);
+  box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.34),
+    0 0 0 8px rgba(255, 255, 255, 0.025),
+    0 0 42px rgba(79, 132, 255, 0.14);
+}
+
+.flickd-profile-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.22), transparent 28%),
+    linear-gradient(145deg, rgba(63, 104, 191, 0.95), rgba(162, 43, 116, 0.85));
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.flickd-profile-name {
+  margin: 18px 0 0;
+  max-width: 100%;
+  color: rgba(248, 250, 252, 0.96);
+  font-size: 1.1rem;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.flickd-profile-subtitle {
+  margin: 8px 0 0;
+  color: rgba(191, 210, 236, 0.74);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.flickd-profile-about {
+  width: 100%;
+  margin-top: 22px;
+  padding: 0 4px 18px;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+}
+
+.flickd-profile-about__label {
+  margin: 0 0 7px;
+  color: rgba(147, 197, 253, 0.78);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.flickd-profile-about__text {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.88);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.flickd-profile-stats {
+  display: grid;
+  gap: 0;
+  padding: 8px 8px 6px;
+}
+
+.flickd-sidebar-rail .ui-sidebar-stat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 4px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.11) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.flickd-sidebar-rail .ui-sidebar-stat:last-child {
+  border-bottom: 0 !important;
+}
+
+.flickd-sidebar-rail .ui-sidebar-stat__label {
+  margin: 0;
+  color: rgba(168, 189, 219, 0.74);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.flickd-sidebar-rail .ui-sidebar-stat__value {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: clamp(1.08rem, 1.7vw, 1.35rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  text-align: right;
+}
+
+.flickd-profile-socials {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 8px 8px;
+}
+
+.flickd-profile-social-link {
+  border: 1px solid rgba(116, 139, 178, 0.28);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(219, 234, 254, 0.88);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.flickd-profile-social-link:hover {
+  border-color: rgba(147, 197, 253, 0.45);
+  background: rgba(79, 132, 255, 0.11);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.flickd-profile-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+  margin-top: auto;
+  padding: 18px 8px 4px;
+}
+
+.flickd-profile-action {
+  width: 100%;
+  border-radius: 999px;
+  padding: 10px 12px;
+  border: 1px solid rgba(104, 128, 170, 0.26);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(241, 245, 249, 0.92);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.flickd-profile-action:hover {
+  transform: translateY(-1px);
+  border-color: rgba(147, 197, 253, 0.44);
+  background: rgba(79, 132, 255, 0.12);
+}
+
+.flickd-profile-action--primary {
+  border-color: rgba(69, 119, 255, 0.38);
+  background: linear-gradient(135deg, rgba(47, 100, 245, 0.92), rgba(71, 101, 255, 0.74));
+  color: #ffffff;
+}
+
+.flickd-profile-action--following {
+  border-color: rgba(74, 222, 128, 0.44);
+  background: rgba(16, 185, 129, 0.12);
+  color: rgba(187, 247, 208, 0.96);
+}
+
+.flickd-profile-action--resonance {
+  border-color: rgba(217, 70, 239, 0.36);
+  background: rgba(147, 51, 234, 0.1);
+  color: rgba(245, 208, 254, 0.96);
+}
+
+@media (min-width: 1024px) {
+  .flickd-sidebar-rail {
+    padding: 14px 18px 18px !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .flickd-mobile-profile-rail.flickd-sidebar-rail {
+    gap: 0;
+    padding: 18px !important;
+  }
+
+  .flickd-mobile-profile-rail .flickd-profile-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+  }
+
+  .flickd-mobile-profile-rail .flickd-profile-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

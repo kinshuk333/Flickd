@@ -6502,8 +6502,8 @@ const [user, setUser] = useState(null);
               <div className="hidden lg:grid fixed top-16 left-0 right-0 bottom-0 grid-cols-[292px_minmax(0,1fr)] z-40 pointer-events-none flickd-shell-body-desktop">
                 <div className="contents">
                   <div className="h-full pointer-events-auto">
-                    <aside className="flickd-sidebar-rail profile-scroll space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full">
-                  <div className="flex flex-col items-center text-center">
+                    <aside className="flickd-sidebar-rail profile-scroll overflow-y-auto overflow-x-hidden flex flex-col h-full">
+                  <div className="flickd-profile-identity">
                 {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                   <img
                     src={currentProfileAvatarUrl}
@@ -6518,7 +6518,7 @@ const [user, setUser] = useState(null);
                         setProfileAvatarFailed(true);
                       }
                     }}
-                    className="w-24 h-24 rounded-2xl border border-gray-600 object-cover"
+                    className="flickd-profile-avatar object-cover"
                   />
                 ) : (
                   <button
@@ -6527,28 +6527,28 @@ const [user, setUser] = useState(null);
                       setProfileAvatarFailed(false);
                       setProfileAvatarBust(Date.now());
                     }}
-                    className="w-24 h-24 rounded-2xl border border-gray-600 bg-[#4b5f78] text-gray-100 flex items-center justify-center text-3xl font-semibold uppercase"
+                    className="flickd-profile-avatar flickd-profile-avatar--fallback"
                     title="Retry loading avatar"
                   >
                     {String(currentProfileAvatarLabel || 'U').charAt(0)}
                   </button>
                 )}
-                <h2 className="mt-3 text-lg font-semibold text-gray-100">
+                <h2 className="flickd-profile-name">
                   {memberViewUserId ? (memberViewName || 'Member') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
                 </h2>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p className="flickd-profile-subtitle">
                     {memberViewUserId ? 'Shared cinematic dashboard' : 'Your cinematic dashboard'}
                   </p>
                   {currentProfileAboutMeCapped && (
-                    <div className="mt-3 w-full text-left bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                      <p className="text-xs text-gray-400">About</p>
-                      <p className="mt-1 text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+                    <div className="flickd-profile-about">
+                      <p className="flickd-profile-about__label">About</p>
+                      <p className="flickd-profile-about__text">
                         {currentProfileAboutMeCapped}
                       </p>
                     </div>
                   )}
                 </div>
-                <div className="space-y-3">
+                <div className="flickd-profile-stats">
                 <SidebarStat label="Total Films" value={stats.totalFilms} />
                 <SidebarStat label="Avg Rating" value={stats.avgYourRating} />
                 <SidebarStat label="Favorite Genre" value={stats.mostRatedGenre} />
@@ -6562,13 +6562,13 @@ const [user, setUser] = useState(null);
                 />
               </div>
               {(memberViewUserId ? Object.values(memberViewSocials) : Object.values(socialLinks)).some((value) => value) && (
-                <div className="flex items-center justify-center gap-2">
+                <div className="flickd-profile-socials">
                   {(memberViewUserId ? memberViewSocials.instagram : socialLinks.instagram) && (
                     <a
                       href={(memberViewUserId ? memberViewSocials.instagram : socialLinks.instagram)}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-200 hover:bg-[#1f2937]"
+                      className="flickd-profile-social-link"
                     >
                       Instagram
                     </a>
@@ -6578,7 +6578,7 @@ const [user, setUser] = useState(null);
                       href={(memberViewUserId ? memberViewSocials.x : socialLinks.x)}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-200 hover:bg-[#1f2937]"
+                      className="flickd-profile-social-link"
                     >
                       X
                     </a>
@@ -6588,7 +6588,7 @@ const [user, setUser] = useState(null);
                       href={(memberViewUserId ? memberViewSocials.facebook : socialLinks.facebook)}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-200 hover:bg-[#1f2937]"
+                      className="flickd-profile-social-link"
                     >
                       Facebook
                     </a>
@@ -6596,14 +6596,14 @@ const [user, setUser] = useState(null);
                 </div>
               )}
               {isViewingOtherMember && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flickd-profile-actions">
                   <button
                     type="button"
                     onClick={() => toggleFollowMember(memberViewUserId, memberViewName)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                    className={`flickd-profile-action flickd-profile-action--primary ${
                       followedMemberIds.includes(String(memberViewUserId))
-                        ? 'bg-emerald-600/15 text-emerald-200 border-emerald-500/40 hover:bg-emerald-600/25'
-                        : 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700'
+                        ? 'flickd-profile-action--following'
+                        : ''
                     }`}
                   >
                     {followedMemberIds.includes(String(memberViewUserId)) ? 'Unfollow' : 'Follow'}
@@ -6611,7 +6611,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={openTasteResonance}
-                    className="px-3 py-2 rounded-lg text-sm font-medium border border-fuchsia-500/40 text-fuchsia-200 bg-fuchsia-600/10 hover:bg-fuchsia-600/20 transition-colors"
+                    className="flickd-profile-action flickd-profile-action--resonance"
                   >
                     {tasteResonanceLoading ? 'Loading...' : 'Taste Resonance'}
                   </button>
@@ -6651,8 +6651,8 @@ const [user, setUser] = useState(null);
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <>
                 <div className="hidden" />
-                <aside className="profile-scroll lg:hidden flickd-mobile-profile-rail bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 space-y-4 overflow-hidden flex flex-col h-auto pointer-events-auto">
-                  <div className="flex flex-col items-center text-center">
+                <aside className="profile-scroll lg:hidden flickd-mobile-profile-rail flickd-sidebar-rail bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 overflow-hidden flex flex-col h-auto pointer-events-auto">
+                  <div className="flickd-profile-identity">
                     {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                       <img
                         src={currentProfileAvatarUrl}
@@ -6666,7 +6666,7 @@ const [user, setUser] = useState(null);
                             setProfileAvatarFailed(true);
                           }
                         }}
-                        className="w-24 h-24 rounded-2xl border border-gray-600 object-cover"
+                        className="flickd-profile-avatar object-cover"
                       />
                     ) : (
                       <button
@@ -6675,28 +6675,28 @@ const [user, setUser] = useState(null);
                           setProfileAvatarFailed(false);
                           setProfileAvatarBust(Date.now());
                         }}
-                        className="w-24 h-24 rounded-2xl border border-gray-600 bg-[#4b5f78] text-gray-100 flex items-center justify-center text-3xl font-semibold uppercase"
+                        className="flickd-profile-avatar flickd-profile-avatar--fallback"
                         title="Retry loading avatar"
                       >
                         {String(currentProfileAvatarLabel || 'U').charAt(0)}
                       </button>
                     )}
-                    <h2 className="mt-3 text-lg font-semibold text-gray-100">
+                    <h2 className="flickd-profile-name">
                       {memberViewUserId ? (memberViewName || 'Member') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
                     </h2>
-                      <p className="text-sm text-gray-400 mt-1">
+                      <p className="flickd-profile-subtitle">
                         {memberViewUserId ? 'Shared cinematic dashboard' : 'Your cinematic dashboard'}
                       </p>
                       {currentProfileAboutMeCapped && (
-                        <div className="mt-3 w-full text-left bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                          <p className="text-xs text-gray-400">About</p>
-                          <p className="mt-1 text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+                        <div className="flickd-profile-about">
+                          <p className="flickd-profile-about__label">About</p>
+                          <p className="flickd-profile-about__text">
                             {currentProfileAboutMeCapped}
                           </p>
                         </div>
                       )}
                     </div>
-                    <div className="space-y-3">
+                    <div className="flickd-profile-stats">
                     <SidebarStat label="Total Films" value={stats.totalFilms} />
                     <SidebarStat label="Avg Rating" value={stats.avgYourRating} />
                     <SidebarStat label="Favorite Genre" value={stats.mostRatedGenre} />
@@ -6710,14 +6710,14 @@ const [user, setUser] = useState(null);
                     />
                   </div>
                   {isViewingOtherMember && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flickd-profile-actions">
                       <button
                         type="button"
                         onClick={() => toggleFollowMember(memberViewUserId, memberViewName)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        className={`flickd-profile-action flickd-profile-action--primary ${
                           followedMemberIds.includes(String(memberViewUserId))
-                            ? 'bg-emerald-600/15 text-emerald-200 border-emerald-500/40 hover:bg-emerald-600/25'
-                            : 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700'
+                            ? 'flickd-profile-action--following'
+                            : ''
                         }`}
                       >
                         {followedMemberIds.includes(String(memberViewUserId)) ? 'Unfollow' : 'Follow'}
@@ -6725,7 +6725,7 @@ const [user, setUser] = useState(null);
                       <button
                         type="button"
                         onClick={openTasteResonance}
-                        className="px-3 py-2 rounded-lg text-sm font-medium border border-fuchsia-500/40 text-fuchsia-200 bg-fuchsia-600/10 hover:bg-fuchsia-600/20 transition-colors"
+                        className="flickd-profile-action flickd-profile-action--resonance"
                       >
                         {tasteResonanceLoading ? 'Loading...' : 'Taste Resonance'}
                       </button>
