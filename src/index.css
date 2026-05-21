@@ -1984,3 +1984,33 @@ body {
     min-height: 34px !important;
   }
 }
+
+/* Remove broad backing panels behind Home tab content. The editorial shell should not create a card behind the real cards. */
+.flickd-tab-personality .flickd-content-stack > :first-child,
+.flickd-tab-mytrace .flickd-content-stack > :first-child,
+.flickd-tab-tastetimeline .flickd-content-stack > :first-child,
+.flickd-tab-moodboard .flickd-content-stack > :first-child,
+.flickd-tab-deepdive .flickd-content-stack > :first-child,
+.flickd-tab-allwatched .flickd-content-stack > :first-child {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.flickd-tab-personality .flickd-content-stack > :first-child:hover,
+.flickd-tab-mytrace .flickd-content-stack > :first-child:hover,
+.flickd-tab-tastetimeline .flickd-content-stack > :first-child:hover,
+.flickd-tab-moodboard .flickd-content-stack > :first-child:hover,
+.flickd-tab-deepdive .flickd-content-stack > :first-child:hover,
+.flickd-tab-allwatched .flickd-content-stack > :first-child:hover {
+  border-color: transparent !important;
+}
+
+/* Keep genuine cards visible, but avoid painting parent layout wrappers as panels. */
+.flickd-content-stack > :where(div, section, article):has(> .ui-chart-card),
+.flickd-content-stack > :where(div, section, article):has(> .ui-dashboard-card),
+.flickd-content-stack > :where(div, section, article):has(> .grid) {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
