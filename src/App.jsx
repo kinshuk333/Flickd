@@ -6291,10 +6291,10 @@ const [user, setUser] = useState(null);
         );
         return useFullscreenPortal ? createPortal(shareModal, fullscreenHost) : shareModal;
       })()}
-<div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-3 sm:py-6 h-full flex flex-col">
-        <div className="md:fixed md:top-0 md:left-1/2 md:-translate-x-1/2 z-50 w-full max-w-7xl px-3 sm:px-5 lg:px-8 pt-2 sm:pt-3 pb-2 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
-            <div className="rounded-2xl border border-gray-700 bg-[#0f172a]/95 px-4 py-3 backdrop-blur w-full">
-              <div className="flex items-center justify-between gap-3">
+<div className="min-h-screen w-full overflow-hidden bg-[#060a12] text-white">
+        <header className="h-16 w-full border-b border-gray-800 bg-[#0d1422]/95 backdrop-blur">
+            <div className="relative h-full w-full px-4 sm:px-6">
+              <div className="flex h-full items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <img
                     src="/flickd-wordmark.png"
@@ -6395,7 +6395,7 @@ const [user, setUser] = useState(null);
                 </div>
               </div>
               {mobileTopNavOpen && (
-                <div className="md:hidden mt-3 flex flex-col gap-2">
+                <div className="absolute left-4 right-4 top-[calc(100%+8px)] z-50 md:hidden flex flex-col gap-2 rounded-2xl border border-gray-700 bg-[#0f172a]/98 p-3 shadow-2xl backdrop-blur">
                   <button
                     type="button"
                     onClick={() => {
@@ -6475,17 +6475,16 @@ const [user, setUser] = useState(null);
                 </div>
               )}
             </div>
-        </div>
-        <div className="hidden md:block" style={{ height: '96px' }} />
+        </header>
 
         {(!fetchingCountries && data && stats) ? (
 
           <>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
-              <div className="hidden lg:block fixed top-[96px] left-1/2 -translate-x-1/2 w-full max-w-7xl px-4 sm:px-6 lg:px-8 z-40 pointer-events-none">
-                <div className="grid grid-cols-[320px_1fr] gap-4 items-start">
-                  <div className="h-[calc(100vh-112px)]">
-                    <aside className="profile-scroll bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-6 space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full pointer-events-auto">
+              <div className="hidden lg:grid fixed top-16 left-0 right-0 bottom-0 grid-cols-[300px_minmax(0,1fr)] z-40 pointer-events-none">
+                <div className="contents">
+                  <div className="h-full pointer-events-auto">
+                    <aside className="profile-scroll bg-[#0d1422] border-r border-gray-800 p-5 pt-6 space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full">
                   <div className="flex flex-col items-center text-center">
                 {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                   <img
@@ -6602,9 +6601,9 @@ const [user, setUser] = useState(null);
               )}
             </aside>
                   </div>
-                <div className="flex flex-col gap-2 pointer-events-auto">
+                <div className="flex min-w-0 flex-col gap-0 pointer-events-none">
                   {memberViewUserId && (
-                    <div className="flex items-center">
+                    <div className="flex items-center border-b border-gray-800 bg-[#070b12]/95 px-6 py-3 pointer-events-auto">
                       <button
                         type="button"
                         onClick={() => { exitMemberDashboard(); handleTabChange('members'); }}
@@ -6614,7 +6613,7 @@ const [user, setUser] = useState(null);
                       </button>
                     </div>
                   )}
-                <div className="rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-3 backdrop-blur">
+                <div className="border-b border-gray-800 bg-[#070b12]/95 px-6 py-4 backdrop-blur pointer-events-auto">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <PremiumTabs
                       className="w-full lg:w-auto"
@@ -6630,10 +6629,10 @@ const [user, setUser] = useState(null);
               </div>
             )}
 
-          <div className={`mt-2 md:mt-0 grid grid-cols-1 ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? '' : 'lg:grid-cols-[320px_1fr]'} gap-3 sm:gap-4`}>
+          <div className={`h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'px-4 sm:px-6 py-5' : 'px-4 sm:px-6 py-5 lg:py-0 lg:pr-6 lg:pl-[324px]'}`}>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <>
-                <div className="hidden lg:block w-[320px]" />
+                <div className="hidden" />
                 <aside className="profile-scroll lg:hidden bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 space-y-4 overflow-hidden flex flex-col h-auto pointer-events-auto">
                   <div className="flex flex-col items-center text-center">
                     {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
@@ -6718,7 +6717,7 @@ const [user, setUser] = useState(null);
               </>
             )}
 
-            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[48px]' : ''}`}>
+            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[92px]' : ''}`}>
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
                   <div className="h-[64px] lg:hidden" />
