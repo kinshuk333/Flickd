@@ -6309,11 +6309,11 @@ const [user, setUser] = useState(null);
         );
         return useFullscreenPortal ? createPortal(shareModal, fullscreenHost) : shareModal;
       })()}
-<div className="min-h-screen w-full overflow-hidden bg-[#060a12] text-white">
-        <header className="h-16 w-full border-b border-gray-800 bg-[#0d1422]/95 backdrop-blur">
-            <div className="relative h-full w-full px-4 sm:px-6">
+<div className="flickd-immersive-shell">
+        <header className="flickd-shell-header">
+            <div className="flickd-shell-header__inner">
               <div className="flex h-full items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
+                <div className="flickd-brand-lockup">
                   <img
                     src="/flickd-wordmark.png"
                     alt="Flickd"
@@ -6330,7 +6330,7 @@ const [user, setUser] = useState(null);
                     <path d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <div className="hidden md:flex gap-2 overflow-x-auto pb-1 md:overflow-visible md:pb-0 whitespace-nowrap">
+                <div className="flickd-primary-nav hidden md:flex">
                   <button
                     type="button"
                     onClick={() => { if (memberViewUserId) exitMemberDashboard(); handleTabChange('overview'); }}
@@ -6499,10 +6499,10 @@ const [user, setUser] = useState(null);
 
           <>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
-              <div className="hidden lg:grid fixed top-16 left-0 right-0 bottom-0 grid-cols-[300px_minmax(0,1fr)] z-40 pointer-events-none">
+              <div className="hidden lg:grid fixed top-16 left-0 right-0 bottom-0 grid-cols-[292px_minmax(0,1fr)] z-40 pointer-events-none flickd-shell-body-desktop">
                 <div className="contents">
                   <div className="h-full pointer-events-auto">
-                    <aside className="profile-scroll bg-[#0d1422] border-r border-gray-800 p-5 pt-6 space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full">
+                    <aside className="flickd-sidebar-rail profile-scroll space-y-4 overflow-y-auto overflow-x-hidden flex flex-col h-full">
                   <div className="flex flex-col items-center text-center">
                 {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                   <img
@@ -6631,7 +6631,7 @@ const [user, setUser] = useState(null);
                       </button>
                     </div>
                   )}
-                <div className="border-b border-gray-800 bg-[#070b12]/95 px-6 py-4 backdrop-blur pointer-events-auto">
+                <div className="flickd-secondary-nav pointer-events-auto">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <PremiumTabs
                       className="w-full lg:w-auto"
@@ -6647,7 +6647,7 @@ const [user, setUser] = useState(null);
               </div>
             )}
 
-          <div className={`h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'px-4 sm:px-6 py-5' : 'px-4 sm:px-6 py-5 lg:py-0 lg:pr-6 lg:pl-[324px]'}`}>
+          <div className={`flickd-main-scroll h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'px-4 sm:px-6 py-5' : 'px-4 sm:px-6 py-5 lg:py-0 lg:pr-5 lg:pl-[312px]'}`}>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <>
                 <div className="hidden" />
@@ -6735,7 +6735,7 @@ const [user, setUser] = useState(null);
               </>
             )}
 
-            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[92px]' : ''}`}>
+            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[86px]' : ''}`}>
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
                   <div className="h-[64px] lg:hidden" />
@@ -6751,7 +6751,7 @@ const [user, setUser] = useState(null);
                   </div>
                 </>
               )}
-              <div className="space-y-4 sm:space-y-5 pb-6 pt-3 sm:pt-2">
+              <div className="flickd-content-stack space-y-4 sm:space-y-5 pb-6 pt-3 sm:pt-2">
               {activeTab === 'overview' && (
                 <>
                   <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>
