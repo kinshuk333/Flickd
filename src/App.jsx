@@ -6647,11 +6647,11 @@ const [user, setUser] = useState(null);
               </div>
             )}
 
-          <div className={`flickd-main-scroll h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'px-4 sm:px-6 py-5' : 'px-4 sm:px-6 py-5 lg:py-0 lg:pr-5 lg:pl-[312px]'}`}>
+          <div className={`flickd-main-scroll flickd-tab-${activeTab} h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'flickd-main-scroll--directory px-3 sm:px-5 py-4' : 'px-3 sm:px-5 py-4 lg:py-0 lg:pr-4 lg:pl-[300px]'}`}>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <>
                 <div className="hidden" />
-                <aside className="profile-scroll lg:hidden bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 space-y-4 overflow-hidden flex flex-col h-auto pointer-events-auto">
+                <aside className="profile-scroll lg:hidden flickd-mobile-profile-rail bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 space-y-4 overflow-hidden flex flex-col h-auto pointer-events-auto">
                   <div className="flex flex-col items-center text-center">
                     {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                       <img
@@ -6735,11 +6735,11 @@ const [user, setUser] = useState(null);
               </>
             )}
 
-            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[86px]' : ''}`}>
+            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[76px]' : ''}`}>
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
                   <div className="h-[64px] lg:hidden" />
-                  <div className="lg:hidden rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-2 backdrop-blur">
+                  <div className="lg:hidden flickd-mobile-secondary-nav rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-2 backdrop-blur">
                     <div className="flex items-center justify-between gap-2">
                       <PremiumTabs
                         className="w-full overflow-x-auto"
@@ -6751,7 +6751,7 @@ const [user, setUser] = useState(null);
                   </div>
                 </>
               )}
-              <div className="flickd-content-stack space-y-4 sm:space-y-5 pb-6 pt-3 sm:pt-2">
+              <div className="flickd-content-stack space-y-4 pb-5 pt-2">
               {activeTab === 'overview' && (
                 <>
                   <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}>

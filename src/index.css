@@ -109,7 +109,7 @@ body {
 .flickd-shell-header {
   position: relative;
   z-index: 80;
-  height: 64px;
+  height: 60px;
   width: 100%;
   border-bottom: 1px solid rgba(55, 75, 111, 0.28);
   background:
@@ -125,7 +125,7 @@ body {
   width: 100%;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
 .flickd-brand-lockup {
@@ -136,14 +136,14 @@ body {
 
 .flickd-brand-lockup img {
   display: block;
-  height: 38px;
+  height: 36px;
   width: auto;
   object-fit: contain;
 }
 
 .flickd-primary-nav {
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   overflow-x: auto;
   padding-bottom: 0;
   white-space: nowrap;
@@ -155,7 +155,7 @@ body {
 }
 
 .flickd-primary-nav button {
-  border-radius: 11px !important;
+  border-radius: 10px !important;
   border-color: rgba(71, 91, 130, 0.5) !important;
   background: rgba(8, 15, 31, 0.54) !important;
   box-shadow: none !important;
@@ -181,7 +181,7 @@ body {
   background:
     radial-gradient(circle at 50% 0%, rgba(79, 132, 255, 0.08), transparent 26%),
     linear-gradient(180deg, rgba(12, 20, 38, 0.86), rgba(5, 9, 18, 0.98));
-  padding: 18px 16px 24px;
+  padding: 16px 14px 22px;
   box-shadow: none;
 }
 
@@ -202,7 +202,7 @@ body {
   background:
     linear-gradient(180deg, rgba(5, 9, 18, 0.98) 76%, rgba(5, 9, 18, 0)),
     rgba(5, 9, 18, 0.94);
-  padding: 12px 18px 14px;
+  padding: 10px 14px 12px;
   backdrop-filter: blur(18px);
 }
 
@@ -211,11 +211,11 @@ body {
   border: 0;
   background: transparent;
   padding: 0;
-  gap: 8px;
+  gap: 7px;
 }
 
 .flickd-secondary-nav .ui-premium-tabs__button {
-  border-radius: 13px !important;
+  border-radius: 12px !important;
   border-color: rgba(71, 91, 130, 0.54) !important;
   background: rgba(10, 18, 36, 0.62) !important;
   box-shadow: none !important;
@@ -422,4 +422,143 @@ body {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-4px); }
   100% { transform: translateY(0px); }
+}
+
+/* Flickd application-wide polish layer.
+   Scoped to the authenticated content shell so modals/special visualizations keep their behavior. */
+.flickd-main-scroll {
+  background:
+    radial-gradient(circle at 14% 8%, rgba(38, 94, 255, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(3, 7, 15, 0.98), rgba(3, 7, 15, 1));
+}
+
+.flickd-main-scroll--directory {
+  padding-left: clamp(16px, 2vw, 28px) !important;
+  padding-right: clamp(16px, 2vw, 28px) !important;
+}
+
+.flickd-content-stack {
+  --flickd-panel-bg: linear-gradient(180deg, rgba(17, 27, 49, 0.9), rgba(11, 18, 32, 0.94));
+  --flickd-panel-bg-subtle: linear-gradient(180deg, rgba(11, 19, 37, 0.82), rgba(7, 13, 26, 0.88));
+  --flickd-panel-border: rgba(78, 104, 154, 0.42);
+  --flickd-panel-border-soft: rgba(78, 104, 154, 0.28);
+  --flickd-panel-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+}
+
+.flickd-content-stack :where(section, article, div).rounded-2xl.border,
+.flickd-content-stack :where(section, article, div).rounded-xl.border {
+  border-color: var(--flickd-panel-border) !important;
+  background: var(--flickd-panel-bg) !important;
+  box-shadow: var(--flickd-panel-shadow);
+}
+
+.flickd-content-stack :where(section, article, div).rounded-lg.border {
+  border-color: var(--flickd-panel-border-soft) !important;
+  background: var(--flickd-panel-bg-subtle) !important;
+  box-shadow: none;
+}
+
+.flickd-content-stack .border-gray-800,
+.flickd-content-stack .border-gray-700,
+.flickd-content-stack .border-slate-700,
+.flickd-content-stack .border-slate-800 {
+  border-color: rgba(78, 104, 154, 0.34) !important;
+}
+
+.flickd-content-stack .bg-\[\#111827\],
+.flickd-content-stack .bg-\[\#0b1220\],
+.flickd-content-stack .bg-\[\#0b0f17\] {
+  background: var(--flickd-panel-bg-subtle) !important;
+}
+
+.flickd-content-stack :where(h1, h2, h3) {
+  letter-spacing: -0.025em;
+}
+
+.flickd-content-stack :where(p, span, label, small) {
+  text-wrap: pretty;
+}
+
+.flickd-content-stack :where(input, select, textarea) {
+  min-height: 40px;
+  border-color: rgba(91, 117, 168, 0.5) !important;
+  background: rgba(5, 11, 23, 0.76) !important;
+  color: rgba(248, 250, 252, 0.96) !important;
+  border-radius: 12px !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.flickd-content-stack :where(input, select, textarea):focus {
+  border-color: rgba(92, 132, 255, 0.86) !important;
+  box-shadow: 0 0 0 3px rgba(47, 103, 246, 0.18);
+  outline: none;
+}
+
+.flickd-content-stack :where(button).border:not(.ui-premium-tabs__button) {
+  border-color: rgba(91, 117, 168, 0.44);
+}
+
+.flickd-content-stack :where(button):not(.ui-premium-tabs__button) {
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.flickd-content-stack :where(button):not(.ui-premium-tabs__button):hover {
+  transform: translateY(-1px);
+}
+
+.flickd-content-stack :where(button).bg-blue-600,
+.flickd-content-stack :where(button).bg-\[\#2563eb\] {
+  background: linear-gradient(135deg, #315df5, #2447d8) !important;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.2);
+}
+
+.flickd-content-stack :where(table) {
+  border-color: rgba(78, 104, 154, 0.28);
+}
+
+.flickd-content-stack :where(th) {
+  color: rgba(190, 206, 235, 0.88);
+  font-weight: 600;
+}
+
+.flickd-content-stack :where(td) {
+  border-color: rgba(78, 104, 154, 0.18);
+}
+
+.flickd-content-stack :where(img) {
+  background: rgba(8, 15, 31, 0.72);
+}
+
+.flickd-mobile-profile-rail,
+.flickd-mobile-secondary-nav {
+  border-color: rgba(78, 104, 154, 0.42) !important;
+  background: linear-gradient(180deg, rgba(17, 27, 49, 0.94), rgba(8, 14, 27, 0.96)) !important;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.3);
+}
+
+.flickd-tab-overview .flickd-content-stack > .grid,
+.flickd-tab-personality .flickd-content-stack > .grid,
+.flickd-tab-deepdive .flickd-content-stack > .grid {
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .flickd-content-stack {
+    max-width: none;
+  }
+
+  .flickd-main-scroll:not(.flickd-main-scroll--directory) {
+    padding-right: 20px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .flickd-content-stack :where(section, article, div).rounded-2xl.border,
+  .flickd-content-stack :where(section, article, div).rounded-xl.border {
+    border-radius: 18px !important;
+  }
+
+  .flickd-content-stack {
+    gap: 14px;
+  }
 }
