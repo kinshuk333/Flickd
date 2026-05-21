@@ -6759,8 +6759,8 @@ const [user, setUser] = useState(null);
                   </Motion.div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <ChartCard title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-300" /> Rating Distribution</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <ChartCard title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-300" /> Rating Distribution</span>} className="h-full">
+                        <ResponsiveContainer width="100%" height={340}>
                           <BarChart data={ratingDist} margin={CHART_THEME.margin.vertical}>
                             <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
                             <XAxis dataKey="rating" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
@@ -6774,7 +6774,7 @@ const [user, setUser] = useState(null);
                     </ChartCard>
 
                     {mostWatchedGenres.genres.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Most Watched Genres</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Most Watched Genres</span>} className="h-full">
                         <div className="mb-4 text-sm text-gray-300">
                           Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>
                           {mostWatchedGenres.topGenre && (
@@ -6783,8 +6783,8 @@ const [user, setUser] = useState(null);
                             </span>
                           )}
                         </div>
-                        <div className="flex-1 min-h-[340px]">
-                          <ResponsiveContainer width="100%" height="100%">
+                        <div>
+                          <ResponsiveContainer width="100%" height={340}>
                             <BarChart data={mostWatchedGenres.genres} layout="vertical" margin={CHART_THEME.margin.horizontal}>
                               <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
                               <XAxis type="number" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
@@ -6824,9 +6824,9 @@ const [user, setUser] = useState(null);
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {genreAffinity.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
-                        <div className="flex-1 min-h-[340px]">
-                          <ResponsiveContainer width="100%" height="100%">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full">
+                        <div>
+                          <ResponsiveContainer width="100%" height={340}>
                             <BarChart data={genreAffinity} layout="vertical" margin={CHART_THEME.margin.horizontal}>
                               <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
                               <XAxis type="number" domain={[0, 10]} stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
@@ -6848,9 +6848,9 @@ const [user, setUser] = useState(null);
                     )}
 
                     {eraPreference.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><CalendarRange className="h-4 w-4 text-amber-300" /> Era Preference</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
-                        <div className="flex-1 min-h-[340px]">
-                          <ResponsiveContainer width="100%" height="100%">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><CalendarRange className="h-4 w-4 text-amber-300" /> Era Preference</span>} className="h-full">
+                        <div>
+                          <ResponsiveContainer width="100%" height={340}>
                             <BarChart data={eraPreference} margin={CHART_THEME.margin.vertical}>
                               <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
                               <XAxis dataKey="decade" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
