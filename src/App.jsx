@@ -32,6 +32,42 @@ import { Sparkles, BarChart3, Clapperboard, Activity, Blend, CalendarRange, Hear
 
 const ACCENT_COLOR = '#3b82f6';
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+const CHART_THEME = {
+  colors: CHART_COLORS,
+  grid: {
+    stroke: 'rgba(91, 112, 148, 0.26)',
+    strokeDasharray: '3 5',
+  },
+  axis: {
+    stroke: 'rgba(148, 163, 184, 0.55)',
+    tick: { fill: '#8fa2c0', fontSize: 11, fontWeight: 500 },
+  },
+  tooltip: {
+    contentStyle: {
+      backgroundColor: 'rgba(10, 15, 28, 0.96)',
+      border: '1px solid rgba(96, 118, 154, 0.48)',
+      borderRadius: '14px',
+      boxShadow: '0 18px 48px rgba(0, 0, 0, 0.45)',
+      color: '#e5edf8',
+    },
+    labelStyle: { color: '#f8fafc', fontWeight: 700 },
+    itemStyle: { color: '#7db7ff', fontWeight: 600 },
+    cursor: { fill: 'rgba(96, 165, 250, 0.1)' },
+  },
+  legend: {
+    iconType: 'circle',
+    wrapperStyle: { color: '#a8b8d6', fontSize: 12, paddingTop: 8 },
+  },
+  margin: {
+    vertical: { top: 12, right: 18, bottom: 8, left: 4 },
+    horizontal: { top: 10, right: 20, bottom: 8, left: 8 },
+  },
+  barRadius: {
+    vertical: [7, 7, 0, 0],
+    horizontal: [0, 8, 8, 0],
+  },
+};
+const getChartColor = (index) => CHART_THEME.colors[index % CHART_THEME.colors.length];
 const TRACE_GENRE_PALETTE = {
   drama: '#4F7BD9',
   crime: '#7A4FD9',
@@ -6725,13 +6761,13 @@ const [user, setUser] = useState(null);
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <ChartCard title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-300" /> Rating Distribution</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={ratingDist}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
-                            <XAxis dataKey="rating" stroke="#6b7280" tick={{fontSize: 12}} />
-                            <YAxis stroke="#6b7280" tick={{fontSize: 12}} />
-                            <Tooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '10px' }} labelStyle={{ color: '#f3f4f6' }} />
-                            <Bar dataKey="count" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]}>
-                              {ratingDist.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                          <BarChart data={ratingDist} margin={CHART_THEME.margin.vertical}>
+                            <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
+                            <XAxis dataKey="rating" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
+                            <YAxis stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
+                            <Tooltip {...CHART_THEME.tooltip} />
+                            <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical}>
+                              {ratingDist.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -6749,17 +6785,16 @@ const [user, setUser] = useState(null);
                         </div>
                         <div className="flex-1 min-h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={mostWatchedGenres.genres} layout="vertical">
-                              <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
-                              <XAxis type="number" stroke="#6b7280" tick={{fontSize: 11}} />
-                              <YAxis type="category" dataKey="genre" width={120} stroke="#6b7280" tick={{fontSize: 11}} />
+                            <BarChart data={mostWatchedGenres.genres} layout="vertical" margin={CHART_THEME.margin.horizontal}>
+                              <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
+                              <XAxis type="number" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
+                              <YAxis type="category" dataKey="genre" width={120} stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                               <Tooltip
-                                contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
-                                labelStyle={{ color: '#fff' }}
+                                {...CHART_THEME.tooltip}
                                 formatter={(v, name, props) => [`${v} films (${props.payload.percentage}%)`, 'Count']}
                               />
-                              <Bar dataKey="count" fill={ACCENT_COLOR} radius={[0, 6, 6, 0]}>
-                                {mostWatchedGenres.genres.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                              <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal}>
+                                {mostWatchedGenres.genres.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -6774,13 +6809,13 @@ const [user, setUser] = useState(null);
                         <h2 className="text-lg font-semibold inline-flex items-center gap-2"><Activity className="h-4 w-4 text-pink-300" /> Yearly Rating Activity</h2>
                       </div>
                       <ResponsiveContainer width="100%" height={320}>
-                        <BarChart data={yearlyHighlight}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
-                          <XAxis dataKey="year" stroke="#6b7280" interval="preserveStartEnd" tick={{fontSize: 11}} />
-                          <YAxis stroke="#6b7280" tick={{fontSize: 11}} />
-                          <Tooltip contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '10px' }} labelStyle={{ color: '#f3f4f6' }} />
-                          <Bar dataKey="filmCount" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]}>
-                            {yearlyHighlight.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                        <BarChart data={yearlyHighlight} margin={CHART_THEME.margin.vertical}>
+                          <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
+                          <XAxis dataKey="year" stroke={CHART_THEME.axis.stroke} interval="preserveStartEnd" tick={CHART_THEME.axis.tick} />
+                          <YAxis stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
+                          <Tooltip {...CHART_THEME.tooltip} />
+                          <Bar dataKey="filmCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical}>
+                            {yearlyHighlight.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -6792,20 +6827,19 @@ const [user, setUser] = useState(null);
                       <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="flex-1 min-h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={genreAffinity} layout="vertical">
-                              <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
-                              <XAxis type="number" domain={[0, 10]} stroke="#6b7280" tick={{fontSize: 11}} />
-                              <YAxis type="category" dataKey="genre" width={120} stroke="#6b7280" tick={{fontSize: 11}} />
+                            <BarChart data={genreAffinity} layout="vertical" margin={CHART_THEME.margin.horizontal}>
+                              <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
+                              <XAxis type="number" domain={[0, 10]} stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
+                              <YAxis type="category" dataKey="genre" width={120} stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                               <Tooltip
-                                contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '10px' }}
-                                labelStyle={{ color: '#f3f4f6' }}
+                                {...CHART_THEME.tooltip}
                                 formatter={(value, name, props) => {
                                   const count = props?.payload?.count ?? 0;
                                   return [`${value} avg (${count} films)`, 'Avg Rating'];
                                 }}
                               />
-                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={[0, 6, 6, 0]}>
-                                {genreAffinity.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal}>
+                                {genreAffinity.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -6817,20 +6851,19 @@ const [user, setUser] = useState(null);
                       <ChartCard title={<span className="inline-flex items-center gap-2"><CalendarRange className="h-4 w-4 text-amber-300" /> Era Preference</span>} className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="flex-1 min-h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={eraPreference}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
-                              <XAxis dataKey="decade" stroke="#6b7280" tick={{fontSize: 11}} />
-                              <YAxis domain={[eraChartMin, 10]} stroke="#6b7280" tick={{fontSize: 11}} />
+                            <BarChart data={eraPreference} margin={CHART_THEME.margin.vertical}>
+                              <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
+                              <XAxis dataKey="decade" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
+                              <YAxis domain={[eraChartMin, 10]} stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                               <Tooltip
-                                contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '10px' }}
-                                labelStyle={{ color: '#f3f4f6' }}
+                                {...CHART_THEME.tooltip}
                                 formatter={(value, name, props) => {
                                   const count = props?.payload?.count ?? 0;
                                   return [`${value} avg (${count} films)`, 'Avg Rating'];
                                 }}
                               />
-                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]}>
-                                {eraPreference.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical}>
+                                {eraPreference.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -6840,13 +6873,12 @@ const [user, setUser] = useState(null);
                     {consistentlyLovedDirectors.length > 0 && (
                       <ChartCard title={<span className="inline-flex items-center gap-2"><HeartHandshake className="h-4 w-4 text-fuchsia-300" /> Most Consistently Loved Directors</span>} className="lg:col-span-2">
                         <ResponsiveContainer width="100%" height={380}>
-                          <BarChart data={consistentlyLovedDirectors} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
-                            <XAxis type="number" stroke="#6b7280" tick={{fontSize: 11}} />
-                            <YAxis type="category" dataKey="director" width={140} stroke="#6b7280" tick={{fontSize: 11}} />
+                          <BarChart data={consistentlyLovedDirectors} layout="vertical" margin={CHART_THEME.margin.horizontal}>
+                            <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
+                            <XAxis type="number" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
+                            <YAxis type="category" dataKey="director" width={140} stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                             <Tooltip
-                              contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '10px' }}
-                              labelStyle={{ color: '#f3f4f6' }}
+                              {...CHART_THEME.tooltip}
                               formatter={(value, name, props) => {
                                 const payload = props?.payload || {};
                                 const moviesRated = payload.highRatedCount ?? value ?? 0;
@@ -6854,8 +6886,8 @@ const [user, setUser] = useState(null);
                                 return [`${moviesRated} (of ${totalFilms})`, 'Movies rated 8+'];
                               }}
                             />
-                            <Bar dataKey="highRatedCount" fill={ACCENT_COLOR} radius={[0, 6, 6, 0]}>
-                              {consistentlyLovedDirectors.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % 5]} />)}
+                            <Bar dataKey="highRatedCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal}>
+                              {consistentlyLovedDirectors.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
