@@ -14,6 +14,13 @@ import {
   Cell,
   LabelList
 } from 'recharts';
+import {
+  AppShell,
+  DashboardCard,
+  ChartCard,
+  PremiumTabs,
+  SidebarStat,
+} from './components/ui';
 
 const ACCENT_COLOR = '#3b82f6';
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
@@ -6481,26 +6488,17 @@ const [user, setUser] = useState(null);
                   )}
                 </div>
                 <div className="space-y-3">
-                <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Total Films</p>
-                  <p className="text-2xl font-semibold text-gray-100 mt-1">{stats.totalFilms}</p>
-                </div>
-                <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Avg Rating</p>
-                  <p className="text-2xl font-semibold text-gray-100 mt-1">{stats.avgYourRating}</p>
-                </div>
-                <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Favorite Genre</p>
-                  <p className="text-2xl font-semibold text-gray-100 mt-1 truncate">{stats.mostRatedGenre}</p>
-                </div>
-                <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Most Active Era</p>
-                  <p className="text-2xl font-semibold text-gray-100 mt-1">
-                    {eraPreference.length > 0
+                <SidebarStat label="Total Films" value={stats.totalFilms} />
+                <SidebarStat label="Avg Rating" value={stats.avgYourRating} />
+                <SidebarStat label="Favorite Genre" value={stats.mostRatedGenre} />
+                <SidebarStat
+                  label="Most Active Era"
+                  value={
+                    eraPreference.length > 0
                       ? ([...eraPreference].sort((a, b) => b.count - a.count)[0]?.decade ?? 'N/A')
-                      : 'N/A'}
-                  </p>
-                </div>
+                      : 'N/A'
+                  }
+                />
               </div>
               {(memberViewUserId ? Object.values(memberViewSocials) : Object.values(socialLinks)).some((value) => value) && (
                 <div className="flex items-center justify-center gap-2">
@@ -6574,21 +6572,12 @@ const [user, setUser] = useState(null);
                   )}
                 <div className="rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-3 backdrop-blur">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <nav className="flex flex-wrap gap-2 w-full lg:w-auto">
-                          {navItems.map((tab) => (
-                            <button
-                              key={tab.id}
-                              onClick={() => handleTabChange(tab.id)}
-                              className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                                activeTab === tab.id
-                                  ? 'bg-blue-600 text-white shadow-md border-blue-500/40 hover:bg-blue-700'
-                                  : 'text-gray-300 bg-[#111827] border-gray-700 hover:bg-[#1f2937] hover:border-gray-500 hover:text-gray-100'
-                              }`}
-                            >
-                              {tab.label}
-                            </button>
-                          ))}
-                    </nav>
+                    <PremiumTabs
+                      className="w-full lg:w-auto"
+                      items={navItems.map((tab) => ({ value: tab.id, label: tab.label }))}
+                      value={activeTab}
+                      onChange={handleTabChange}
+                    />
                     {activeTab === 'overview' && null}
                   </div>
                 </div>
@@ -6647,26 +6636,17 @@ const [user, setUser] = useState(null);
                       )}
                     </div>
                     <div className="space-y-3">
-                    <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                      <p className="text-xs text-gray-400">Total Films</p>
-                      <p className="text-2xl font-semibold text-gray-100 mt-1">{stats.totalFilms}</p>
-                    </div>
-                    <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                      <p className="text-xs text-gray-400">Avg Rating</p>
-                      <p className="text-2xl font-semibold text-gray-100 mt-1">{stats.avgYourRating}</p>
-                    </div>
-                    <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                      <p className="text-xs text-gray-400">Favorite Genre</p>
-                      <p className="text-2xl font-semibold text-gray-100 mt-1 truncate">{stats.mostRatedGenre}</p>
-                    </div>
-                    <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                      <p className="text-xs text-gray-400">Most Active Era</p>
-                      <p className="text-2xl font-semibold text-gray-100 mt-1">
-                        {eraPreference.length > 0
+                    <SidebarStat label="Total Films" value={stats.totalFilms} />
+                    <SidebarStat label="Avg Rating" value={stats.avgYourRating} />
+                    <SidebarStat label="Favorite Genre" value={stats.mostRatedGenre} />
+                    <SidebarStat
+                      label="Most Active Era"
+                      value={
+                        eraPreference.length > 0
                           ? ([...eraPreference].sort((a, b) => b.count - a.count)[0]?.decade ?? 'N/A')
-                          : 'N/A'}
-                      </p>
-                    </div>
+                          : 'N/A'
+                      }
+                    />
                   </div>
                   {isViewingOtherMember && (
                     <div className="grid grid-cols-2 gap-2">
@@ -6700,21 +6680,12 @@ const [user, setUser] = useState(null);
                   <div className="h-[64px] lg:hidden" />
                   <div className="lg:hidden rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-2 backdrop-blur">
                     <div className="flex items-center justify-between gap-2">
-                      <nav className="flex gap-2 w-full overflow-x-auto pb-1 whitespace-nowrap">
-                        {navItems.map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => handleTabChange(tab.id)}
-                            className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition-all shrink-0 ${
-                              activeTab === tab.id
-                                ? 'bg-blue-600 text-white shadow-md border-blue-500/40 hover:bg-blue-700'
-                                : 'text-gray-300 bg-[#111827] border-gray-700 hover:bg-[#1f2937] hover:border-gray-500 hover:text-gray-100'
-                            }`}
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
-                      </nav>
+                      <PremiumTabs
+                        className="w-full overflow-x-auto"
+                        items={navItems.map((tab) => ({ value: tab.id, label: tab.label }))}
+                        value={activeTab}
+                        onChange={handleTabChange}
+                      />
                     </div>
                   </div>
                 </>
@@ -6723,11 +6694,7 @@ const [user, setUser] = useState(null);
               {activeTab === 'overview' && (
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 h-full flex flex-col">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h2 className="text-lg font-semibold">Rating Distribution</h2>
-                      </div>
-                      <div className="flex-1 min-h-[340px]">
+                    <ChartCard title="Rating Distribution" className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={ratingDist}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
@@ -6739,14 +6706,10 @@ const [user, setUser] = useState(null);
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
-                      </div>
-                    </div>
+                    </ChartCard>
 
                     {mostWatchedGenres.genres.length > 0 && (
-                      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 h-full flex flex-col">
-                        <div className="flex items-center gap-2 mb-4">
-                          <h2 className="text-lg font-semibold">Most Watched Genres</h2>
-                        </div>
+                      <ChartCard title="Most Watched Genres" className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="mb-4 text-sm text-gray-300">
                           Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>
                           {mostWatchedGenres.topGenre && (
@@ -6772,12 +6735,12 @@ const [user, setUser] = useState(null);
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
-                      </div>
+                      </ChartCard>
                     )}
                   </div>
 
                   {yearlyHighlight.length > 0 && (
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
+                    <DashboardCard className="p-4">
                       <div className="flex items-center gap-2 mb-4">
                         <h2 className="text-lg font-semibold">Yearly Rating Activity</h2>
                       </div>
@@ -6792,15 +6755,12 @@ const [user, setUser] = useState(null);
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                    </div>
+                    </DashboardCard>
                   )}
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {genreAffinity.length > 0 && (
-                      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 h-full flex flex-col">
-                        <div className="flex items-center gap-2 mb-4">
-                          <h2 className="text-lg font-semibold">Genre Affinity</h2>
-                        </div>
+                      <ChartCard title="Genre Affinity" className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="flex-1 min-h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={genreAffinity} layout="vertical">
@@ -6821,14 +6781,11 @@ const [user, setUser] = useState(null);
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
-                      </div>
+                      </ChartCard>
                     )}
 
                     {eraPreference.length > 0 && (
-                      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 h-full flex flex-col">
-                        <div className="flex items-center gap-2 mb-4">
-                          <h2 className="text-lg font-semibold">Era Preference</h2>
-                        </div>
+                      <ChartCard title="Era Preference" className="h-full" bodyClassName="flex-1 min-h-[340px]">
                         <div className="flex-1 min-h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={eraPreference}>
@@ -6849,13 +6806,10 @@ const [user, setUser] = useState(null);
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
-                      </div>
+                      </ChartCard>
                     )}
                     {consistentlyLovedDirectors.length > 0 && (
-                      <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 lg:col-span-2">
-                        <div className="flex items-center gap-2 mb-4">
-                          <h2 className="text-lg font-semibold">Most Consistently Loved Directors</h2>
-                        </div>
+                      <ChartCard title="Most Consistently Loved Directors" className="lg:col-span-2">
                         <ResponsiveContainer width="100%" height={380}>
                           <BarChart data={consistentlyLovedDirectors} layout="vertical">
                             <CartesianGrid strokeDasharray="3 3" stroke="#2f3643" />
@@ -6876,7 +6830,7 @@ const [user, setUser] = useState(null);
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
-                      </div>
+                      </ChartCard>
                     )}
                     <div
                       ref={mapFullscreenRef}

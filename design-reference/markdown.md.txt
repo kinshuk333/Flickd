@@ -1,0 +1,17 @@
+Goal: Premium cinematic analytics dashboard.
+
+Do:
+- dark cinematic UI
+- clean charts
+- soft borders
+- spacious cards
+- refined typography
+- consistent tabs/buttons/cards
+- responsive layouts
+
+Avoid:
+- generic admin dashboard look
+- neon overload
+- random chart colors
+- too many borders
+- changing app logic
