@@ -395,7 +395,7 @@ body {
 
 .profile-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #64748b #0b1220;
+  scrollbar-color: #4f8cff #0f172a;
   scrollbar-gutter: stable;
 }
 
@@ -404,18 +404,18 @@ body {
 }
 
 .profile-scroll::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.45);
+  background: #111827;
   border-radius: 999px;
 }
 
 .profile-scroll::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.7);
+  background: linear-gradient(180deg, #3b82f6, #7c3aed);
   border-radius: 999px;
-  border: 1px solid rgba(17, 24, 39, 0.8);
+  border: 2px solid #111827;
 }
 
 .profile-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.95);
+  background: linear-gradient(180deg, #60a5fa, #8b5cf6);
 }
 
 @keyframes timelineFloat {

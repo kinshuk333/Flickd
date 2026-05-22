@@ -3735,9 +3735,7 @@ const [user, setUser] = useState(null);
     const currentYear = new Date().getFullYear();
     if (!timelineMovies.length) return currentYear;
     const maxMovieYear = Math.max(...timelineMovies.map((m) => Number(m.year) || currentYear));
-    const clampedToCurrentYear = Math.min(currentYear, maxMovieYear);
-    const roundedToDecadeEnd = Math.ceil(clampedToCurrentYear / 10) * 10 + 9;
-    return Math.min(currentYear, Math.max(2029, roundedToDecadeEnd));
+    return Math.min(currentYear, maxMovieYear);
   }, [timelineMovies]);
 
   const timelineYearClusters = React.useMemo(() => {
@@ -4777,6 +4775,30 @@ const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (!user || !followsTableEnabled) return;
+    let cancelled = false;
+    const safeRefresh = async () => {
+      if (cancelled) return;
+      await refreshFollowsState();
+    };
+
+    const onVisibilityOrFocus = () => {
+      safeRefresh();
+    };
+
+    const intervalId = window.setInterval(safeRefresh, 12000);
+    window.addEventListener('focus', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+    };
+  }, [user, followsTableEnabled, refreshFollowsState]);
+
+  useEffect(() => {
+    if (!user || !followsTableEnabled) return;
     const refresh = async () => {
       try {
         await refreshFollowsState();
@@ -4924,9 +4946,17 @@ const [user, setUser] = useState(null);
   const filteredMembersDirectory = React.useMemo(() => {
     const base = filterMembersByQuery(membersDirectory, membersSearchQuery);
     const selfId = String(user?.id || '');
-    if (!selfId) return base;
-    return (Array.isArray(base) ? base : []).filter((member) => String(member?.userId || '') !== selfId);
-  }, [membersDirectory, membersSearchQuery, filterMembersByQuery, user?.id]);
+    const selfEmail = String(user?.email || '').trim().toLowerCase();
+    if (!selfId && !selfEmail) return base;
+    return (Array.isArray(base) ? base : []).filter((member) => {
+      if (member?.isCurrentUser) return false;
+      const memberId = String(member?.userId || '');
+      const memberEmail = String(member?.email || '').trim().toLowerCase();
+      if (selfId && memberId === selfId) return false;
+      if (selfEmail && memberEmail && memberEmail === selfEmail) return false;
+      return true;
+    });
+  }, [membersDirectory, membersSearchQuery, filterMembersByQuery, user?.id, user?.email]);
   const filteredFollowedMembersList = React.useMemo(
     () => filterMembersByQuery(followedMembersList, followingSearchQuery),
     [followedMembersList, followingSearchQuery, filterMembersByQuery]
@@ -8049,7 +8079,18 @@ const [user, setUser] = useState(null);
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredMembersDirectory.map((member) => (
+                    {filteredMembersDirectory
+                      .filter((member) => {
+                        const selfId = String(user?.id || '');
+                        const selfEmail = String(user?.email || '').trim().toLowerCase();
+                        const memberId = String(member?.userId || '');
+                        const memberEmail = String(member?.email || '').trim().toLowerCase();
+                        if (member?.isCurrentUser) return false;
+                        if (selfId && memberId && memberId === selfId) return false;
+                        if (selfEmail && memberEmail && selfEmail === memberEmail) return false;
+                        return true;
+                      })
+                      .map((member) => (
                       <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                         {(() => {
                           const cardStats = memberCardStatsByUserId.get(String(member?.userId || '')) || {
