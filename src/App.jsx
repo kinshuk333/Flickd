@@ -6323,8 +6323,9 @@ const [user, setUser] = useState(null);
                 <button
                   type="button"
                   onClick={() => setMobileTopNavOpen((prev) => !prev)}
-                  className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-[#1f2937]"
+                  className="flickd-mobile-menu-toggle md:hidden inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-[#1f2937]"
                   aria-label="Toggle menu"
+                  aria-expanded={mobileTopNavOpen}
                 >
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M4 6h16M4 12h16M4 18h16" />
@@ -6428,7 +6429,7 @@ const [user, setUser] = useState(null);
                       handleTabChange('overview');
                       setMobileTopNavOpen(false);
                     }}
-                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--home px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
                       isHomeActive
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6439,7 +6440,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('members'); setMobileTopNavOpen(false); }}
-                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--members px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
                       isMembersTopActive
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6450,7 +6451,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('following'); setMobileTopNavOpen(false); }}
-                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--following px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
                       activeTab === 'following'
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6461,7 +6462,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('followers'); setMobileTopNavOpen(false); }}
-                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--followers px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
                       activeTab === 'followers'
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6472,7 +6473,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('settings'); setMobileTopNavOpen(false); }}
-                    className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--settings px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
                       activeTab === 'settings'
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6483,7 +6484,7 @@ const [user, setUser] = useState(null);
                   <button
                     onClick={() => { handleDownloadPdfBook(); setMobileTopNavOpen(false); }}
                     disabled={isBookExporting}
-                    className="px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-left"
+                    className="flickd-mobile-menu-item flickd-mobile-menu-item--download px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-left"
                   >
                     {isBookExporting ? 'Preparing PDF Book...' : 'Download'}
                   </button>
@@ -6492,7 +6493,7 @@ const [user, setUser] = useState(null);
                       type="button"
                       onClick={() => { handleSignOut(); setMobileTopNavOpen(false); }}
                       disabled={signingOut}
-                      className="px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] disabled:opacity-60 disabled:cursor-not-allowed text-left"
+                      className="flickd-mobile-menu-item flickd-mobile-menu-item--danger px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] disabled:opacity-60 disabled:cursor-not-allowed text-left"
                     >
                       {signingOut ? 'Signing Out...' : 'Sign Out'}
                     </button>

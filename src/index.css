@@ -2542,3 +2542,455 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Phase 1 mobile foundation: editorial type, compact controls, premium nav, and consistent spacing. */
+:root {
+  --m-space-1: 4px;
+  --m-space-2: 8px;
+  --m-space-3: 12px;
+  --m-space-4: 16px;
+  --m-space-5: 20px;
+  --m-space-6: 24px;
+  --m-space-8: 32px;
+  --m-font-eyebrow: 0.68rem;
+  --m-font-caption: 0.78rem;
+  --m-font-body: 0.92rem;
+  --m-font-card-title: clamp(1.18rem, 5.3vw, 1.46rem);
+  --m-font-section-title: clamp(1.42rem, 7vw, 1.95rem);
+  --m-line-tight: 1.08;
+  --m-line-body: 1.55;
+  --m-tracking-eyebrow: 0.17em;
+  --m-radius-control: 14px;
+  --m-radius-card: 22px;
+  --m-radius-sheet: 26px;
+  --m-control-height: 42px;
+  --m-input-height: 46px;
+  --m-muted-opacity: 0.72;
+  --m-surface-deep: rgba(5, 9, 17, 0.96);
+  --m-surface-card: rgba(10, 16, 29, 0.84);
+  --m-surface-soft: rgba(14, 22, 39, 0.56);
+  --m-surface-control: rgba(7, 12, 24, 0.78);
+  --m-border-subtle: rgba(159, 178, 215, 0.105);
+  --m-border-control: rgba(159, 178, 215, 0.18);
+  --m-overlay: rgba(0, 0, 0, 0.58);
+  --m-blue: #4f7dff;
+  --m-blue-soft: rgba(79, 125, 255, 0.14);
+  --m-text: rgba(248, 250, 252, 0.96);
+  --m-text-muted: rgba(177, 194, 224, 0.7);
+  --m-shadow-sheet: 0 26px 90px rgba(0, 0, 0, 0.56);
+  --m-shadow-card: 0 18px 56px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 15.5px;
+    background: #050911;
+  }
+
+  body {
+    color: var(--m-text);
+    text-rendering: geometricPrecision;
+  }
+
+  body,
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+
+  .flickd-immersive-shell {
+    --mobile-page-padding: 15px;
+    --mobile-card-radius: var(--m-radius-card);
+    --mobile-card-padding: var(--m-space-5);
+    --mobile-control-height: 44px;
+    --mobile-header-height: 62px;
+  }
+
+  .flickd-shell-header {
+    height: calc(var(--mobile-header-height) + env(safe-area-inset-top)) !important;
+    background:
+      linear-gradient(180deg, rgba(7, 12, 22, 0.96), rgba(7, 12, 22, 0.84)),
+      var(--m-surface-deep) !important;
+    border-bottom-color: rgba(159, 178, 215, 0.095) !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32) !important;
+  }
+
+  .flickd-shell-header__inner {
+    height: var(--mobile-header-height) !important;
+    padding-inline: var(--mobile-page-padding) !important;
+  }
+
+  .flickd-brand-lockup {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .flickd-brand-lockup img {
+    height: 31px !important;
+    max-width: 124px !important;
+  }
+
+  .flickd-mobile-menu-toggle {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 16px !important;
+    color: rgba(241, 245, 249, 0.92) !important;
+    background:
+      linear-gradient(180deg, rgba(20, 30, 51, 0.82), rgba(9, 15, 28, 0.8)) !important;
+    border-color: var(--m-border-control) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .flickd-mobile-menu-toggle:active {
+    transform: scale(0.96);
+  }
+
+  .flickd-mobile-menu-backdrop {
+    background: var(--m-overlay) !important;
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    animation: flickd-mobile-fade-in 160ms ease-out both;
+  }
+
+  .flickd-mobile-menu-panel {
+    top: calc(var(--mobile-header-height) + env(safe-area-inset-top) + 10px) !important;
+    left: var(--mobile-page-padding) !important;
+    right: var(--mobile-page-padding) !important;
+    display: grid !important;
+    gap: 7px !important;
+    padding: 12px !important;
+    border-radius: var(--m-radius-sheet) !important;
+    border-color: var(--m-border-subtle) !important;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(79, 125, 255, 0.17), transparent 34%),
+      linear-gradient(180deg, rgba(13, 21, 38, 0.98), rgba(6, 10, 19, 0.98)) !important;
+    box-shadow: var(--m-shadow-sheet) !important;
+  }
+
+  .flickd-mobile-menu-panel::before {
+    content: "Navigation";
+    display: block;
+    padding: 4px 8px 5px;
+    color: rgba(181, 197, 226, 0.7);
+    font-size: var(--m-font-eyebrow);
+    font-weight: 750;
+    letter-spacing: var(--m-tracking-eyebrow);
+    text-transform: uppercase;
+  }
+
+  .flickd-mobile-menu-panel .flickd-mobile-menu-item {
+    position: relative;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-height: 44px !important;
+    padding: 0 13px 0 42px !important;
+    border-radius: 16px !important;
+    font-size: 0.93rem !important;
+    font-weight: 680 !important;
+    letter-spacing: -0.01em;
+    background: rgba(255, 255, 255, 0.035) !important;
+    border-color: transparent !important;
+  }
+
+  .flickd-mobile-menu-panel .flickd-mobile-menu-item::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 6px;
+    transform: translateY(-50%);
+    background:
+      linear-gradient(135deg, rgba(151, 177, 255, 0.95), rgba(79, 125, 255, 0.45));
+    box-shadow: 0 0 18px rgba(79, 125, 255, 0.16);
+    opacity: 0.82;
+  }
+
+  .flickd-mobile-menu-panel .flickd-mobile-menu-item--danger {
+    margin-top: 8px;
+    color: rgba(255, 215, 215, 0.9) !important;
+    border-top: 1px solid rgba(159, 178, 215, 0.08) !important;
+    padding-top: 2px !important;
+  }
+
+  .flickd-mobile-menu-panel .flickd-mobile-menu-item--danger::before {
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.95), rgba(190, 18, 60, 0.5));
+  }
+
+  .flickd-mobile-menu-panel .flickd-mobile-menu-item:active,
+  .flickd-mobile-menu-panel .flickd-mobile-menu-item:hover {
+    background: var(--m-blue-soft) !important;
+    border-color: rgba(79, 125, 255, 0.22) !important;
+  }
+
+  @keyframes flickd-mobile-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .flickd-main-scroll,
+  .flickd-main-scroll:not(.flickd-main-scroll--directory),
+  .flickd-main-scroll--directory {
+    padding-inline: var(--mobile-page-padding) !important;
+    padding-top: 12px !important;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .flickd-content-stack {
+    gap: 0 !important;
+    padding-top: 8px !important;
+  }
+
+  .flickd-content-stack.space-y-5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: var(--m-space-6) !important;
+  }
+
+  .flickd-content-stack :where(h1, h2, h3, .ui-chart-card__title, .ui-section-header__title, .flickd-overview-hero__title) {
+    color: var(--m-text) !important;
+    letter-spacing: -0.045em !important;
+    text-wrap: balance;
+  }
+
+  .flickd-content-stack :where(h1, .flickd-overview-hero__title) {
+    font-size: clamp(2.1rem, 10vw, 3.15rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  .flickd-content-stack :where(h2, .ui-section-header__title) {
+    font-size: var(--m-font-section-title) !important;
+    line-height: 1.04 !important;
+  }
+
+  .flickd-content-stack :where(h3, .ui-chart-card__title, .text-lg.font-semibold, .text-xl.font-bold) {
+    font-size: var(--m-font-card-title) !important;
+    line-height: 1.12 !important;
+  }
+
+  .flickd-content-stack :where(p, .ui-chart-card__description, .ui-section-header__description, .flickd-overview-hero__description, .text-gray-300, .text-gray-400) {
+    color: var(--m-text-muted) !important;
+    font-size: var(--m-font-body) !important;
+    line-height: var(--m-line-body) !important;
+  }
+
+  .flickd-content-stack :where(label, small, .text-xs, .ui-chart-card__eyebrow, .flickd-overview-hero__eyebrow, .uppercase) {
+    color: rgba(178, 195, 226, 0.64) !important;
+    font-size: var(--m-font-eyebrow) !important;
+    line-height: 1.25 !important;
+    letter-spacing: var(--m-tracking-eyebrow) !important;
+    text-transform: uppercase;
+  }
+
+  .flickd-content-stack :where(.text-sm) {
+    font-size: 0.86rem !important;
+  }
+
+  .flickd-content-stack :where(.ui-dashboard-card, .ui-chart-card, .rounded-2xl.border, .rounded-xl.border, .card, section.border) {
+    border-width: 1px !important;
+    border-color: var(--m-border-subtle) !important;
+    border-radius: var(--m-radius-card) !important;
+    background:
+      radial-gradient(circle at 14% 0%, rgba(79, 125, 255, 0.052), transparent 28%),
+      var(--m-surface-card) !important;
+    box-shadow: var(--m-shadow-card) !important;
+  }
+
+  .flickd-content-stack :where(.ui-chart-card__header) {
+    padding: 16px 18px 12px !important;
+    border-bottom-color: rgba(159, 178, 215, 0.08) !important;
+  }
+
+  .flickd-content-stack :where(.ui-chart-card__body, .p-4, .p-5, .p-6) {
+    padding: var(--mobile-card-padding) !important;
+  }
+
+  .flickd-mobile-profile-rail.flickd-sidebar-rail {
+    padding: 15px 15px 17px !important;
+    border-radius: 26px !important;
+  }
+
+  .flickd-mobile-profile-rail .flickd-profile-avatar {
+    width: 92px !important;
+    height: 92px !important;
+  }
+
+  .flickd-mobile-profile-rail .flickd-profile-name {
+    font-size: 1rem !important;
+  }
+
+  .flickd-mobile-profile-rail .flickd-profile-subtitle {
+    font-size: 0.78rem !important;
+  }
+
+  .flickd-mobile-profile-rail .flickd-profile-about {
+    margin-top: 10px !important;
+  }
+
+  .flickd-mobile-profile-rail .flickd-profile-actions :where(button, a),
+  .flickd-profile-action {
+    min-height: 42px !important;
+    border-radius: 15px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .flickd-mobile-secondary-nav {
+    padding-block: 8px !important;
+    background:
+      linear-gradient(180deg, rgba(5, 9, 17, 0.96), rgba(5, 9, 17, 0.9)) !important;
+  }
+
+  .flickd-mobile-secondary-nav .ui-premium-tabs {
+    gap: 7px !important;
+  }
+
+  .flickd-mobile-secondary-nav .ui-premium-tabs__button {
+    min-height: 38px !important;
+    height: 38px !important;
+    padding-inline: 13px !important;
+    font-size: 0.84rem !important;
+    font-weight: 680 !important;
+    background: rgba(11, 18, 32, 0.62) !important;
+    border-color: rgba(159, 178, 215, 0.13) !important;
+    color: rgba(218, 228, 245, 0.82) !important;
+  }
+
+  .flickd-mobile-secondary-nav .ui-premium-tabs__button[aria-selected="true"] {
+    background: linear-gradient(180deg, rgba(79, 125, 255, 0.9), rgba(54, 98, 235, 0.86)) !important;
+    color: #fff !important;
+    border-color: rgba(143, 170, 255, 0.42) !important;
+  }
+
+  .flickd-content-stack :where(input, select, textarea, .flickd-control, .flickd-filter-control) {
+    min-height: var(--m-input-height) !important;
+    height: auto !important;
+    padding: 0 13px !important;
+    border-radius: var(--m-radius-control) !important;
+    border-color: var(--m-border-control) !important;
+    background: var(--m-surface-control) !important;
+    color: var(--m-text) !important;
+    font-size: 0.92rem !important;
+    line-height: 1.2 !important;
+    box-shadow: none !important;
+  }
+
+  .flickd-content-stack textarea {
+    min-height: 104px !important;
+    padding-block: 12px !important;
+  }
+
+  .flickd-content-stack :where(select) {
+    padding-right: 34px !important;
+  }
+
+  .flickd-content-stack :where(input::placeholder, textarea::placeholder) {
+    color: rgba(177, 194, 224, 0.45) !important;
+  }
+
+  .flickd-content-stack :where(button, a[role="button"], .flickd-profile-social-link) {
+    min-height: var(--m-control-height) !important;
+    border-radius: var(--m-radius-control) !important;
+    font-size: 0.91rem !important;
+    font-weight: 700 !important;
+  }
+
+  .flickd-content-stack :where(.px-4.py-2, .px-3.py-2, .px-3.py-1\\.5) {
+    padding-inline: 13px !important;
+    padding-block: 0 !important;
+  }
+
+  .flickd-content-stack :where(.grid) {
+    gap: 13px !important;
+  }
+
+  .flickd-tab-allwatched .flickd-content-stack [class*="grid-cols-"],
+  .flickd-tab-moodboard .flickd-content-stack [class*="grid-cols-"],
+  .flickd-tab-deepdive .flickd-content-stack [class*="grid-cols-"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .flickd-content-stack :where(img) {
+    max-width: 100%;
+  }
+
+  .flickd-content-stack :where(img[loading="lazy"], .poster-img, .ui-film-poster-card__image) {
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(79, 125, 255, 0.12), transparent 42%),
+      linear-gradient(145deg, #1f2937, #0b1220);
+  }
+
+  .flickd-content-stack :where(.ui-film-poster-card, article, button).rounded-xl,
+  .flickd-content-stack :where(.ui-film-poster-card, article, button).rounded-lg {
+    border-color: rgba(159, 178, 215, 0.1) !important;
+    background: rgba(8, 13, 24, 0.7) !important;
+  }
+
+  .flickd-content-stack :where(.line-clamp-1, .truncate) {
+    min-width: 0;
+  }
+
+  .share-card-overlay {
+    z-index: 9999 !important;
+  }
+
+  .share-card-panel {
+    text-align: center;
+  }
+
+  .share-card-panel :where(h2, h3) {
+    line-height: 1.04 !important;
+  }
+
+  .share-card-panel :where(button) {
+    min-height: 48px !important;
+  }
+
+  .flickd-tab-settings .flickd-content-stack :where(.grid) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .flickd-tab-settings .flickd-content-stack :where(button) {
+    width: 100%;
+  }
+
+  .flickd-tab-tastetimeline .timeline-shell {
+    border-color: rgba(159, 178, 215, 0.1) !important;
+  }
+
+  .flickd-tab-tastetimeline .timeline-y-scroll {
+    min-height: min(520px, 62dvh) !important;
+  }
+
+  .flickd-tab-tastetimeline .timeline-poster,
+  .flickd-tab-tastetimeline .timeline-poster img {
+    max-width: 42px !important;
+  }
+
+  .flickd-tab-tastetimeline .timeline-shell::before {
+    content: "Swipe to explore timeline";
+    display: block;
+    padding: 0 var(--mobile-page-padding) 10px;
+    color: rgba(177, 194, 224, 0.58);
+    font-size: var(--m-font-caption);
+  }
+}
+
+@media (max-width: 390px) {
+  .flickd-brand-lockup img {
+    height: 29px !important;
+    max-width: 116px !important;
+  }
+
+  .flickd-mobile-menu-panel {
+    left: 10px !important;
+    right: 10px !important;
+  }
+
+  .flickd-content-stack :where(.ui-chart-card__body, .p-4, .p-5, .p-6) {
+    padding: 16px !important;
+  }
+}
