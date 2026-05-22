@@ -6210,7 +6210,7 @@ const [user, setUser] = useState(null);
     const footerStartX = Math.round((canvas.width - totalFooterW) / 2);
     ctx.fillText(footerText, footerStartX, footerY);
 
-    const logo = await loadImage('/flickd-wordmark.png');
+    const logo = await loadImage('/flickd-brand.png');
     if (logo) {
       ctx.drawImage(logo, footerStartX + textWidth + gap, footerY - 27, logoTargetW, logoTargetH);
     }
@@ -6283,7 +6283,7 @@ const [user, setUser] = useState(null);
       <div className="min-h-screen bg-[#0b0f17] text-gray-100 flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-[#111827] border border-gray-800 rounded-2xl px-8 py-9 text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <img
-            src="/flickd-wordmark.png"
+            src="/flickd-brand.png"
             alt="Flickd"
             className="h-10 w-auto mx-auto mb-6 object-contain"
           />
@@ -6717,7 +6717,7 @@ const [user, setUser] = useState(null);
               <div className="flex h-full items-center justify-between gap-3">
                 <div className="flickd-brand-lockup">
                   <img
-                    src="/flickd-nav-logo.png?v=1"
+                    src="/flickd-brand.png"
                     alt="Flickd"
                     className="h-9 w-auto object-contain"
                   />
@@ -6825,7 +6825,7 @@ const [user, setUser] = useState(null);
                   />
                   <div className="flickd-mobile-menu-panel">
                   <div className="flickd-mobile-menu-header">
-                    <img src="/flickd-menu-wordmark.svg" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
+                    <img src="/flickd-brand.png" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
                     <button
                       type="button"
                       className="flickd-mobile-menu-close"
@@ -7242,9 +7242,9 @@ const [user, setUser] = useState(null);
                             <XAxis dataKey="rating" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                             <YAxis stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                             <Tooltip {...CHART_THEME.tooltip} />
-                            <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false}>
+                            <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false} isAnimationActive={false}>
                               {ratingDist.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
-                              <LabelList dataKey="count" position="top" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
+                              <LabelList dataKey="count" position="top" formatter={formatCompactChartValue} fill="rgba(226, 232, 240, 0.94)" fontSize={11} />
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -7270,9 +7270,9 @@ const [user, setUser] = useState(null);
                                 {...CHART_THEME.tooltip}
                                 formatter={(v, name, props) => [`${v} films (${props.payload.percentage}%)`, 'Count']}
                               />
-                              <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false}>
+                              <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false} isAnimationActive={false}>
                                 {mostWatchedGenres.genres.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
-                                <LabelList dataKey="count" position="right" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
+                                <LabelList dataKey="count" position="right" formatter={formatCompactChartValue} fill="rgba(226, 232, 240, 0.94)" fontSize={11} />
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -7327,9 +7327,9 @@ const [user, setUser] = useState(null);
                                   return [`${value} avg (${count} films)`, 'Avg Rating'];
                                 }}
                               />
-                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false}>
+                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false} isAnimationActive={false}>
                                 {genreAffinity.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
-                                <LabelList dataKey="avgRating" position="right" formatter={formatOneDecimalChartValue} className="flickd-mobile-chart-value" />
+                                <LabelList dataKey="avgRating" position="right" formatter={formatOneDecimalChartValue} fill="rgba(226, 232, 240, 0.94)" fontSize={11} />
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -7352,9 +7352,9 @@ const [user, setUser] = useState(null);
                                   return [`${value} avg (${count} films)`, 'Avg Rating'];
                                 }}
                               />
-                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false}>
+                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false} isAnimationActive={false}>
                                 {eraPreference.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
-                                <LabelList dataKey="avgRating" position="top" formatter={formatOneDecimalChartValue} className="flickd-mobile-chart-value" />
+                                <LabelList dataKey="avgRating" position="top" formatter={formatOneDecimalChartValue} fill="rgba(226, 232, 240, 0.94)" fontSize={11} />
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -7377,9 +7377,9 @@ const [user, setUser] = useState(null);
                                 return [`${moviesRated} (of ${totalFilms})`, 'Movies rated 8+'];
                               }}
                             />
-                            <Bar dataKey="highRatedCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false}>
+                            <Bar dataKey="highRatedCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false} isAnimationActive={false}>
                               {consistentlyLovedDirectors.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
-                              <LabelList dataKey="highRatedCount" position="right" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
+                              <LabelList dataKey="highRatedCount" position="right" formatter={formatCompactChartValue} fill="rgba(226, 232, 240, 0.94)" fontSize={11} />
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
