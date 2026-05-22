@@ -6709,7 +6709,7 @@ const [user, setUser] = useState(null);
                   />
                   <div className="flickd-mobile-menu-panel">
                   <div className="flickd-mobile-menu-header">
-                    <img src="/flickd-logo.png" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
+                    <img src="/flickd-wordmark.png" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
                     <button
                       type="button"
                       className="flickd-mobile-menu-close"
@@ -6781,41 +6781,6 @@ const [user, setUser] = useState(null);
                   >
                     Settings
                   </button>
-                  <button
-                    onClick={() => { handleDownloadPdfBook(); setMobileTopNavOpen(false); }}
-                    disabled={isBookExporting}
-                    className="flickd-mobile-menu-item flickd-mobile-menu-item--download border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isBookExporting ? 'Preparing PDF Book...' : 'Download'}
-                  </button>
-                  {user && (
-                    <button
-                      type="button"
-                      onClick={() => { handleSignOut(); setMobileTopNavOpen(false); }}
-                      disabled={signingOut}
-                      className="flickd-mobile-menu-item flickd-mobile-menu-item--danger border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {signingOut ? 'Signing Out...' : 'Sign Out'}
-                    </button>
-                  )}
-                </div>
-                <div className="flickd-mobile-menu-meta">
-                  <div className="flickd-mobile-menu-meta__block">
-                    <p>Cinematic taste analytics</p>
-                    <p>Built for your IMDb history</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => { handleDownloadPdfBook(); setMobileTopNavOpen(false); }}
-                    disabled={isBookExporting}
-                    className="flickd-mobile-menu-link"
-                  >
-                    {isBookExporting ? 'Preparing PDF Book...' : 'Export Book'}
-                  </button>
-                </div>
-                <div className="flickd-mobile-menu-footer">
-                  <span>Legal Notice</span>
-                  <img src="/flickd-logo.png" alt="Flickd" className="flickd-mobile-menu-footer-logo" />
                 </div>
                 </div>
                 </div>

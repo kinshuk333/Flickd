@@ -2933,6 +2933,22 @@ body {
     min-width: 0;
   }
 
+  .flickd-tab-deepdive .flickd-discovery-sections,
+  .flickd-tab-deepdive .flickd-discovery-sections > div,
+  .flickd-tab-deepdive .flickd-discovery-grid,
+  .flickd-tab-deepdive .flickd-discovery-grid > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .flickd-tab-deepdive .flickd-discovery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    overflow-x: clip;
+  }
+
   .share-card-overlay {
     z-index: 9999 !important;
   }
@@ -3397,7 +3413,7 @@ body {
     z-index: 1;
     width: 100%;
     height: 100dvh;
-    padding: calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 24px) !important;
+    padding: calc(env(safe-area-inset-top) + 18px) 22px calc(env(safe-area-inset-bottom) + 22px) !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: #050811 !important;
@@ -3419,12 +3435,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 34px;
+    margin-bottom: 28px;
   }
 
   .flickd-mobile-menu-brand-logo {
     display: block;
-    width: clamp(140px, 40vw, 188px);
+    width: clamp(156px, 46vw, 220px);
     height: auto;
     object-fit: contain;
   }
@@ -3443,28 +3459,29 @@ body {
 
   .flickd-mobile-menu-list {
     display: grid;
-    gap: 8px;
+    gap: 12px;
     margin-top: 0;
-    margin-bottom: auto;
+    align-content: start;
+    padding-top: 8px;
   }
 
   .flickd-mobile-menu-item {
-    min-height: 62px !important;
+    min-height: 56px !important;
     width: 100%;
-    border-radius: 12px !important;
-    padding: 0 2px !important;
+    border-radius: 14px !important;
+    padding: 0 18px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
     text-align: left;
-    font-size: clamp(2rem, 8.2vw, 3rem) !important;
+    font-size: 1.08rem !important;
     font-weight: 500 !important;
-    line-height: 1 !important;
+    line-height: 1.2 !important;
     letter-spacing: 0 !important;
     text-transform: none !important;
-    border: 0 !important;
-    background: transparent !important;
-    color: rgba(245, 248, 255, 0.94) !important;
+    border: 1px solid rgba(148, 163, 184, 0.16) !important;
+    background: rgba(11, 18, 32, 0.58) !important;
+    color: rgba(235, 242, 255, 0.94) !important;
   }
 
   .flickd-mobile-menu-item::before {
@@ -3473,68 +3490,9 @@ body {
 
   .flickd-mobile-menu-item:hover,
   .flickd-mobile-menu-item:active {
-    color: rgba(147, 197, 253, 0.95) !important;
-  }
-
-  .flickd-mobile-menu-item--danger {
-    margin-top: 8px;
-    min-height: 42px !important;
-    font-size: 1rem !important;
-    color: rgba(252, 165, 165, 0.92) !important;
-  }
-
-  .flickd-mobile-menu-item--download {
-    display: none !important;
-  }
-
-  .flickd-mobile-menu-meta {
-    margin-top: 24px;
-    border-top: 1px solid rgba(148, 163, 184, 0.16);
-    padding-top: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .flickd-mobile-menu-meta__block {
-    display: grid;
-    gap: 3px;
-    color: rgba(196, 206, 225, 0.74);
-    font-size: 0.95rem;
-    line-height: 1.4;
-    letter-spacing: 0;
-  }
-
-  .flickd-mobile-menu-link {
-    width: fit-content;
-    min-height: 36px;
-    border: 0;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.46);
-    border-radius: 0;
-    padding: 0 0 2px;
-    background: transparent;
-    color: rgba(241, 245, 255, 0.92);
-    font-size: 1.08rem;
-    font-weight: 500;
-    letter-spacing: 0;
-  }
-
-  .flickd-mobile-menu-footer {
-    margin-top: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: rgba(148, 163, 184, 0.66);
-    font-size: 0.82rem;
-    line-height: 1.3;
-  }
-
-  .flickd-mobile-menu-footer-logo {
-    display: block;
-    width: 84px;
-    height: auto;
-    object-fit: contain;
-    opacity: 0.92;
+    border-color: rgba(96, 165, 250, 0.42) !important;
+    background: rgba(30, 64, 175, 0.22) !important;
+    color: rgba(248, 250, 255, 0.98) !important;
   }
 
   @keyframes flickd-mobile-overlay-in {
