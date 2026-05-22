@@ -6697,7 +6697,7 @@ const [user, setUser] = useState(null);
                   />
                   <div className="flickd-mobile-menu-panel">
                   <div className="flickd-mobile-menu-header">
-                    <div className="flickd-mobile-menu-brand">FLICKD</div>
+                    <img src="/flickd-wordmark.png" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
                     <button
                       type="button"
                       className="flickd-mobile-menu-close"
@@ -6803,7 +6803,7 @@ const [user, setUser] = useState(null);
                 </div>
                 <div className="flickd-mobile-menu-footer">
                   <span>Legal Notice</span>
-                  <span>Flickd</span>
+                  <img src="/flickd-wordmark.png" alt="Flickd" className="flickd-mobile-menu-footer-logo" />
                 </div>
                 </div>
                 </div>
