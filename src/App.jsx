@@ -5462,12 +5462,16 @@ const [user, setUser] = useState(null);
 
   const onTimelineWheelCapture = (e) => {
     const el = e.currentTarget;
-    if (el.scrollWidth <= el.clientWidth + 1) return;
     if (e.ctrlKey || e.metaKey || e.altKey) {
       e.preventDefault();
       e.stopPropagation();
       const step = e.deltaY < 0 ? 0.08 : -0.08;
       zoomTimeline(step);
+      return;
+    }
+    if (el.scrollWidth <= el.clientWidth + 1) {
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
@@ -6693,7 +6697,7 @@ const [user, setUser] = useState(null);
                   />
                   <div className="flickd-mobile-menu-panel">
                   <div className="flickd-mobile-menu-header">
-                    <div className="flickd-mobile-menu-title">Navigation</div>
+                    <div className="flickd-mobile-menu-brand">FLICKD</div>
                     <button
                       type="button"
                       className="flickd-mobile-menu-close"
@@ -6782,6 +6786,24 @@ const [user, setUser] = useState(null);
                       {signingOut ? 'Signing Out...' : 'Sign Out'}
                     </button>
                   )}
+                </div>
+                <div className="flickd-mobile-menu-meta">
+                  <div className="flickd-mobile-menu-meta__block">
+                    <p>Cinematic taste analytics</p>
+                    <p>Built for your IMDb history</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { handleDownloadPdfBook(); setMobileTopNavOpen(false); }}
+                    disabled={isBookExporting}
+                    className="flickd-mobile-menu-link"
+                  >
+                    {isBookExporting ? 'Preparing PDF Book...' : 'Export Book'}
+                  </button>
+                </div>
+                <div className="flickd-mobile-menu-footer">
+                  <span>Legal Notice</span>
+                  <span>Flickd</span>
                 </div>
                 </div>
                 </div>
@@ -7172,7 +7194,6 @@ const [user, setUser] = useState(null);
                           <Tooltip {...CHART_THEME.tooltip} />
                           <Bar dataKey="filmCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false}>
                             {yearlyHighlight.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
-                            <LabelList dataKey="filmCount" position="top" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -7628,7 +7649,7 @@ const [user, setUser] = useState(null);
                            </div>
                          </div>
 
-                         <div className="flickd-trace-canvas rounded-lg border border-gray-800 bg-[#0b1220] p-3 overflow-x-auto overflow-y-visible md:overflow-visible relative">
+                         <div className="flickd-trace-canvas rounded-lg border border-gray-800 bg-transparent p-3 overflow-x-auto overflow-y-visible md:overflow-visible relative">
                          <svg
                               ref={traceSvgRef}
                               viewBox={'0 0 ' + directorFingerprintData.size + ' ' + directorFingerprintData.size}
@@ -7665,15 +7686,16 @@ const [user, setUser] = useState(null);
                                  />
                                </clipPath>
                               </defs>
-                             <rect width="100%" height="100%" fill="#0d152c" />
+                             <rect width="100%" height="100%" fill="transparent" />
 
                              {/* Title inside the visualization (not zoomed) */}
-                             <rect x="0" y="0" width="100%" height="160" fill="#0d152c" />
+                             <rect x="0" y="0" width="100%" height="160" fill="transparent" />
                              <text
                                x={directorFingerprintData.cx}
                                y={78}
                                textAnchor="middle"
                                fill="#f8fafc"
+                               className="flickd-trace-title"
                                style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 800, fontSize: 44, letterSpacing: '0.6px' }}
                              >
                                {directorFingerprintData.title}
@@ -7683,6 +7705,7 @@ const [user, setUser] = useState(null);
                                y={118}
                                textAnchor="middle"
                                fill="#93c5fd"
+                               className="flickd-trace-subtitle"
                                style={{ fontFamily: "'Segoe UI', Arial, sans-serif", fontWeight: 500, fontSize: 18 }}
                              >
                                {directorFingerprintData.subtitle}
@@ -8478,7 +8501,7 @@ const [user, setUser] = useState(null);
                           <span className="absolute top-[70%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
                         </div>
 
-                        <div className="timeline-y-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                        <div className="timeline-y-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden" onWheelCapture={onTimelineWheelCapture}>
                           <div
                             ref={tasteTimelineRef}
                             className="cinematic-rail timeline-x-hidden overflow-x-hidden overflow-y-visible scroll-smooth"
@@ -8549,7 +8572,7 @@ const [user, setUser] = useState(null);
                                                       onMouseLeave={() => setTimelineHoverKey(null)}
                                                     >
                                                       {posters[posterKey] ? (
-                                                        <button type="button" onClick={() => handleMovieClick(movie)} className="block w-full">
+                                                        <button type="button" onClick={() => handleMovieClick(movie)} className="timeline-poster-trigger block w-full">
                                                           <img
                                                             src={posters[posterKey]}
                                                             alt={movie.title}
@@ -8563,7 +8586,7 @@ const [user, setUser] = useState(null);
                                                         <button
                                                           type="button"
                                                           onClick={() => fetchPoster(movie.title, movie.year, movie.imdbId)}
-                                                          className="w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
+                                                          className="timeline-poster-trigger w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
                                                           style={{ height: `${posterH}px` }}
                                                           title="Load poster"
                                                         >

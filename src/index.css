@@ -3333,6 +3333,11 @@ body {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
+
+  .flickd-tab-deepdive .flickd-content-stack .flickd-discovery-sections[class*="grid-cols-"],
+  .flickd-tab-deepdive .flickd-content-stack .flickd-discovery-grid[class*="grid-cols-"] {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* Settings UI cleanup */
@@ -3391,7 +3396,7 @@ body {
     box-shadow: none !important;
     display: flex !important;
     flex-direction: column;
-    gap: 14px !important;
+    gap: 0 !important;
     animation: flickd-mobile-sheet-in 220ms ease-out both;
   }
 
@@ -3403,23 +3408,23 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
+    margin-bottom: 34px;
   }
 
-  .flickd-mobile-menu-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+  .flickd-mobile-menu-brand {
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
     color: rgba(241, 245, 255, 0.95);
   }
 
   .flickd-mobile-menu-close {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    background: rgba(15, 23, 42, 0.62);
-    color: rgba(226, 232, 240, 0.96);
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(203, 213, 225, 0.34);
+    background: rgba(241, 245, 249, 0.95);
+    color: #0b1323;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3427,31 +3432,90 @@ body {
 
   .flickd-mobile-menu-list {
     display: grid;
-    gap: 10px;
-    margin-top: 4px;
+    gap: 8px;
+    margin-top: 0;
+    margin-bottom: auto;
   }
 
   .flickd-mobile-menu-item {
-    min-height: 56px !important;
+    min-height: 62px !important;
     width: 100%;
-    border-radius: 14px !important;
-    padding: 0 16px !important;
+    border-radius: 12px !important;
+    padding: 0 2px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
     text-align: left;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
+    font-size: clamp(2rem, 8.2vw, 3rem) !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
     letter-spacing: 0 !important;
     text-transform: none !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: rgba(245, 248, 255, 0.94) !important;
   }
 
   .flickd-mobile-menu-item::before {
     display: none !important;
   }
 
+  .flickd-mobile-menu-item:hover,
+  .flickd-mobile-menu-item:active {
+    color: rgba(147, 197, 253, 0.95) !important;
+  }
+
   .flickd-mobile-menu-item--danger {
-    margin-top: 10px;
+    margin-top: 8px;
+    min-height: 42px !important;
+    font-size: 1rem !important;
+    color: rgba(252, 165, 165, 0.92) !important;
+  }
+
+  .flickd-mobile-menu-item--download {
+    display: none !important;
+  }
+
+  .flickd-mobile-menu-meta {
+    margin-top: 24px;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+    padding-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .flickd-mobile-menu-meta__block {
+    display: grid;
+    gap: 3px;
+    color: rgba(196, 206, 225, 0.74);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    letter-spacing: 0;
+  }
+
+  .flickd-mobile-menu-link {
+    width: fit-content;
+    min-height: 36px;
+    border: 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.46);
+    border-radius: 0;
+    padding: 0 0 2px;
+    background: transparent;
+    color: rgba(241, 245, 255, 0.92);
+    font-size: 1.08rem;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .flickd-mobile-menu-footer {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: rgba(148, 163, 184, 0.66);
+    font-size: 0.82rem;
+    line-height: 1.3;
   }
 
   @keyframes flickd-mobile-overlay-in {
@@ -3495,6 +3559,14 @@ body {
   min-height: 34px !important;
 }
 
+/* Timeline poster buttons must keep zero chrome so poster aspect stays intact */
+.timeline-poster-trigger {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+}
+
 /* Shadcn Select + fingerprint mobile rendering fixes */
 .flickd-content-stack :where([role="combobox"]) {
   min-height: 40px !important;
@@ -3511,6 +3583,7 @@ body {
 
 .flickd-trace-canvas {
   scrollbar-width: thin;
+  background: transparent !important;
 }
 
 @media (max-width: 767px) {
@@ -3523,11 +3596,22 @@ body {
   }
 
   .flickd-trace-svg {
-    width: max(100%, 720px) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
     max-height: none !important;
   }
 
   .flickd-trace-shell > div > div > div.grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .flickd-trace-svg .flickd-trace-title {
+    font-size: 28px !important;
+    letter-spacing: 0.2px !important;
+  }
+
+  .flickd-trace-svg .flickd-trace-subtitle {
+    font-size: 13px !important;
   }
 }
