@@ -3915,8 +3915,11 @@ const [user, setUser] = useState(null);
   };
 
   const handleMapWheel = (event) => {
-    event.preventDefault();
+    if (event.cancelable) event.preventDefault();
     event.stopPropagation();
+    if (event.nativeEvent?.stopImmediatePropagation) {
+      event.nativeEvent.stopImmediatePropagation();
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect?.width || !rect?.height) return;
 
@@ -5568,25 +5571,35 @@ const [user, setUser] = useState(null);
   const onTimelineWheelCapture = (e) => {
     const el = tasteTimelineRef.current;
     if (!el) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    if (e.nativeEvent?.stopImmediatePropagation) {
+      e.nativeEvent.stopImmediatePropagation();
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) {
-      e.preventDefault();
-      e.stopPropagation();
       const step = e.deltaY < 0 ? 0.08 : -0.08;
       zoomTimeline(step);
       return;
     }
     if (el.scrollWidth <= el.clientWidth + 1) {
-      e.preventDefault();
-      e.stopPropagation();
       return;
     }
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     if (!delta) return;
-    e.preventDefault();
-    e.stopPropagation();
     el.scrollLeft += delta * 1.15;
     setTimelineScrollLeft(el.scrollLeft || 0);
   };
+
+  const handlePosterRenderError = React.useCallback((posterKey) => {
+    if (!posterKey) return;
+    posterFailedAtRef.current[posterKey] = Date.now();
+    setPosters((prev) => {
+      if (!prev?.[posterKey]) return prev;
+      const next = { ...prev };
+      delete next[posterKey];
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (loadingAuth || user) return undefined;
@@ -6766,7 +6779,7 @@ const [user, setUser] = useState(null);
         <header className="flickd-shell-header">
             <div className="flickd-shell-header__inner">
               <div className="flex h-full items-center justify-between md:justify-start gap-3 md:gap-4">
-                <div className="flickd-brand-lockup md:w-[292px] md:flex-none md:justify-center">
+                <div className="flickd-brand-lockup md:w-[286px] md:flex-none md:justify-center">
                   <img
                     src="/flickd-brand.png"
                     alt="Flickd"
@@ -6784,7 +6797,7 @@ const [user, setUser] = useState(null);
                     <path d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <div className="flickd-primary-nav hidden md:flex md:mr-auto">
+                <div className="flickd-primary-nav hidden md:flex md:ml-auto">
                   <button
                     type="button"
                     onClick={() => { if (memberViewUserId) exitMemberDashboard(); handleTabChange('overview'); }}
@@ -6816,7 +6829,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Following Taste
+                    Following
                   </button>
                   <button
                     type="button"
@@ -6828,7 +6841,7 @@ const [user, setUser] = useState(null);
                     }`}
                   >
                     <span className="relative inline-flex items-center gap-2">
-                      Audience
+                      Followers
                       {newFollowersList.length > 0 && (
                         <span className="inline-flex items-center justify-center">
                           <span className="absolute -top-1 -right-2 w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.75)]" />
@@ -6917,7 +6930,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Following Taste
+                    Following
                   </button>
                   <button
                     type="button"
@@ -6928,7 +6941,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Audience {newFollowersList.length > 0 ? `(${newFollowersList.length} new)` : ''}
+                    Followers {newFollowersList.length > 0 ? `(${newFollowersList.length} new)` : ''}
                   </button>
                   <button
                     type="button"
@@ -7485,7 +7498,12 @@ const [user, setUser] = useState(null);
                           </div>
                       </div>
 
-                      <div className="rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative" onWheelCapture={handleMapWheel}>
+                      <div
+                        className="rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative overscroll-contain"
+                        style={{ overscrollBehavior: 'contain' }}
+                        onWheel={handleMapWheel}
+                        onWheelCapture={handleMapWheel}
+                      >
                         
                           {mapFeatures.length > 0 && mapPathGenerator ? (
                             <svg
@@ -8689,14 +8707,19 @@ const [user, setUser] = useState(null);
                     </div>
 
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-3" style={timelineFullscreen ? { height: 'calc(100vh - 150px)' } : undefined}>
-                      <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full" onWheelCapture={onTimelineWheelCapture}>
+                      <div
+                        className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full overscroll-contain"
+                        style={{ overscrollBehavior: 'contain' }}
+                        onWheel={onTimelineWheelCapture}
+                        onWheelCapture={onTimelineWheelCapture}
+                      >
                         <div className="absolute left-0 top-0 bottom-0 z-20 w-24 border-r border-gray-800/80 bg-[#050811]/95 backdrop-blur-sm">
                           <span className="absolute top-[14%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
                           <span className="absolute top-[42%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
                           <span className="absolute top-[70%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
                         </div>
 
-                        <div className="timeline-y-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden" onWheelCapture={onTimelineWheelCapture}>
+                        <div className="timeline-y-scroll flex-1 min-h-0 overflow-y-hidden overflow-x-hidden" onWheel={onTimelineWheelCapture} onWheelCapture={onTimelineWheelCapture}>
                           <div
                             ref={tasteTimelineRef}
                             className="cinematic-rail timeline-x-hidden overflow-x-hidden overflow-y-visible scroll-smooth"
@@ -8774,7 +8797,7 @@ const [user, setUser] = useState(null);
                                                             loading="lazy"
                                                             className="timeline-poster-image w-full object-cover border border-gray-700"
                                                             style={{ height: `${posterH}px` }}
-                                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                            onError={() => handlePosterRenderError(posterKey)}
                                                           />
                                                         </button>
                                                       ) : (
