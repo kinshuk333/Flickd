@@ -6237,8 +6237,8 @@ const [user, setUser] = useState(null);
 
       {shareCardOpen && shareCardConfig && (() => {
         const shareModal = (
-          <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
+          <div className="share-card-overlay fixed inset-0 z-[160] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
+            <div className="share-card-panel w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-white">{shareCardConfig.title}</h3>
@@ -6413,7 +6413,14 @@ const [user, setUser] = useState(null);
                 </div>
               </div>
               {mobileTopNavOpen && (
-                <div className="absolute left-4 right-4 top-[calc(100%+8px)] z-50 md:hidden flex flex-col gap-2 rounded-2xl border border-gray-700 bg-[#0f172a]/98 p-3 shadow-2xl backdrop-blur">
+                <>
+                <button
+                  type="button"
+                  className="flickd-mobile-menu-backdrop md:hidden"
+                  aria-label="Close navigation menu"
+                  onClick={() => setMobileTopNavOpen(false)}
+                />
+                <div className="flickd-mobile-menu-panel md:hidden flex flex-col gap-2 rounded-2xl border border-gray-700 bg-[#0f172a]/98 p-3 shadow-2xl backdrop-blur">
                   <button
                     type="button"
                     onClick={() => {
@@ -6491,6 +6498,7 @@ const [user, setUser] = useState(null);
                     </button>
                   )}
                 </div>
+                </>
               )}
             </div>
         </header>
@@ -6738,7 +6746,7 @@ const [user, setUser] = useState(null);
             <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[76px]' : ''}`}>
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
-                  <div className="h-[64px] lg:hidden" />
+                  <div className="flickd-mobile-tab-spacer lg:hidden" />
                   <div className="lg:hidden flickd-mobile-secondary-nav rounded-2xl border border-gray-800 bg-[#0b0f17]/95 px-2 pt-2 pb-2 backdrop-blur">
                     <div className="flex items-center justify-between gap-2">
                       <PremiumTabs
