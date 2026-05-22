@@ -20,7 +20,7 @@ export const TabsTrigger = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900/80 px-4 text-sm font-semibold text-slate-300 transition-all data-[state=active]:border-blue-400/70 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-[0_10px_24px_rgba(37,99,235,.35)] hover:text-white',
+      'inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl border border-slate-700 bg-slate-900/80 px-4 text-sm font-medium normal-case tracking-normal text-slate-300 transition-all data-[state=active]:border-blue-400/70 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-[0_10px_24px_rgba(37,99,235,.35)] hover:text-white',
       className
     )}
     {...props}
@@ -36,4 +36,3 @@ export const TabsContent = React.forwardRef(({ className, ...props }, ref) => (
   />
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;
-

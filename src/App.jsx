@@ -28,6 +28,11 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from './components/ui';
 import {
   Sparkles,
@@ -6150,14 +6155,14 @@ const [user, setUser] = useState(null);
             alt="Flickd"
             className="h-10 w-auto mx-auto mb-6 object-contain"
           />
-          <h1 className="text-[32px] leading-none font-semibold tracking-tight text-white">Welcome</h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-blue-100/90 max-w-[330px] mx-auto">
+          <h1 className="text-3xl md:text-4xl leading-tight font-bold tracking-tight text-white">Welcome</h1>
+          <p className="mt-3 text-sm md:text-base leading-relaxed text-gray-400 max-w-[330px] mx-auto">
             Decode your cinematic taste through powerful, personal film analytics.
           </p>
           <p className="text-sm text-gray-400 mt-6">Sign in with Google to continue.</p>
           <button
             onClick={handleSignIn}
-            className="mt-7 w-full px-4 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl transition-colors"
+            className="mt-7 w-full px-4 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
           >
             Continue with Google
           </button>
@@ -6180,10 +6185,10 @@ const [user, setUser] = useState(null);
             </button>
           </div>
           <div className="bg-[#111827] border border-gray-800 rounded-2xl p-6 sm:p-8">
-            <h2 className="text-2xl font-bold text-white">Upload your IMDb ratings sheet</h2>
+            <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white">Upload your IMDb ratings sheet</h2>
             <p className="text-sm text-gray-400 mt-2">Please upload your IMDb ratings file from IMDb to view your visualizations.</p>
             <div className="mt-4 rounded-xl border border-gray-700 bg-[#0f172a] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">How to download your IMDb export</p>
+              <p className="text-xs md:text-sm font-medium tracking-normal text-gray-400">How to download your IMDb export</p>
               <ol className="mt-2 space-y-1.5 text-sm text-gray-300 list-decimal list-inside">
                 <li>Open IMDb and go to <span className="text-gray-100 font-medium">Your Ratings</span>.</li>
                 <li>In your rating history page, look at the <span className="text-gray-100 font-medium">top-right corner</span>.</li>
@@ -6193,7 +6198,7 @@ const [user, setUser] = useState(null);
             </div>
 
             <label className="mt-6 flex flex-col items-center justify-center h-36 border border-dashed border-gray-600 rounded-xl cursor-pointer bg-[#0f172a] hover:bg-[#141b28] transition-colors">
-              <p className="text-base font-semibold text-gray-100">Drop your IMDb file here</p>
+              <p className="text-lg font-semibold leading-tight text-gray-100">Drop your IMDb file here</p>
               <p className="mt-1 text-xs text-gray-400">or click to browse .csv .xlsx .xls</p>
               <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
             </label>
@@ -6469,8 +6474,8 @@ const [user, setUser] = useState(null);
                               Load Poster
                             </button>
                           )}
-                          <button onClick={() => handleMovieClick(film)} className="mt-2 text-left w-full text-xs text-blue-300 truncate hover:text-blue-200">{film.title}</button>
-                          <div className="text-[11px] text-gray-400 mt-0.5">{film.year}  Avg {film.sharedAvg}</div>
+                          <button onClick={() => handleMovieClick(film)} className="flickd-poster-title mt-2 text-left w-full">{film.title}</button>
+                          <div className="flickd-poster-meta">{film.year}  Avg {film.sharedAvg}</div>
                         </div>
                       ))}
                     </div>
@@ -6541,7 +6546,7 @@ const [user, setUser] = useState(null);
                           <p className="text-sm text-gray-100 truncate">
                             <span className="text-blue-300 mr-1">{idx + 1}.</span>{film.title}
                           </p>
-                          <p className="text-[11px] text-gray-400">{film.year} | ? {Number(film?.yourRating || film?.rating || 0).toFixed(1)}</p>
+                          <p className="flickd-poster-meta">{film.year} | ? {Number(film?.yourRating || film?.rating || 0).toFixed(1)}</p>
                         </div>
                       </div>
                     );
@@ -7253,14 +7258,18 @@ const [user, setUser] = useState(null);
                           <p className="text-xs text-gray-400 mt-1">Films grouped by country of origin from your ratings data.</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <select
-                              value={countryRatingThreshold}
-                              onChange={(e) => setCountryRatingThreshold(Number(e.target.value))}
-                              className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 transition-colors hover:bg-[#111827] hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                            <Select
+                              value={String(countryRatingThreshold)}
+                              onValueChange={(value) => setCountryRatingThreshold(Number(value))}
                             >
-                              <option value={8}>My Top-Rated Films (8+)</option>
-                              <option value={0}>All My Films</option>
-                            </select>
+                              <SelectTrigger className="h-10 w-full sm:w-56">
+                                <SelectValue placeholder="Rating scope" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="8">My Top-Rated Films (8+)</SelectItem>
+                                <SelectItem value="0">All My Films</SelectItem>
+                              </SelectContent>
+                            </Select>
                             {null}
                             <Button type="button" size="sm" variant="subtle" onClick={() => zoomMap(-0.2)}>-</Button>
                             <Button type="button" size="sm" variant="subtle" onClick={() => zoomMap(0.2)}>+</Button>
@@ -7378,48 +7387,55 @@ const [user, setUser] = useState(null);
                           placeholder="Search title..."
                           className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 w-40 sm:w-52"
                         />
-                        <select
+                        <Select
                           value={watchedDecadeFilter}
-                          onChange={(e) => { setWatchedDecadeFilter(e.target.value); setWatchedYearFilter('all'); }}
-                          className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5"
+                          onValueChange={(value) => { setWatchedDecadeFilter(value); setWatchedYearFilter('all'); }}
                         >
-                          <option value="all">All Decades</option>
-                          {watchedDecades.map((decade) => (
-                            <option key={decade} value={decade}>{decade}s</option>
-                          ))}
-                        </select>
-                        <select
-                          value={watchedYearFilter}
-                          onChange={(e) => setWatchedYearFilter(e.target.value)}
-                          className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5"
-                        >
-                          <option value="all">All Years</option>
-                          {watchedYearOptions.map((year) => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={watchedRatingFilter}
-                          onChange={(e) => setWatchedRatingFilter(e.target.value)}
-                          className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5"
-                        >
-                          <option value="all">All Ratings</option>
-                          <option value="9plus">Rating 9+</option>
-                          <option value="8plus">Rating 8+</option>
-                          <option value="7plus">Rating 7+</option>
-                          <option value="6plus">Rating 6+</option>
-                          <option value="below6">Rating Below 6</option>
-                        </select>
-                        <select
-                          value={watchedGenreFilter}
-                          onChange={(e) => setWatchedGenreFilter(e.target.value)}
-                          className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5"
-                        >
-                          <option value="all">All Genres</option>
-                          {watchedGenres.map((genre) => (
-                            <option key={genre} value={genre}>{genre}</option>
-                          ))}
-                        </select>
+                          <SelectTrigger className="h-10 w-full sm:w-44">
+                            <SelectValue placeholder="All Decades" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Decades</SelectItem>
+                            {watchedDecades.map((decade) => (
+                              <SelectItem key={decade} value={decade}>{decade}s</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={watchedYearFilter} onValueChange={setWatchedYearFilter}>
+                          <SelectTrigger className="h-10 w-full sm:w-36">
+                            <SelectValue placeholder="All Years" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Years</SelectItem>
+                            {watchedYearOptions.map((year) => (
+                              <SelectItem key={year} value={year}>{year}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={watchedRatingFilter} onValueChange={setWatchedRatingFilter}>
+                          <SelectTrigger className="h-10 w-full sm:w-40">
+                            <SelectValue placeholder="All Ratings" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Ratings</SelectItem>
+                            <SelectItem value="9plus">Rating 9+</SelectItem>
+                            <SelectItem value="8plus">Rating 8+</SelectItem>
+                            <SelectItem value="7plus">Rating 7+</SelectItem>
+                            <SelectItem value="6plus">Rating 6+</SelectItem>
+                            <SelectItem value="below6">Rating Below 6</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={watchedGenreFilter} onValueChange={setWatchedGenreFilter}>
+                          <SelectTrigger className="h-10 w-full sm:w-44">
+                            <SelectValue placeholder="All Genres" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Genres</SelectItem>
+                            {watchedGenres.map((genre) => (
+                              <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     <p className="text-xs text-gray-400 mt-3">
@@ -7450,11 +7466,11 @@ const [user, setUser] = useState(null);
                             )}
                             <button
                               onClick={() => handleMovieClick(movie)}
-                              className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                              className="flickd-poster-title mt-2 w-full text-left"
                             >
                               {movie.title}
                             </button>
-                            <div className="text-[11px] text-gray-400 mt-0.5">{movie.year} {"\u2605"} {movie.yourRating}</div>
+                            <div className="flickd-poster-meta">{movie.year} {"\u2605"} {movie.yourRating}</div>
                           </div>
                         ))}
                       </div>
@@ -7488,7 +7504,7 @@ const [user, setUser] = useState(null);
                 <div className="space-y-4">
                   <div
                     ref={traceFullscreenRef}
-                    className={`bg-[#111827] border border-gray-800 rounded-xl p-4 ${traceFullscreen ? 'h-screen overflow-auto' : ''}`}
+                    className={`flickd-trace-shell bg-[#111827] border border-gray-800 rounded-xl p-4 ${traceFullscreen ? 'h-screen overflow-auto' : ''}`}
                   >
                     {!traceFullscreen && (
                       <div className="flex items-start justify-between gap-4">
@@ -7537,7 +7553,7 @@ const [user, setUser] = useState(null);
                            </div>
                            <div className="bg-[#0b1220] border border-gray-800 rounded-lg p-3">
                              <div className="text-gray-400 text-xs">Top Signature</div>
-                             <div className="text-white font-semibold text-sm mt-1 truncate">{directorFingerprintData.topDirectors.slice(0, 2).join(' + ')}</div>
+                             <div className="text-white font-semibold text-sm mt-1 break-words">{directorFingerprintData.topDirectors.slice(0, 2).join(' + ')}</div>
                            </div>
                          </div>
                          )}
@@ -7597,11 +7613,11 @@ const [user, setUser] = useState(null);
                            </div>
                          </div>
 
-                         <div className="rounded-lg border border-gray-800 bg-[#0b1220] p-3 overflow-hidden relative">
+                         <div className="flickd-trace-canvas rounded-lg border border-gray-800 bg-[#0b1220] p-3 overflow-x-auto overflow-y-visible md:overflow-visible relative">
                          <svg
                               ref={traceSvgRef}
                               viewBox={'0 0 ' + directorFingerprintData.size + ' ' + directorFingerprintData.size}
-                              className={`flickd-gesture-surface w-full h-auto ${traceFullscreen ? 'max-h-[86vh]' : 'max-h-[840px]'}`}
+                              className={`flickd-gesture-surface flickd-trace-svg w-full h-auto ${traceFullscreen ? 'max-h-[86vh]' : 'max-h-[840px]'}`}
                              role="img"
                              aria-label="Director Fingerprint generative poster"
                              onWheel={(event) => {
@@ -7979,11 +7995,11 @@ const [user, setUser] = useState(null);
                                                   directors: traceSelectedDirector.name,
                                                 });
                                               }}
-                                              className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                              className="flickd-poster-title mt-2 w-full text-left"
                                             >
                                               {film.title}
                                             </button>
-                                            <div className="text-[11px] text-gray-400 mt-0.5">
+                                            <div className="flickd-poster-meta">
                                               {(film.year || '-') + ' | ' + "\u2605" + ' ' + Number(film.rating || 0).toFixed(1)}
                                             </div>
                                           </div>
@@ -9213,52 +9229,50 @@ const [user, setUser] = useState(null);
                           </div>
                           {moodboardFiltersExpanded && (
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                              <select
-                                value={moodboardGenreFilter}
-                                onChange={(e) => setMoodboardGenreFilter(e.target.value)}
-                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                              >
-                                <option value="all">All genres</option>
-                                {moodboardGenreOptions.map((genre) => (
-                                  <option key={genre} value={genre}>
-                                    {genre}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                value={moodboardDecadeFilter}
-                                onChange={(e) => setMoodboardDecadeFilter(e.target.value)}
-                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                              >
-                                <option value="all">All decades</option>
-                                {moodboardDecadeOptions.map((decade) => (
-                                  <option key={decade} value={decade}>
-                                    {decade}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                value={moodboardYearFilter}
-                                onChange={(e) => setMoodboardYearFilter(e.target.value)}
-                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                              >
-                                <option value="all">All years</option>
-                                {moodboardYearOptions.map((year) => (
-                                  <option key={year} value={String(year)}>
-                                    {year}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                value={moodboardMinRatingFilter}
-                                onChange={(e) => setMoodboardMinRatingFilter(e.target.value)}
-                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                              >
-                                <option value="all">Any rating</option>
-                                <option value="7">7+</option>
-                                <option value="8">8+</option>
-                                <option value="9">9+</option>
-                              </select>
+                              <Select value={moodboardGenreFilter} onValueChange={setMoodboardGenreFilter}>
+                                <SelectTrigger className="w-full min-w-0 h-10">
+                                  <SelectValue placeholder="All genres" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All genres</SelectItem>
+                                  {moodboardGenreOptions.map((genre) => (
+                                    <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={moodboardDecadeFilter} onValueChange={setMoodboardDecadeFilter}>
+                                <SelectTrigger className="w-full min-w-0 h-10">
+                                  <SelectValue placeholder="All decades" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All decades</SelectItem>
+                                  {moodboardDecadeOptions.map((decade) => (
+                                    <SelectItem key={decade} value={decade}>{decade}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={moodboardYearFilter} onValueChange={setMoodboardYearFilter}>
+                                <SelectTrigger className="w-full min-w-0 h-10">
+                                  <SelectValue placeholder="All years" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All years</SelectItem>
+                                  {moodboardYearOptions.map((year) => (
+                                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={moodboardMinRatingFilter} onValueChange={setMoodboardMinRatingFilter}>
+                                <SelectTrigger className="w-full min-w-0 h-10">
+                                  <SelectValue placeholder="Any rating" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">Any rating</SelectItem>
+                                  <SelectItem value="7">7+</SelectItem>
+                                  <SelectItem value="8">8+</SelectItem>
+                                  <SelectItem value="9">9+</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           )}
                         </div>
@@ -9479,7 +9493,7 @@ const [user, setUser] = useState(null);
                               )}
                               <div className="p-2">
                                 <div className="text-xs text-white truncate">{film.title}</div>
-                                <div className="text-[11px] text-gray-400">{film.year}</div>
+                                <div className="flickd-poster-meta">{film.year}</div>
                               </div>
                               {canEditMoodboards && (
                                 <button
@@ -9624,12 +9638,12 @@ const [user, setUser] = useState(null);
                                 )}
                                 <button
                                   onClick={() => handleMovieClick(movie)}
-                                  className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                  className="flickd-poster-title mt-2 w-full text-left"
                                 >
                                   {movie.title}
                                 </button>
-                                <div className="text-[11px] text-gray-400 mt-0.5">{movie.year} | {"\u2605"} {movie.yourRating}</div>
-                                <div className="text-[11px] text-blue-400 font-semibold mt-0.5">IMDb {movie.imdbRating} | +{movie.difference}</div>
+                                <div className="flickd-poster-meta">{movie.year} | {"\u2605"} {movie.yourRating}</div>
+                                <div className="flickd-poster-meta flickd-poster-meta--accent">IMDb {movie.imdbRating} | +{movie.difference}</div>
                               </div>
                             ))}
                           </div>
@@ -9670,12 +9684,12 @@ const [user, setUser] = useState(null);
                                     )}
                                     <button
                                       onClick={() => handleMovieClick(movie)}
-                                      className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                      className="flickd-poster-title mt-2 w-full text-left"
                                     >
                                       {movie.title}
                                     </button>
-                                    <div className="text-[11px] text-gray-400 mt-0.5">{movie.year} | {"\u2605"} {movie.yourRating}</div>
-                                    <div className="text-[11px] text-blue-400 font-semibold mt-0.5">IMDb {movie.imdbRating} | +{movie.difference}</div>
+                                    <div className="flickd-poster-meta">{movie.year} | {"\u2605"} {movie.yourRating}</div>
+                                    <div className="flickd-poster-meta flickd-poster-meta--accent">IMDb {movie.imdbRating} | +{movie.difference}</div>
                                   </div>
                                 ))}
                               </div>
@@ -9788,12 +9802,12 @@ const [user, setUser] = useState(null);
                                 )}
                                 <button
                                   onClick={() => handleMovieClick(m)}
-                                  className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                  className="flickd-poster-title mt-2 w-full text-left"
                                 >
                                   {m.title}
                                 </button>
-                                <div className="text-[11px] text-gray-400 mt-0.5">{m.year} | {"\u2605"} {m.yourRating}</div>
-                                <div className="text-[11px] text-gray-400 mt-0.5">IMDb {m.imdbRating} | {(m.numVotes || 0).toLocaleString()} votes</div>
+                                <div className="flickd-poster-meta">{m.year} | {"\u2605"} {m.yourRating}</div>
+                                <div className="flickd-poster-meta">IMDb {m.imdbRating} | {(m.numVotes || 0).toLocaleString()} votes</div>
                                 <div className={`text-[11px] font-semibold mt-0.5 ${m.difference >= 2 ? 'text-blue-400' : 'text-green-400'}`}>
                                   +{m.difference}
                                 </div>
@@ -9837,12 +9851,12 @@ const [user, setUser] = useState(null);
                                     )}
                                     <button
                                       onClick={() => handleMovieClick(m)}
-                                      className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                      className="flickd-poster-title mt-2 w-full text-left"
                                     >
                                       {m.title}
                                     </button>
-                                    <div className="text-[11px] text-gray-400 mt-0.5">{m.year} | {"\u2605"} {m.yourRating}</div>
-                                    <div className="text-[11px] text-gray-400 mt-0.5">IMDb {m.imdbRating} | {(m.numVotes || 0).toLocaleString()} votes</div>
+                                    <div className="flickd-poster-meta">{m.year} | {"\u2605"} {m.yourRating}</div>
+                                    <div className="flickd-poster-meta">IMDb {m.imdbRating} | {(m.numVotes || 0).toLocaleString()} votes</div>
                                     <div className={`text-[11px] font-semibold mt-0.5 ${m.difference >= 2 ? 'text-blue-400' : 'text-green-400'}`}>
                                       +{m.difference}
                                     </div>
@@ -9906,22 +9920,26 @@ const [user, setUser] = useState(null);
                         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                           <div>
                             <label className="block text-gray-300 mb-1 text-xs">Select Year</label>
-                          <select
-                            value={latest}
-                            onChange={e => {
-                              setSelectedFavoriteYear(Number(e.target.value));
+                          <Select
+                            value={String(latest)}
+                            onValueChange={(value) => {
+                              setSelectedFavoriteYear(Number(value));
                               setFavoriteYearPage(1);
-                              const sel = favoriteFilmPerYear.find(y => y.year === Number(e.target.value));
+                              const sel = favoriteFilmPerYear.find((y) => y.year === Number(value));
                               if (sel) loadPostersForFilms(sel.films.slice(0, favoriteYearView === 'horizontal' ? 40 : deepDiveFilmsPerPage));
                             }}
-                            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-white w-full sm:w-56 text-sm"
                           >
-                            {favoriteFilmPerYear.map(y => (
-                              <option key={y.year} value={y.year}>
-                                {y.year} ({y.filmCount})
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="w-full sm:w-56 h-10">
+                              <SelectValue placeholder="Select Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {favoriteFilmPerYear.map((y) => (
+                                <SelectItem key={y.year} value={String(y.year)}>
+                                  {y.year} ({y.filmCount})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           </div>
                           <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden bg-[#0b1220]">
                             <button
@@ -9983,11 +10001,11 @@ const [user, setUser] = useState(null);
                                 )}
                                 <button 
                                   onClick={() => handleMovieClick(f)}
-                                  className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                  className="flickd-poster-title mt-2 w-full text-left"
                                 >
                                   {f.title}
                                 </button>
-                                <div className="text-[11px] text-gray-400 mt-0.5">{f.year} | {"\u2605"} {f.yourRating}</div>
+                                <div className="flickd-poster-meta">{f.year} | {"\u2605"} {f.yourRating}</div>
                               </div>
                             ))}
                           </div>
@@ -10028,11 +10046,11 @@ const [user, setUser] = useState(null);
                                     )}
                                     <button
                                       onClick={() => handleMovieClick(f)}
-                                      className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                      className="flickd-poster-title mt-2 w-full text-left"
                                     >
                                       {f.title}
                                     </button>
-                                    <div className="text-[11px] text-gray-400 mt-0.5">{f.year} | {"\u2605"} {f.yourRating}</div>
+                                    <div className="flickd-poster-meta">{f.year} | {"\u2605"} {f.yourRating}</div>
                                   </div>
                                 ))}
                               </div>
@@ -10086,22 +10104,26 @@ const [user, setUser] = useState(null);
                           <p className="text-xs text-gray-400 mb-4">The films that define your taste, organized decade by decade.</p>
                           <div className="mb-4 flex flex-wrap items-center gap-3">
                             <label className="block text-gray-300 text-xs">Select Decade</label>
-                            <select
+                            <Select
                               value={selectedDec}
-                              onChange={e => {
-                                setExpandedDecades([e.target.value]);
+                              onValueChange={(value) => {
+                                setExpandedDecades([value]);
                                 setPersonalCanonPage(1);
-                                const sel = personalCanon.find(d => d.decade === e.target.value);
+                                const sel = personalCanon.find((d) => d.decade === value);
                                 if (sel) loadPostersForFilms(sel.films.slice(0, personalCanonView === 'horizontal' ? 40 : deepDiveFilmsPerPage));
                               }}
-                              className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-white w-full sm:w-56 text-sm"
                             >
-                              {personalCanon.map(d => (
-                                <option key={d.decade} value={d.decade}>
-                                  {d.decade} ({d.filmCount})
-                                </option>
-                              ))}
-                            </select>
+                              <SelectTrigger className="w-full sm:w-56 h-10">
+                                <SelectValue placeholder="Select Decade" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {personalCanon.map((d) => (
+                                  <SelectItem key={d.decade} value={d.decade}>
+                                    {d.decade} ({d.filmCount})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden bg-[#0b1220] ml-auto">
                               <button
                                 type="button"
@@ -10160,11 +10182,11 @@ const [user, setUser] = useState(null);
                                     )}
                                     <button
                                       onClick={() => handleMovieClick(f)}
-                                      className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                      className="flickd-poster-title mt-2 w-full text-left"
                                     >
                                       {f.title}
                                     </button>
-                                    <div className="text-[11px] text-gray-400 mt-0.5">{f.year} | {"\u2605"} {f.yourRating}</div>
+                                    <div className="flickd-poster-meta">{f.year} | {"\u2605"} {f.yourRating}</div>
                                   </div>
                                 ))}
                               </div>
@@ -10229,12 +10251,12 @@ const [user, setUser] = useState(null);
                                       )}
                                       <button
                                         onClick={() => handleMovieClick(f)}
-                                        className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                        className="flickd-poster-title mt-2 w-full text-left"
                                       >
                                         {f.title}
                                       </button>
-                                      <div className="text-[11px] text-gray-400 mt-0.5">{f.year} | {"\u2605"} {f.yourRating}</div>
-                                      <div className="text-[11px] text-gray-400 mt-0.5">IMDb {f.imdbRating}</div>
+                                      <div className="flickd-poster-meta">{f.year} | {"\u2605"} {f.yourRating}</div>
+                                      <div className="flickd-poster-meta">IMDb {f.imdbRating}</div>
                                     </div>
                                   ))}
                                 </div>
@@ -10273,23 +10295,26 @@ const [user, setUser] = useState(null);
                           </p>
                           <div className="mb-4 flex flex-wrap items-center gap-3">
                             <label className="text-xs text-gray-300">Genre</label>
-                            <select
+                            <Select
                               value={selectedGenreName}
-                              onChange={(e) => {
-                                const nextGenre = e.target.value;
+                              onValueChange={(nextGenre) => {
                                 setSelectedTopGenre(nextGenre);
                                 setTopGenrePage(1);
                                 const nextGroup = topFilmPerGenre.find((g) => g.genre === nextGenre);
                                 if (nextGroup) loadPostersForFilms(nextGroup.films.slice(0, topGenreView === 'horizontal' ? 40 : topGenreFilmsPerPage));
                               }}
-                              className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-white text-sm w-full sm:w-56"
                             >
-                              {topFilmPerGenre.map((g) => (
-                                <option key={g.genre} value={g.genre}>
-                                  {g.genre} ({g.films.length})
-                                </option>
-                              ))}
-                            </select>
+                              <SelectTrigger className="w-full sm:w-56 h-10">
+                                <SelectValue placeholder="Genre" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {topFilmPerGenre.map((g) => (
+                                  <SelectItem key={g.genre} value={g.genre}>
+                                    {g.genre} ({g.films.length})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden bg-[#0b1220] ml-auto">
                               <button
                                 type="button"
@@ -10350,12 +10375,12 @@ const [user, setUser] = useState(null);
                                   )}
                                   <button
                                     onClick={() => handleMovieClick(f)}
-                                    className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                    className="flickd-poster-title mt-2 w-full text-left"
                                   >
                                     {f.title}
                                   </button>
-                                  <div className="text-[11px] text-gray-400 mt-0.5">{f.year} | {"\u2605"} {f.yourRating}</div>
-                                  <div className="text-[11px] text-gray-400 mt-0.5">IMDb {f.imdbRating}</div>
+                                  <div className="flickd-poster-meta">{f.year} | {"\u2605"} {f.yourRating}</div>
+                                  <div className="flickd-poster-meta">IMDb {f.imdbRating}</div>
                                 </div>
                               ))}
                             </div>
@@ -10396,12 +10421,12 @@ const [user, setUser] = useState(null);
                                       )}
                                       <button
                                         onClick={() => handleMovieClick(f)}
-                                        className="mt-2 w-full text-left text-sm text-blue-400 hover:text-blue-300 truncate"
+                                        className="flickd-poster-title mt-2 w-full text-left"
                                       >
                                         {f.title}
                                       </button>
-                                      <div className="text-[11px] text-gray-400 mt-0.5">{f.year} | {"\u2605"} {f.yourRating}</div>
-                                      <div className="text-[11px] text-gray-400 mt-0.5">IMDb {f.imdbRating}</div>
+                                      <div className="flickd-poster-meta">{f.year} | {"\u2605"} {f.yourRating}</div>
+                                      <div className="flickd-poster-meta">IMDb {f.imdbRating}</div>
                                     </div>
                                   ))}
                                 </div>
@@ -10471,6 +10496,8 @@ const [user, setUser] = useState(null);
     </div>
   );
 }
+
+
 
 
 

@@ -3086,3 +3086,278 @@ body {
     touch-action: manipulation;
   }
 }
+
+/* Unified typography system: Deep Dive-inspired editorial hierarchy for every app area. */
+:root {
+  --type-page-title: 1.875rem;
+  --type-page-title-md: 2.25rem;
+  --type-section-title: 1.25rem;
+  --type-section-title-md: 1.5rem;
+  --type-card-title: 1.125rem;
+  --type-body: 0.875rem;
+  --type-body-md: 1rem;
+  --type-meta: 0.75rem;
+  --type-meta-md: 0.875rem;
+  --type-button: 0.875rem;
+  --type-tracking-tight: -0.025em;
+  --type-tracking-meta: 0.01em;
+  --type-leading-tight: 1.25;
+  --type-leading-body: 1.625;
+}
+
+.flickd-immersive-shell {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.flickd-content-stack :where(h1, .flickd-overview-hero__title) {
+  color: var(--text-primary) !important;
+  font-size: var(--type-page-title) !important;
+  font-weight: 700 !important;
+  line-height: 1.08 !important;
+  letter-spacing: var(--type-tracking-tight) !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(h2, .ui-section-header__title, .flickd-overview-section-heading h2) {
+  color: var(--text-primary) !important;
+  font-size: var(--type-section-title) !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  letter-spacing: var(--type-tracking-tight) !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(h3, h4, .ui-chart-card__title, .ui-film-poster-card__title, .text-lg.font-semibold, .text-xl.font-bold) {
+  color: var(--text-primary) !important;
+  font-size: var(--type-card-title) !important;
+  font-weight: 600 !important;
+  line-height: var(--type-leading-tight) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(p, .ui-chart-card__description, .ui-section-header__description, .flickd-overview-hero__description, .text-sm, .text-base) {
+  color: var(--text-secondary) !important;
+  font-size: var(--type-body) !important;
+  line-height: var(--type-leading-body) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(.text-xs, small, label, .metadata, .ui-sidebar-stat__label, .ui-sidebar-stat__sub, .ui-metric-card__label, .ui-metric-card__sub, .ui-film-poster-card__meta, .ui-film-poster-card__sub, .flickd-overview-hero__eyebrow, .flickd-overview-section-heading span, .timeline-lane-label, .timeline-axis-label, .timeline-year-marker) {
+  color: var(--text-muted) !important;
+  font-size: var(--type-meta) !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  letter-spacing: var(--type-tracking-meta) !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(button, a[role="button"]),
+.flickd-primary-nav button,
+.flickd-mobile-menu-panel .flickd-mobile-menu-item,
+.ui-premium-tabs__button,
+.flickd-content-stack :where(input, select, textarea) {
+  font-size: var(--type-button) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(select, option) {
+  font-size: var(--type-button) !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(.uppercase) {
+  letter-spacing: var(--type-tracking-meta) !important;
+  text-transform: none !important;
+}
+
+.flickd-content-stack :where(.tracking-wide, .tracking-wider, .tracking-widest, [class*="tracking-\\["]) {
+  letter-spacing: var(--type-tracking-meta) !important;
+}
+
+.flickd-content-stack :where(.font-black, .font-extrabold, .font-bold) {
+  letter-spacing: var(--type-tracking-tight) !important;
+}
+
+.flickd-content-stack :where(.ui-film-poster-card__title),
+.flickd-content-stack :where(.grid, .cinematic-rail) :where(button, h4).truncate,
+.flickd-content-stack :where(.grid, .cinematic-rail) :where(button, h4).line-clamp-1 {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-primary) !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  line-height: var(--type-leading-tight) !important;
+}
+
+.flickd-content-stack :where(.grid, .cinematic-rail) :where(button, h4).truncate + div,
+.flickd-content-stack :where(.grid, .cinematic-rail) :where(.text-\[11px\], .text-xs) {
+  color: var(--text-muted) !important;
+  font-size: var(--type-meta) !important;
+  font-weight: 500 !important;
+  letter-spacing: var(--type-tracking-meta) !important;
+  text-transform: none !important;
+}
+
+/* Poster card typography standard (Deep Dive baseline) */
+.flickd-poster-title {
+  color: var(--text-primary) !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal !important;
+  text-overflow: clip;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.flickd-poster-meta {
+  margin-top: 0.25rem;
+  color: var(--text-muted) !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+}
+
+.flickd-poster-meta--accent {
+  color: #93c5fd !important;
+}
+
+.flickd-mobile-menu-panel::before {
+  color: var(--text-muted) !important;
+  font-size: var(--type-meta) !important;
+  font-weight: 500 !important;
+  letter-spacing: var(--type-tracking-meta) !important;
+  text-transform: none !important;
+}
+
+.flickd-overview-hero__description,
+.flickd-overview-section-heading p,
+.flickd-overview-card-heading p,
+.ui-chart-card__description,
+.ui-section-header__description,
+.flickd-content-stack :where(.text-gray-300, .text-gray-400, .text-slate-300, .text-slate-400) {
+  color: var(--text-secondary) !important;
+}
+
+.flickd-content-stack :where(.space-y-6 > :not([hidden]) ~ :not([hidden])) {
+  margin-top: 1.5rem !important;
+}
+
+.flickd-content-stack :where(.space-y-5 > :not([hidden]) ~ :not([hidden])) {
+  margin-top: 1.25rem !important;
+}
+
+.flickd-content-stack :where(.space-y-4 > :not([hidden]) ~ :not([hidden])) {
+  margin-top: 1rem !important;
+}
+
+@media (min-width: 768px) {
+  .flickd-content-stack :where(h1, .flickd-overview-hero__title) {
+    font-size: var(--type-page-title-md) !important;
+  }
+
+  .flickd-content-stack :where(h2, .ui-section-header__title, .flickd-overview-section-heading h2) {
+    font-size: var(--type-section-title-md) !important;
+  }
+
+  .flickd-content-stack :where(p, .ui-chart-card__description, .ui-section-header__description, .flickd-overview-hero__description, .text-sm, .text-base) {
+    font-size: var(--type-body-md) !important;
+  }
+
+  .flickd-content-stack :where(.text-xs, small, label, .metadata, .ui-sidebar-stat__label, .ui-sidebar-stat__sub, .ui-metric-card__label, .ui-metric-card__sub, .ui-film-poster-card__meta, .ui-film-poster-card__sub, .flickd-overview-hero__eyebrow, .flickd-overview-section-heading span) {
+    font-size: var(--type-meta-md) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .flickd-shell-header__inner > .flex {
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between !important;
+    gap: 18px !important;
+  }
+
+  .flickd-brand-lockup {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-right: 12px;
+  }
+
+  .flickd-brand-lockup img {
+    max-width: min(138px, 52vw) !important;
+  }
+
+  .flickd-mobile-menu-toggle {
+    flex: 0 0 44px;
+    margin-left: auto;
+  }
+
+  .flickd-content-stack :where(h1, .flickd-overview-hero__title) {
+    font-size: var(--type-page-title) !important;
+  }
+
+  .flickd-content-stack :where(h2, .ui-section-header__title, .flickd-overview-section-heading h2) {
+    font-size: var(--type-section-title) !important;
+  }
+
+  .flickd-content-stack :where(h3, h4, .ui-chart-card__title, .ui-film-poster-card__title) {
+    font-size: var(--type-card-title) !important;
+  }
+
+  .flickd-content-stack :where(.ui-chart-card__header) {
+    gap: 0.5rem !important;
+  }
+}
+
+/* Shadcn Select + fingerprint mobile rendering fixes */
+.flickd-content-stack :where([role="combobox"]) {
+  min-height: 40px !important;
+  border-radius: 10px !important;
+}
+
+.flickd-content-stack :where([data-radix-select-content], [data-radix-popper-content-wrapper]) {
+  z-index: 140 !important;
+}
+
+.flickd-trace-shell {
+  min-width: 0;
+}
+
+.flickd-trace-canvas {
+  scrollbar-width: thin;
+}
+
+@media (max-width: 767px) {
+  .flickd-trace-shell {
+    padding: 0.75rem !important;
+  }
+
+  .flickd-trace-canvas {
+    padding: 0.625rem !important;
+  }
+
+  .flickd-trace-svg {
+    width: max(100%, 720px) !important;
+    max-height: none !important;
+  }
+
+  .flickd-trace-shell > div > div > div.grid {
+    grid-template-columns: 1fr !important;
+  }
+}
