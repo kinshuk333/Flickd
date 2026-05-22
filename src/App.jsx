@@ -86,6 +86,32 @@ const CHART_THEME = {
   },
 };
 const getChartColor = (index) => CHART_THEME.colors[index % CHART_THEME.colors.length];
+const formatCompactChartValue = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return '';
+  if (Math.abs(number) >= 1000) {
+    return `${(number / 1000).toFixed(number >= 10000 ? 0 : 1)}k`;
+  }
+  return `${Math.round(number)}`;
+};
+const formatOneDecimalChartValue = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(1) : '';
+};
+const getTouchDistance = (touches) => {
+  if (!touches || touches.length < 2) return 0;
+  const first = touches[0];
+  const second = touches[1];
+  return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+};
+const getTouchCenter = (touches) => {
+  if (!touches || touches.length === 0) return { x: 0, y: 0 };
+  if (touches.length === 1) return { x: touches[0].clientX, y: touches[0].clientY };
+  return {
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2,
+  };
+};
 const TRACE_GENRE_PALETTE = {
   drama: '#4F7BD9',
   crime: '#7A4FD9',
@@ -341,8 +367,8 @@ export default function App() {
   const [moodboardGenreFilter, setMoodboardGenreFilter] = useState('all');
   const [moodboardDecadeFilter, setMoodboardDecadeFilter] = useState('all');
   const [moodboardYearFilter, setMoodboardYearFilter] = useState('all');
-  const [moodboardCountryFilter, setMoodboardCountryFilter] = useState('all');
   const [moodboardMinRatingFilter, setMoodboardMinRatingFilter] = useState('all');
+  const [moodboardFiltersExpanded, setMoodboardFiltersExpanded] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [directorArchetypeMap, setDirectorArchetypeMap] = useState({});
   const [worldGeoJson, setWorldGeoJson] = useState(null);
@@ -357,6 +383,7 @@ export default function App() {
   const [traceHover, setTraceHover] = useState(null);
   const [traceTooltip, setTraceTooltip] = useState(null);
   const [traceZoom, setTraceZoom] = useState(1);
+  const [tracePan, setTracePan] = useState({ x: 0, y: 0 });
   const [traceRevealProgress, setTraceRevealProgress] = useState(0);
   const [traceSelectedDirector, setTraceSelectedDirector] = useState(null);
   const [traceDirectorModalView, setTraceDirectorModalView] = useState('list'); // 'list' | 'details'
@@ -415,6 +442,9 @@ export default function App() {
   const tasteTimelineRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
   const tasteTimelineDragStartRef = React.useRef({ x: 0, left: 0 });
+  const mapTouchGestureRef = React.useRef({ mode: null });
+  const traceTouchGestureRef = React.useRef({ mode: null });
+  const timelineTouchGestureRef = React.useRef({ mode: null });
   const posterLoadInFlightRef = React.useRef(new Set());
   const posterFailedAtRef = React.useRef({});
   const omdbCacheAvailableRef = React.useRef(true);
@@ -2377,18 +2407,6 @@ const [user, setUser] = useState(null);
     });
     return Array.from(set).sort((a, b) => b - a);
   }, [data]);
-  const moodboardCountryOptions = useMemo(() => {
-    if (!data?.length) return [];
-    const set = new Set();
-    data.forEach((film) => {
-      (film?.country || '')
-        .split(',')
-        .map((c) => c.trim())
-        .filter(Boolean)
-        .forEach((c) => set.add(c));
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [data]);
   const filteredMoodboardFilms = useMemo(() => {
     if (!data?.length) return [];
     const board = moodboards.find((b) => b.id === activeMoodboard);
@@ -2415,19 +2433,12 @@ const [user, setUser] = useState(null);
           if (decade !== moodboardDecadeFilter) return false;
         }
         if (moodboardYearFilter !== 'all' && String(Number(film.year) || '') !== moodboardYearFilter) return false;
-        if (moodboardCountryFilter !== 'all') {
-          const countries = String(film.country || '')
-            .split(',')
-            .map((c) => c.trim().toLowerCase())
-            .filter(Boolean);
-          if (!countries.includes(moodboardCountryFilter.toLowerCase())) return false;
-        }
         if (minRating !== null && (Number(film.yourRating) || 0) < minRating) return false;
         return true;
       })
       .sort((a, b) => (Number(b.yourRating) || 0) - (Number(a.yourRating) || 0))
       .slice(0, 400);
-  }, [data, moodboards, activeMoodboard, moodboardFilmSearch, moodboardGenreFilter, moodboardDecadeFilter, moodboardYearFilter, moodboardCountryFilter, moodboardMinRatingFilter]);
+  }, [data, moodboards, activeMoodboard, moodboardFilmSearch, moodboardGenreFilter, moodboardDecadeFilter, moodboardYearFilter, moodboardMinRatingFilter]);
 
   const getCinematicPersonality = () => {
     if (!data || data.length === 0) return null;
@@ -3873,6 +3884,69 @@ const [user, setUser] = useState(null);
     setMapDragStart(null);
   };
 
+  const handleMapTouchStart = (event) => {
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      mapTouchGestureRef.current = {
+        mode: 'pinch',
+        startDistance: getTouchDistance(event.touches),
+        startZoom: mapZoom,
+        startPan: mapPan,
+        startCenter: getTouchCenter(event.touches),
+      };
+      return;
+    }
+
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      mapTouchGestureRef.current = {
+        mode: 'pan',
+        startZoom: mapZoom,
+        startPan: mapPan,
+        startCenter: { x: touch.clientX, y: touch.clientY },
+      };
+    }
+  };
+
+  const handleMapTouchMove = (event) => {
+    const gesture = mapTouchGestureRef.current;
+    if (!gesture?.mode) return;
+
+    if (gesture.mode === 'pinch' && event.touches.length === 2) {
+      event.preventDefault();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const nextDistance = getTouchDistance(event.touches);
+      const nextCenter = getTouchCenter(event.touches);
+      const nextZoom = clampZoom(Number((gesture.startZoom * (nextDistance / Math.max(1, gesture.startDistance))).toFixed(2)));
+      const ratio = nextZoom / Math.max(0.01, gesture.startZoom);
+      const startSvgX = ((gesture.startCenter.x - rect.left) / rect.width) * mapWidth;
+      const startSvgY = ((gesture.startCenter.y - rect.top) / rect.height) * mapHeight;
+      const nextSvgX = ((nextCenter.x - rect.left) / rect.width) * mapWidth;
+      const nextSvgY = ((nextCenter.y - rect.top) / rect.height) * mapHeight;
+
+      setMapZoom(nextZoom);
+      setMapPan({
+        x: Number((nextSvgX - (startSvgX - gesture.startPan.x) * ratio).toFixed(2)),
+        y: Number((nextSvgY - (startSvgY - gesture.startPan.y) * ratio).toFixed(2)),
+      });
+      return;
+    }
+
+    if (gesture.mode === 'pan' && event.touches.length === 1) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      setMapPan({
+        x: gesture.startPan.x + (touch.clientX - gesture.startCenter.x),
+        y: gesture.startPan.y + (touch.clientY - gesture.startCenter.y),
+      });
+    }
+  };
+
+  const handleMapTouchEnd = () => {
+    mapTouchGestureRef.current = { mode: null };
+    stopMapDragging();
+  };
+
   const _atlasNodes = [
     {
       id: 'pattern_seekers',
@@ -4765,6 +4839,64 @@ const [user, setUser] = useState(null);
     });
   }, [membersDirectory, user, followerUserIds, followsTableEnabled]);
 
+  useEffect(() => {
+    if (!membersEnabled || !followsTableEnabled) return;
+    const followerIds = (Array.isArray(followerUserIds) ? followerUserIds : [])
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+    if (!followerIds.length) return;
+
+    const existing = new Set(
+      (Array.isArray(membersDirectory) ? membersDirectory : [])
+        .map((member) => String(member?.userId || '').trim())
+        .filter(Boolean)
+    );
+    const missingIds = followerIds.filter((id) => !existing.has(id));
+    if (!missingIds.length) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const fetched = await Promise.all(missingIds.map((id) => fetchMemberProfile(id).catch(() => ({ data: null }))));
+        if (cancelled) return;
+        const nextRecords = fetched
+          .map((result, idx) => {
+            const row = result?.data;
+            const userId = String(missingIds[idx] || '');
+            if (!userId) return null;
+            return {
+              id: String(row?.id || userId),
+              userId,
+              name: row?.display_name || row?.name || row?.email || 'Member',
+              email: row?.email || '',
+              avatarUrl: row?.avatar_url || '',
+              joinedAt: row?.created_at || null,
+              updatedAt: row?.updated_at || null,
+              snapshot: row?.snapshot || null,
+              isCurrentUser: String(userId) === String(user?.id || ''),
+            };
+          })
+          .filter(Boolean);
+        if (!nextRecords.length) return;
+
+        setMembersDirectory((prev) => {
+          const base = Array.isArray(prev) ? prev.slice() : [];
+          nextRecords.forEach((record) => {
+            const idx = base.findIndex((entry) => String(entry?.userId || '') === String(record.userId));
+            if (idx >= 0) base[idx] = { ...base[idx], ...record };
+            else base.push(record);
+          });
+          return base;
+        });
+      } catch {
+        // ignore follower profile hydration failures
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [membersEnabled, followsTableEnabled, followerUserIds, membersDirectory, user?.id]);
+
   const followerFollowKeyByUserId = React.useMemo(() => {
     const map = new Map();
     (followerFollowKeys || []).forEach((entry) => {
@@ -5122,6 +5254,9 @@ const [user, setUser] = useState(null);
     activeTab === 'members' ||
     (Boolean(memberViewUserId) && !['following', 'followers', 'settings'].includes(activeTab));
   const handleTabChange = (tabId) => {
+    if (tabId === 'settings' && memberViewUserId) {
+      exitMemberDashboard();
+    }
     setActiveTab(tabId);
     if (tabId === 'discoveries') {
       // Backward compat (older local state): Discoveries now lives inside Deep Dive.
@@ -5365,6 +5500,112 @@ const [user, setUser] = useState(null);
     tasteTimelineDraggingRef.current = false;
     setTimelineDragging(false);
   };
+
+  const onTimelineTouchStart = (event) => {
+    const el = tasteTimelineRef.current;
+    if (!el) return;
+
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      timelineTouchGestureRef.current = {
+        mode: 'pinch',
+        startDistance: getTouchDistance(event.touches),
+        startZoom: timelineZoom,
+        startLeft: el.scrollLeft,
+      };
+      return;
+    }
+
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      timelineTouchGestureRef.current = {
+        mode: 'pan',
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startLeft: el.scrollLeft,
+      };
+    }
+  };
+
+  const onTimelineTouchMove = (event) => {
+    const el = tasteTimelineRef.current;
+    const gesture = timelineTouchGestureRef.current;
+    if (!el || !gesture?.mode) return;
+
+    if (gesture.mode === 'pinch' && event.touches.length === 2) {
+      event.preventDefault();
+      const nextDistance = getTouchDistance(event.touches);
+      const nextZoom = clampTimelineZoom(Number((gesture.startZoom * (nextDistance / Math.max(1, gesture.startDistance))).toFixed(2)));
+      setTimelineZoom(nextZoom);
+      return;
+    }
+
+    if (gesture.mode === 'pan' && event.touches.length === 1) {
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - gesture.startX;
+      const deltaY = touch.clientY - gesture.startY;
+      if (Math.abs(deltaX) > Math.abs(deltaY) + 4) {
+        event.preventDefault();
+        el.scrollLeft = gesture.startLeft - deltaX;
+      }
+    }
+  };
+
+  const onTimelineTouchEnd = () => {
+    timelineTouchGestureRef.current = { mode: null };
+    stopTimelineDrag();
+  };
+
+  const clampTraceZoom = React.useCallback((value) => Math.max(1, Math.min(4, value)), []);
+
+  const handleTraceTouchStart = (event) => {
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      traceTouchGestureRef.current = {
+        mode: 'pinch',
+        startDistance: getTouchDistance(event.touches),
+        startZoom: traceZoom,
+        startPan: tracePan,
+      };
+      return;
+    }
+
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      traceTouchGestureRef.current = {
+        mode: 'pan',
+        startZoom: traceZoom,
+        startPan: tracePan,
+        startPoint: { x: touch.clientX, y: touch.clientY },
+      };
+    }
+  };
+
+  const handleTraceTouchMove = (event) => {
+    const gesture = traceTouchGestureRef.current;
+    if (!gesture?.mode) return;
+
+    if (gesture.mode === 'pinch' && event.touches.length === 2) {
+      event.preventDefault();
+      const nextDistance = getTouchDistance(event.touches);
+      setTraceZoom(clampTraceZoom(Number((gesture.startZoom * (nextDistance / Math.max(1, gesture.startDistance))).toFixed(2))));
+      return;
+    }
+
+    if (gesture.mode === 'pan' && event.touches.length === 1) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      setTracePan({
+        x: gesture.startPan.x + (touch.clientX - gesture.startPoint.x),
+        y: gesture.startPan.y + (touch.clientY - gesture.startPoint.y),
+      });
+    }
+  };
+
+  const handleTraceTouchEnd = () => {
+    traceTouchGestureRef.current = { mode: null };
+  };
+
   const handleDownloadPdfBook = async () => {
     if (isBookExporting) return;
     setIsBookExporting(true);
@@ -5664,6 +5905,7 @@ const [user, setUser] = useState(null);
     setTraceHover(null);
     setTraceTooltip(null);
     setTraceZoom(1);
+    setTracePan({ x: 0, y: 0 });
     setTraceRevealProgress(0);
 
     let rafId = null;
@@ -6237,7 +6479,7 @@ const [user, setUser] = useState(null);
 
       {shareCardOpen && shareCardConfig && (() => {
         const shareModal = (
-          <div className="share-card-overlay fixed inset-0 z-[160] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
+          <div className="share-card-overlay fixed inset-0 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm">
             <div className="share-card-panel w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-4 sm:p-5 max-h-[92vh] overflow-y-auto">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -6247,10 +6489,10 @@ const [user, setUser] = useState(null);
                 <button
                   type="button"
                   onClick={() => setShareCardOpen(false)}
-                  className="h-8 w-8 rounded-lg border border-gray-700 bg-[#0b1220] text-gray-300 hover:bg-[#1f2937]"
+                  className="h-10 w-10 rounded-xl border border-white/10 bg-[#0b1220]/95 text-2xl leading-none text-gray-200 shadow-lg hover:bg-[#1f2937]"
                   aria-label="Close"
                 >
-                  �
+                  <span aria-hidden="true">&times;</span>
                 </button>
               </div>
 
@@ -6299,15 +6541,8 @@ const [user, setUser] = useState(null);
           </div>
         );
 
-        const fullscreenHost = typeof document !== 'undefined' ? document.fullscreenElement : null;
-        const useFullscreenPortal = Boolean(
-          fullscreenHost && (
-            fullscreenHost === traceFullscreenRef.current ||
-            fullscreenHost === tasteTimelineFullscreenRef.current ||
-            fullscreenHost === mapFullscreenRef.current
-          )
-        );
-        return useFullscreenPortal ? createPortal(shareModal, fullscreenHost) : shareModal;
+        const portalHost = typeof document !== 'undefined' ? document.body : null;
+        return portalHost ? createPortal(shareModal, portalHost) : shareModal;
       })()}
 <div className="flickd-immersive-shell">
         <header className="flickd-shell-header">
@@ -6832,8 +7067,9 @@ const [user, setUser] = useState(null);
                             <XAxis dataKey="rating" stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                             <YAxis stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                             <Tooltip {...CHART_THEME.tooltip} />
-                            <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical}>
+                            <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false}>
                               {ratingDist.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
+                              <LabelList dataKey="count" position="top" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -6859,8 +7095,9 @@ const [user, setUser] = useState(null);
                                 {...CHART_THEME.tooltip}
                                 formatter={(v, name, props) => [`${v} films (${props.payload.percentage}%)`, 'Count']}
                               />
-                              <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal}>
+                              <Bar dataKey="count" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false}>
                                 {mostWatchedGenres.genres.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
+                                <LabelList dataKey="count" position="right" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -6883,8 +7120,9 @@ const [user, setUser] = useState(null);
                           <XAxis dataKey="year" stroke={CHART_THEME.axis.stroke} interval="preserveStartEnd" tick={CHART_THEME.axis.tick} />
                           <YAxis stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
                           <Tooltip {...CHART_THEME.tooltip} />
-                          <Bar dataKey="filmCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical}>
+                          <Bar dataKey="filmCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false}>
                             {yearlyHighlight.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
+                            <LabelList dataKey="filmCount" position="top" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -6915,8 +7153,9 @@ const [user, setUser] = useState(null);
                                   return [`${value} avg (${count} films)`, 'Avg Rating'];
                                 }}
                               />
-                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal}>
+                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false}>
                                 {genreAffinity.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
+                                <LabelList dataKey="avgRating" position="right" formatter={formatOneDecimalChartValue} className="flickd-mobile-chart-value" />
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -6939,8 +7178,9 @@ const [user, setUser] = useState(null);
                                   return [`${value} avg (${count} films)`, 'Avg Rating'];
                                 }}
                               />
-                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical}>
+                              <Bar dataKey="avgRating" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false}>
                                 {eraPreference.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
+                                <LabelList dataKey="avgRating" position="top" formatter={formatOneDecimalChartValue} className="flickd-mobile-chart-value" />
                               </Bar>
                             </BarChart>
                           </ResponsiveContainer>
@@ -6963,8 +7203,9 @@ const [user, setUser] = useState(null);
                                 return [`${moviesRated} (of ${totalFilms})`, 'Movies rated 8+'];
                               }}
                             />
-                            <Bar dataKey="highRatedCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal}>
+                            <Bar dataKey="highRatedCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.horizontal} activeBar={false}>
                               {consistentlyLovedDirectors.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
+                              <LabelList dataKey="highRatedCount" position="right" formatter={formatCompactChartValue} className="flickd-mobile-chart-value" />
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
@@ -7029,11 +7270,15 @@ const [user, setUser] = useState(null);
                           {mapFeatures.length > 0 && mapPathGenerator ? (
                             <svg
                               viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                                className={`w-full ${mapFullscreen ? 'h-[82vh]' : 'h-[580px]'} ${isMapDragging ? "cursor-grabbing" : ""}`}
+                                className={`flickd-gesture-surface w-full ${mapFullscreen ? 'h-[82vh]' : 'h-[580px]'} ${isMapDragging ? "cursor-grabbing" : ""}`}
                               onMouseDown={handleMapMouseDown}
                               onMouseMove={handleMapMouseMove}
                               onMouseUp={stopMapDragging}
                               onWheel={handleMapWheel}
+                              onTouchStart={handleMapTouchStart}
+                              onTouchMove={handleMapTouchMove}
+                              onTouchEnd={handleMapTouchEnd}
+                              onTouchCancel={handleMapTouchEnd}
                               onMouseLeave={() => {
                                 stopMapDragging();
                                 setHoveredMapCountry(null);
@@ -7326,7 +7571,7 @@ const [user, setUser] = useState(null);
                          <svg
                               ref={traceSvgRef}
                               viewBox={'0 0 ' + directorFingerprintData.size + ' ' + directorFingerprintData.size}
-                              className={`w-full h-auto ${traceFullscreen ? 'max-h-[86vh]' : 'max-h-[840px]'}`}
+                              className={`flickd-gesture-surface w-full h-auto ${traceFullscreen ? 'max-h-[86vh]' : 'max-h-[840px]'}`}
                              role="img"
                              aria-label="Director Fingerprint generative poster"
                              onWheel={(event) => {
@@ -7341,6 +7586,10 @@ const [user, setUser] = useState(null);
                               setTraceHover(null);
                               setTraceTooltip(null);
                             }}
+                            onTouchStart={handleTraceTouchStart}
+                            onTouchMove={handleTraceTouchMove}
+                            onTouchEnd={handleTraceTouchEnd}
+                            onTouchCancel={handleTraceTouchEnd}
                             >
                               <defs>
                               {/* Solid background so the title area matches the visualization (no gradient strip). */}
@@ -7379,7 +7628,7 @@ const [user, setUser] = useState(null);
                              </text>
 
                             <g clipPath="url(#traceClip)">
-                              <g transform={'translate(' + (directorFingerprintData.cx * (1 - traceZoom)) + ' ' + (directorFingerprintData.cy * (1 - traceZoom)) + ') scale(' + traceZoom + ')'}>
+                              <g transform={'translate(' + tracePan.x + ' ' + tracePan.y + ') translate(' + (directorFingerprintData.cx * (1 - traceZoom)) + ' ' + (directorFingerprintData.cy * (1 - traceZoom)) + ') scale(' + traceZoom + ')'}>
                               {Array.from({ length: 14 }).map((_, index) => {
                                 const t = index / 13;
                                 const radius = directorFingerprintData.innerRadius + t * (directorFingerprintData.maxOuterRadius - directorFingerprintData.innerRadius);
@@ -8161,12 +8410,21 @@ const [user, setUser] = useState(null);
                           <div
                             ref={tasteTimelineRef}
                             className="cinematic-rail timeline-x-hidden overflow-x-hidden overflow-y-visible scroll-smooth"
-                            style={{ overscrollBehavior: 'contain', cursor: timelineDragging ? 'grabbing' : 'grab' }}
+                            style={{
+                              overscrollBehaviorX: 'contain',
+                              overscrollBehaviorY: 'auto',
+                              WebkitOverflowScrolling: 'touch',
+                              cursor: timelineDragging ? 'grabbing' : 'grab',
+                            }}
                             onWheelCapture={onTimelineWheelCapture}
                             onScroll={onTimelineRailScroll}
                             onMouseDown={onTimelineMouseDown}
                             onMouseMove={onTimelineMouseMove}
                             onMouseUp={stopTimelineDrag}
+                            onTouchStart={onTimelineTouchStart}
+                            onTouchMove={onTimelineTouchMove}
+                            onTouchEnd={onTimelineTouchEnd}
+                            onTouchCancel={onTimelineTouchEnd}
                             onMouseLeave={() => {
                               stopTimelineDrag();
                               setTimelineHoverKey(null);
@@ -8638,7 +8896,7 @@ const [user, setUser] = useState(null);
                               itemStyle={CHART_THEME.tooltip.itemStyle}
                               formatter={(value) => [`${value}%`, 'Affinity']}
                             />
-                            <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                            <Bar dataKey="value" radius={[0, 8, 8, 0]} activeBar={false}>
                               {cinemaMindProfile.archetypes.map((item, i) => (
                                 <Cell
                                   key={`cinema-mind-${i}`}
@@ -8877,90 +9135,125 @@ const [user, setUser] = useState(null);
 
                   {showFilmPicker && canEditMoodboards && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                      <div className="bg-[#111827] border border-gray-700 rounded-xl p-5 w-full max-w-5xl max-h-[82vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-white">Add Films</h3>
-                          <button
-                            onClick={() => {
-                              setPendingMoodboardFilmKeys([]);
-                              setShowFilmPicker(false);
-                            }}
-                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-300 hover:bg-[#101a2d]"
-                          >
-                            Close
-                          </button>
+                      <div className="bg-[#111827] border border-gray-700 rounded-xl p-4 sm:p-5 w-full max-w-5xl max-h-[86vh] overflow-hidden flex flex-col">
+                        <div className="sticky top-0 z-20 bg-[#111827] pb-3 border-b border-gray-700/70">
+                          <div className="flex items-center justify-between gap-3 mb-3">
+                            <h3 className="text-lg font-semibold text-white">Add Films</h3>
+                            <button
+                              onClick={() => {
+                                setPendingMoodboardFilmKeys([]);
+                                setShowFilmPicker(false);
+                              }}
+                              className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-300 hover:bg-[#101a2d]"
+                            >
+                              Close
+                            </button>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="text"
+                              value={moodboardFilmSearch}
+                              onChange={(e) => setMoodboardFilmSearch(e.target.value)}
+                              placeholder="Search by title..."
+                              className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                            />
+                            <div className="flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setMoodboardFiltersExpanded((prev) => !prev)}
+                                className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-300 hover:bg-[#101a2d]"
+                              >
+                                {moodboardFiltersExpanded ? 'Hide filters' : 'Show filters'}
+                              </button>
+                              <div className="text-xs text-gray-400">
+                                Showing {filteredMoodboardFilms.length} films
+                              </div>
+                            </div>
+                          </div>
+                          {moodboardFiltersExpanded && (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                              <select
+                                value={moodboardGenreFilter}
+                                onChange={(e) => setMoodboardGenreFilter(e.target.value)}
+                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                              >
+                                <option value="all">All genres</option>
+                                {moodboardGenreOptions.map((genre) => (
+                                  <option key={genre} value={genre}>
+                                    {genre}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={moodboardDecadeFilter}
+                                onChange={(e) => setMoodboardDecadeFilter(e.target.value)}
+                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                              >
+                                <option value="all">All decades</option>
+                                {moodboardDecadeOptions.map((decade) => (
+                                  <option key={decade} value={decade}>
+                                    {decade}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={moodboardYearFilter}
+                                onChange={(e) => setMoodboardYearFilter(e.target.value)}
+                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                              >
+                                <option value="all">All years</option>
+                                {moodboardYearOptions.map((year) => (
+                                  <option key={year} value={String(year)}>
+                                    {year}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={moodboardMinRatingFilter}
+                                onChange={(e) => setMoodboardMinRatingFilter(e.target.value)}
+                                className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                              >
+                                <option value="all">Any rating</option>
+                                <option value="7">7+</option>
+                                <option value="8">8+</option>
+                                <option value="9">9+</option>
+                              </select>
+                            </div>
+                          )}
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2 mb-3">
-                          <input
-                            type="text"
-                            value={moodboardFilmSearch}
-                            onChange={(e) => setMoodboardFilmSearch(e.target.value)}
-                            placeholder="Search by title..."
-                            className="sm:col-span-2 lg:col-span-2 w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                          />
-                          <select
-                            value={moodboardGenreFilter}
-                            onChange={(e) => setMoodboardGenreFilter(e.target.value)}
-                            className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="all">All genres</option>
-                            {moodboardGenreOptions.map((genre) => (
-                              <option key={genre} value={genre}>
-                                {genre}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={moodboardDecadeFilter}
-                            onChange={(e) => setMoodboardDecadeFilter(e.target.value)}
-                            className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="all">All decades</option>
-                            {moodboardDecadeOptions.map((decade) => (
-                              <option key={decade} value={decade}>
-                                {decade}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={moodboardYearFilter}
-                            onChange={(e) => setMoodboardYearFilter(e.target.value)}
-                            className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="all">All years</option>
-                            {moodboardYearOptions.map((year) => (
-                              <option key={year} value={String(year)}>
-                                {year}
-                              </option>
-                              ))}
-                            </select>
-                          <select
-                            value={moodboardCountryFilter}
-                            onChange={(e) => setMoodboardCountryFilter(e.target.value)}
-                            className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="all">All countries</option>
-                            {moodboardCountryOptions.map((country) => (
-                              <option key={country} value={country}>
-                                {country}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={moodboardMinRatingFilter}
-                            onChange={(e) => setMoodboardMinRatingFilter(e.target.value)}
-                            className="w-full min-w-0 bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="all">Any rating</option>
-                            <option value="7">7+</option>
-                            <option value="8">8+</option>
-                            <option value="9">9+</option>
-                          </select>
+                        <div className="py-2">
+                          <div className="rounded-lg border border-gray-700 bg-[#0b1220] px-3 py-2">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm text-gray-200">
+                                Selected: <span className="text-blue-300 font-semibold">{pendingMoodboardFilms.length}</span>
+                              </div>
+                              {pendingMoodboardFilms.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setPendingMoodboardFilmKeys([])}
+                                  className="text-xs px-2 py-1 rounded border border-gray-600 text-gray-300 hover:bg-[#111827]"
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
+                            {pendingMoodboardFilms.length > 0 && (
+                              <div className="mt-2 flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1">
+                                {pendingMoodboardFilms.slice(0, 10).map((film, i) => (
+                                  <span key={`${film.title}_${film.year}_${i}`} className="text-[11px] px-2 py-1 rounded-full border border-blue-500/40 bg-blue-500/10 text-blue-200">
+                                    {film.title}
+                                  </span>
+                                ))}
+                                {pendingMoodboardFilms.length > 10 && (
+                                  <span className="text-[11px] px-2 py-1 rounded-full border border-gray-600 text-gray-300">
+                                    +{pendingMoodboardFilms.length - 10} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-400 mb-3">
-                          Showing {filteredMoodboardFilms.length} matching films
-                        </div>
-                        <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1 pb-2">
                           {filteredMoodboardFilms.map((film, idx) => (
                             <button
                               key={idx}
@@ -8996,37 +9289,15 @@ const [user, setUser] = useState(null);
                             </div>
                           )}
                         </div>
-                        <div className="mb-3 rounded-lg border border-gray-700 bg-[#0b1220] p-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm text-gray-200">
-                              Selected: <span className="text-blue-300 font-semibold">{pendingMoodboardFilms.length}</span>
-                            </div>
-                            {pendingMoodboardFilms.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => setPendingMoodboardFilmKeys([])}
-                                className="text-xs px-2 py-1 rounded border border-gray-600 text-gray-300 hover:bg-[#111827]"
-                              >
-                                Clear
-                              </button>
-                            )}
-                          </div>
-                          {pendingMoodboardFilms.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {pendingMoodboardFilms.slice(0, 8).map((film, i) => (
-                                <span key={`${film.title}_${film.year}_${i}`} className="text-[11px] px-2 py-1 rounded-full border border-blue-500/40 bg-blue-500/10 text-blue-200">
-                                  {film.title}
-                                </span>
-                              ))}
-                              {pendingMoodboardFilms.length > 8 && (
-                                <span className="text-[11px] px-2 py-1 rounded-full border border-gray-600 text-gray-300">
-                                  +{pendingMoodboardFilms.length - 8} more
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="sticky bottom-0 z-20 bg-[#111827] pt-3 border-t border-gray-700/70">
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPendingMoodboardFilmKeys([])}
+                              className="px-3 py-2 bg-[#0b1220] border border-gray-700 text-gray-300 rounded-lg hover:bg-[#101a2d]"
+                            >
+                              Clear
+                            </button>
                           <button
                             onClick={() => {
                               if (pendingMoodboardFilms.length > 0) {
@@ -9048,6 +9319,7 @@ const [user, setUser] = useState(null);
                           >
                             Done
                           </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -9133,7 +9405,6 @@ const [user, setUser] = useState(null);
                                 setMoodboardGenreFilter('all');
                                 setMoodboardDecadeFilter('all');
                                 setMoodboardYearFilter('all');
-                                setMoodboardCountryFilter('all');
                                 setMoodboardMinRatingFilter('all');
                                 setPendingMoodboardFilmKeys([]);
                                 setShowFilmPicker(true);
@@ -9193,7 +9464,6 @@ const [user, setUser] = useState(null);
                                 setMoodboardGenreFilter('all');
                                 setMoodboardDecadeFilter('all');
                                 setMoodboardYearFilter('all');
-                                setMoodboardCountryFilter('all');
                                 setMoodboardMinRatingFilter('all');
                                 setPendingMoodboardFilmKeys([]);
                                 setShowFilmPicker(true);
@@ -9326,7 +9596,7 @@ const [user, setUser] = useState(null);
                           <div className="relative rounded-xl border border-gray-800 bg-[#0b1220] p-3 mb-5">
                             <div
                               className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
-                              style={{ overscrollBehavior: 'contain' }}
+                              style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
                               onWheelCapture={(e) => {
                                 const el = e.currentTarget;
                                 e.preventDefault();
@@ -9493,7 +9763,7 @@ const [user, setUser] = useState(null);
                           <div className="relative rounded-xl border border-gray-800 bg-[#0b1220] p-3">
                             <div
                               className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
-                              style={{ overscrollBehavior: 'contain' }}
+                              style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
                               onWheelCapture={(e) => {
                                 const el = e.currentTarget;
                                 e.preventDefault();
@@ -9684,7 +9954,7 @@ const [user, setUser] = useState(null);
                           <div className="relative rounded-xl border border-gray-800 bg-[#0b1220] p-3">
                             <div
                               className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
-                              style={{ overscrollBehavior: 'contain' }}
+                              style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
                               onWheelCapture={(e) => {
                                 const el = e.currentTarget;
                                 e.preventDefault();
@@ -9885,7 +10155,7 @@ const [user, setUser] = useState(null);
                             <div className="relative rounded-xl border border-gray-800 bg-[#0b1220] p-3">
                               <div
                                 className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
-                                style={{ overscrollBehavior: 'contain' }}
+                                style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
                                 onWheelCapture={(e) => {
                                   const el = e.currentTarget;
                                   e.preventDefault();
@@ -10052,7 +10322,7 @@ const [user, setUser] = useState(null);
                             <div className="relative rounded-xl border border-gray-800 bg-[#0b1220] p-3">
                               <div
                                 className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
-                                style={{ overscrollBehavior: 'contain' }}
+                                style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
                                 onWheelCapture={(e) => {
                                   const el = e.currentTarget;
                                   e.preventDefault();

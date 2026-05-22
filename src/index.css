@@ -2994,3 +2994,95 @@ body {
     padding: 16px !important;
   }
 }
+
+/* Phase 2: mobile chart and visualization interaction polish */
+.recharts-wrapper,
+.recharts-wrapper * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.recharts-wrapper :focus,
+.recharts-wrapper :focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible,
+.recharts-layer:focus,
+.recharts-layer:focus-visible,
+.recharts-rectangle:focus,
+.recharts-bar-rectangle:focus,
+.recharts-sector:focus {
+  outline: none !important;
+}
+
+.recharts-tooltip-cursor {
+  pointer-events: none;
+}
+
+.flickd-mobile-chart-value {
+  display: none;
+  pointer-events: none;
+  fill: rgba(226, 232, 240, 0.94) !important;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(3, 7, 18, 0.88);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.flickd-gesture-surface {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.share-card-overlay {
+  z-index: 2147483647 !important;
+}
+
+@media (max-width: 767px) {
+  .recharts-tooltip-wrapper,
+  .recharts-tooltip-cursor {
+    display: none !important;
+  }
+
+  .flickd-mobile-chart-value {
+    display: block;
+    font-size: 10px !important;
+    letter-spacing: 0.01em;
+  }
+
+  .recharts-cartesian-axis-tick text {
+    font-size: 10px !important;
+  }
+
+  .flickd-chart-stage,
+  .flickd-chart-stage--feature {
+    min-height: 260px;
+  }
+
+  .flickd-chart-stage .recharts-wrapper svg {
+    overflow: visible;
+  }
+
+  .cinematic-rail {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    scroll-snap-type: x proximity;
+  }
+
+  .timeline-y-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .share-card-panel {
+    border-radius: 24px !important;
+    padding: 18px !important;
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(96, 165, 250, 0.14);
+  }
+
+  .share-card-panel button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+}
