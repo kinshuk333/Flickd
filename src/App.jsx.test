@@ -68,7 +68,7 @@ import React, { data && stats ? (<div className="">PLACEHOLDERPLACEHOLDERPLACEHO
                     <div className="relative bg-gradient-to-br from-blue-900/40 to-cyan-900/40 border border-blue-500/30 rounded-2xl p-5 hover:from-blue-900/60 hover:to-cyan-900/60 hover:border-blue-500/50 transition-all duration-300 group hover:shadow-lg hover:shadow-blue-500/20">
                       <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -mr-10 -mt-10 group-hover:bg-blue-500/20 transition-all"></div>
                       <div className="text-blue-400 text-xs font-bold mb-1">🎭</div>
-                      <div className="text-gray-400 text-xs mb-1">Top Genre</div>
+                      <div className="text-gray-400 text-xs mb-1">Dominant Genre</div>
                       <div className="text-lg font-bold text-white truncate">{stats.mostRatedGenre}</div>
                     </div>
                   </div>
@@ -96,7 +96,7 @@ import React, { data && stats ? (<div className="">PLACEHOLDERPLACEHOLDERPLACEHO
                       <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
                         <div className="flex items-center gap-2 mb-4">
                           <span className="text-xs font-medium text-blue-400/60">06</span>
-                          <h2 className="text-lg font-semibold">Most Watched Genres</h2>
+                          <h2 className="text-lg font-semibold">Dominant Genres</h2>
                         </div>
                         <div className="mb-4 text-sm text-gray-300">
                           Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>

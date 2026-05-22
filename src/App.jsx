@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion as Motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
@@ -436,6 +436,7 @@ export default function App() {
   const [savingAboutMe, setSavingAboutMe] = useState(false);
   const [followToast, setFollowToast] = useState(null);
   const [supabasePinging, setSupabasePinging] = useState(false);
+  const [loginPosterUrls, setLoginPosterUrls] = useState([]);
   const [_supabaseHealth, setSupabaseHealth] = useState({
     status: 'idle', // idle | ok | slow | error
     lastMs: null,
@@ -593,7 +594,7 @@ const [user, setUser] = useState(null);
 
   const currentProfileAvatarUrlRaw = memberViewUserId ? memberViewAvatarUrl : user?.user_metadata?.avatar_url;
   const currentProfileAvatarLabel = memberViewUserId
-    ? (memberViewName || 'Member')
+    ? (memberViewName || 'Cinephile')
     : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'User');
 
   const withCacheBust = (url, bust) => {
@@ -1023,7 +1024,7 @@ const [user, setUser] = useState(null);
 
           const memberPayload = {
             user_id: user.id,
-            display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Member',
+            display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
             email: user.email || null,
             avatar_url: user.user_metadata?.avatar_url || null,
             snapshot,
@@ -1081,7 +1082,7 @@ const [user, setUser] = useState(null);
 
       const payload = {
         user_id: user.id,
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Member',
+        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
         email: user.email || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         snapshot,
@@ -1388,7 +1389,7 @@ const [user, setUser] = useState(null);
 
       const payload = {
         user_id: user.id,
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Member',
+        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
         email: user.email || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         snapshot,
@@ -2590,56 +2591,56 @@ const [user, setUser] = useState(null);
     // Archetype selection logic
     if (hasHorror && isNiche) {
       archetype = "The Dark Visionary";
-      description = "You find beauty in the shadows. While others look away, you stare into the abyss and discover truths too disturbing for mortal eyes. Your film palette is painted in blacks, reds, and the cold blue of nightmares.";
-      traits = ["Dark Soul", "Gothic Aesthete", "Fear Embracer", "Isolated Wanderer", "Twilight Seeker"];
+      description = "You gravitate toward films where emotion lives beneath restraint, with stories shaped by ambiguity, tension, and quiet psychological intensity.";
+      traits = ["Emotionally Restless", "Morally Ambiguous", "Psychological Realism", "Melancholic Core", "Late-Night Cinema"];
     } else if (hasSciFi && isNiche) {
       archetype = "The Future Dreamer";
-      description = "The present bores you. You escape into chrome futures, alien worlds, and philosophical paradoxes. Your mind orbits between stars, questioning humanity's place in an indifferent cosmos.";
-      traits = ["Cosmic Thinker", "Tech Romantic", "Dystopian Explorer", "AI Sympathizer", "Dimension Hopper"];
+      description = "Your ratings suggest a deep attraction to emotionally fractured worlds, morally uncertain characters, and cinema that values atmosphere as much as narrative.";
+      traits = ["Visual Obsessive", "Narrative Minimalist", "Genre Subverter", "Atmosphere Oriented", "Auteur Driven"];
     } else if (hasRomance && lovesLong) {
       archetype = "The Romantic Idealist";
-      description = "You believe love is worth suffering for. Your films are grand emotional journeys where hearts break beautifully and passion burns eternal. Every story is a love letter to feeling deeply.";
-      traits = ["Heart Sleeper", "Grand Gesture Believer", "Emotional Explorer", "Passion Chaser", "Soul Mender"];
+      description = "You gravitate toward films where emotion lives beneath restraint, with stories shaped by ambiguity, tension, and quiet psychological intensity.";
+      traits = ["Humanist Leaning", "Intimacy Focused", "Memory-Driven", "Atmosphere Oriented", "Emotionally Restless"];
     } else if (hasThriller && lovesShort) {
       archetype = "The Adrenaline Minimalist";
-      description = "Time is precious. You demand your films move like a freight train: tight, tense, and over before you can exhale. Every second counts, every frame must justify its existence.";
-      traits = ["Ticker Counter", "Tension Hunter", "Plot Twister", "Efficiency Expert", "Thrill Seeker"];
+      description = "Your ratings suggest a deep attraction to emotionally fractured worlds, morally uncertain characters, and cinema that values atmosphere as much as narrative.";
+      traits = ["Narrative Minimalist", "Morally Ambiguous", "Late-Night Cinema", "Psychological Realism", "Genre Subverter"];
     } else if (hasDocumentary && isNiche) {
       archetype = "The Truth Seeker";
-      description = "Fiction is escapism. You prefer the raw, unfiltered reality of documentary cinema, true stories that challenge your worldview and expose the beautiful chaos of existence.";
-      traits = ["Reality Architect", "Fact Finder", "Human Documenter", "Truth Pursuer", "Complexity Lover"];
+      description = "You gravitate toward films where emotion lives beneath restraint, with stories shaped by ambiguity, tension, and quiet psychological intensity.";
+      traits = ["Humanist Leaning", "Psychological Realism", "Slow Cinema Friendly", "Intimacy Focused", "Auteur Driven"];
     } else if (hasClassic && lovesLong) {
       archetype = "The Classicist";
-      description = "You walk the golden halls of cinema's past. The silver screen legends speak to you in black and white, and you understand that true art transcends color, technology, and time.";
-      traits = ["Golden Age Walker", "Formalist", "Patience Master", "Cinema Scholar", "Heritage Keeper"];
+      description = "Your ratings suggest a deep attraction to emotionally fractured worlds, morally uncertain characters, and cinema that values atmosphere as much as narrative.";
+      traits = ["Auteur Driven", "Slow Cinema Friendly", "Visual Obsessive", "Memory-Driven", "Narrative Minimalist"];
     } else if (parseInt(mostWatchedDecade) >= 2010 && isNiche) {
       archetype = "The Indie Spirit";
-      description = "You reject the mainstream's manufactured emotions. You seek authenticity in shaky cam, naturalistic dialogue, and stories about real people navigating messy lives. Conformity is your enemy.";
-      traits = ["Indie Loyalist", "Authenticity Hunter", "Mumblecore Friend", "Micro-Budget Champion", "Underground Dweller"];
+      description = "You gravitate toward films where emotion lives beneath restraint, with stories shaped by ambiguity, tension, and quiet psychological intensity.";
+      traits = ["Genre Subverter", "Narrative Minimalist", "Atmosphere Oriented", "Emotionally Restless", "Intimacy Focused"];
     } else if (parseInt(mostWatchedDecade) >= 1980 && parseInt(mostWatchedDecade) < 2010) {
       archetype = "The Neon Realist";
-      description = "You came of age when cinema got gritty. Your films blend style with substance: crime sagas, antiheroes, and morally complex tales that reflect a world without easy answers.";
-      traits = ["Midnight Moviegoer", "Genre Hybrid", "Morally Gray", "Style Maven", "Nostalgia Keeper"];
+      description = "Your ratings suggest a deep attraction to emotionally fractured worlds, morally uncertain characters, and cinema that values atmosphere as much as narrative.";
+      traits = ["Morally Ambiguous", "Late-Night Cinema", "Visual Obsessive", "Psychological Realism", "Melancholic Core"];
     } else if (isGenerous && topGenres.length >= 2) {
       archetype = "The Emotional Explorer";
-      description = "You feel intensely and broadly. Your cinematic journey spans genres, but all roads lead to catharsis. You cry, you laugh, you think: you experience films with your whole being.";
-      traits = ["Feelings Amplifier", "Genre Polymath", "Emotional Tourist", "Catharsis Seeker", "Open Heart"];
+      description = "You gravitate toward films where emotion lives beneath restraint, with stories shaped by ambiguity, tension, and quiet psychological intensity.";
+      traits = ["Emotionally Restless", "Humanist Leaning", "Intimacy Focused", "Memory-Driven", "Atmosphere Oriented"];
     } else if (nichePercentage < 30) {
       archetype = "The Cultural Connoisseur";
-      description = "You walk the balanced path between art and accessibility. You appreciate both the hidden indie masterpiece and the crowd-pleasing blockbuster. Your taste is refined yet inclusive.";
-      traits = ["Mainstream Explorer", "Quality Balancer", "Accessibility Advocate", "Pop Corn Philosopher", "Bridge Builder"];
+      description = "Your ratings suggest a deep attraction to emotionally fractured worlds, morally uncertain characters, and cinema that values atmosphere as much as narrative.";
+      traits = ["Auteur Driven", "Visual Obsessive", "Genre Subverter", "Humanist Leaning", "Psychological Realism"];
     } else if (lovesShort && isHarsh) {
       archetype = "The Brutalist";
-      description = "You have no patience for indulgence. Your films are stripped to their essence, harsh truths delivered without apology. Comfort is overrated; clarity is everything.";
-      traits = ["Minimalist", "No-Nonsense Viewer", "Punchy Storyteller", "Efficiency Guru", "Hard Truth Lover"];
+      description = "You gravitate toward films where emotion lives beneath restraint, with stories shaped by ambiguity, tension, and quiet psychological intensity.";
+      traits = ["Narrative Minimalist", "Morally Ambiguous", "Atmosphere Oriented", "Late-Night Cinema", "Slow Cinema Friendly"];
     } else if (lovesLong && isGenerous) {
       archetype = "The Epic Dreamer";
-      description = "You believe in grand narratives and emotional magnitude. Your films are sprawling journeys across years, galaxies, or generations that demand your full attention and reward it tenfold.";
-      traits = ["Marathon Viewer", "Saga Seeker", "World Builder", "Patience Virtuoso", "Grand Narrator"];
+      description = "Your ratings suggest a deep attraction to emotionally fractured worlds, morally uncertain characters, and cinema that values atmosphere as much as narrative.";
+      traits = ["Slow Cinema Friendly", "Auteur Driven", "Visual Obsessive", "Memory-Driven", "Melancholic Core"];
     } else {
       archetype = "The Eclectic Soul";
-      description = "Your cinematic identity resists categorization. You drift through genres and eras like a curious ghost, finding unexpected treasures in every corner of the film universe.";
-      traits = ["Genre Fluid", "Curious Wanderer", "Discovery Addict", "Mood Diver", "Ever-Changing Viewer"];
+      description = "You gravitate toward films where emotion lives beneath restraint, with stories shaped by ambiguity, tension, and quiet psychological intensity.";
+      traits = ["Genre Subverter", "Emotionally Restless", "Atmosphere Oriented", "Psychological Realism", "Intimacy Focused"];
     }
 
     return { archetype, description, traits };
@@ -2726,7 +2727,7 @@ const [user, setUser] = useState(null);
     const avgRating = ratingSum.count > 0 ? ratingSum.total / ratingSum.count : 0;
 
     // Std dev is more interpretable than the old "rating * runtime" intensity.
-    // Convert it to a 0�100 "consistency" score: lower spread => higher score.
+    // Convert it to a 0-100 "consistency" score: lower spread => higher score.
     let ratingStdDev = 0;
     if (ratingValues.length > 1) {
       const mean = avgRating;
@@ -4383,7 +4384,7 @@ const [user, setUser] = useState(null);
       if (score >= 74) return { name: 'Parallel Dreamers', line: 'Different paths, same horizon of feeling and form.' };
       if (score >= 64) return { name: 'Neon & Dust', line: 'A vivid blend of overlap and friction that keeps discovery alive.' };
       if (score >= 54) return { name: 'Chaos and Stillness', line: 'One heart seeks velocity, the other seeks still frames.' };
-      return { name: 'Opposite Lenses', line: 'Contrasting film souls that challenge each other�s cinematic comfort zone.' };
+      return { name: 'Opposite Lenses', line: 'Contrasting film souls that challenge each other\'s cinematic comfort zone.' };
     })();
 
     const poetic = score >= 75
@@ -4479,7 +4480,7 @@ const [user, setUser] = useState(null);
       const snapshotToSave = publicMemberSnapshot;
       const payload = {
         user_id: user.id,
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Member',
+        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
         email: user.email || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         snapshot: snapshotToSave,
@@ -4777,7 +4778,7 @@ const [user, setUser] = useState(null);
           const nextRecord = {
             id: String(row?.id || userId),
             userId: String(userId),
-            name: row?.display_name || row?.name || row?.email || 'Member',
+            name: row?.display_name || row?.name || row?.email || 'Cinephile',
             email: row?.email || '',
             avatarUrl: row?.avatar_url || '',
             joinedAt: row?.created_at || null,
@@ -4972,7 +4973,7 @@ const [user, setUser] = useState(null);
             return {
               id: String(row?.id || userId),
               userId,
-              name: row?.display_name || row?.name || row?.email || 'Member',
+              name: row?.display_name || row?.name || row?.email || 'Cinephile',
               email: row?.email || '',
               avatarUrl: row?.avatar_url || '',
               joinedAt: row?.created_at || null,
@@ -5313,7 +5314,7 @@ const [user, setUser] = useState(null);
 
     setMembersError('');
     setMemberViewUserId(String(memberRecord.userId));
-      setMemberViewName(memberRecord.name || 'Member');
+      setMemberViewName(memberRecord.name || 'Cinephile');
       setMemberViewAvatarUrl(memberRecord.avatarUrl || '');
       setMemberViewSocials({
         instagram: resolvedSnapshot?.profileLinks?.instagram || '',
@@ -5324,7 +5325,7 @@ const [user, setUser] = useState(null);
       setMemberViewAboutMe(resolvedSnapshot?.aboutMe || '');
       setMemberViewMoodboards(Array.isArray(resolvedSnapshot?.moodboards) ? resolvedSnapshot.moodboards : []);
       setData(sharedDataset);
-      setFileName(`${member.name || 'Member'} (shared dashboard)`);
+      setFileName(`${member.name || 'Cinephile'} (shared profile)`);
       setLoadedFromCache(false);
       setLastDataSyncAt(member.updatedAt || null);
       setActiveTab('overview');
@@ -5354,9 +5355,9 @@ const [user, setUser] = useState(null);
 
   const navItems = [
     { id: 'overview', label: 'Overview' },
-    { id: 'personality', label: 'Personality' },
-    { id: 'allwatched', label: 'All Watched Films' },
-    { id: 'tastetimeline', label: 'Taste Timeline' },
+    { id: 'personality', label: 'Identity' },
+    { id: 'allwatched', label: 'Film Archive' },
+    { id: 'tastetimeline', label: 'Timeline Map' },
     { id: 'mytrace', label: 'My Trace' },
     { id: 'moodboard', label: 'Filmboards' },
     { id: 'deepdive', label: 'Deep Dive' },
@@ -5587,6 +5588,43 @@ const [user, setUser] = useState(null);
     setTimelineScrollLeft(el.scrollLeft || 0);
   };
 
+  useEffect(() => {
+    if (loadingAuth || user) return undefined;
+    let cancelled = false;
+
+    const pickRandomPosters = (items, count = 3) => {
+      const unique = Array.from(
+        new Set(
+          (Array.isArray(items) ? items : [])
+            .map((row) => String(row?.poster || '').trim())
+            .filter((url) => url && url !== 'N/A')
+        )
+      );
+      const shuffled = [...unique].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count);
+    };
+
+    const loadLoginPosters = async () => {
+      try {
+        const { data: posterRows, error } = await supabase
+          .from('omdb_cache')
+          .select('poster')
+          .not('poster', 'is', null)
+          .limit(180);
+        if (error || cancelled) return;
+        const picked = pickRandomPosters(posterRows, 3);
+        if (!cancelled) setLoginPosterUrls(picked);
+      } catch {
+        // Keep login resilient if Supabase is temporarily unavailable.
+      }
+    };
+
+    loadLoginPosters();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadingAuth, user]);
+
   const onTimelineRailScroll = () => {
     const el = tasteTimelineRef.current;
     if (!el) return;
@@ -5770,7 +5808,7 @@ const [user, setUser] = useState(null);
     const originalTab = activeTab;
     const tabsToExport = [
       { id: 'overview', title: 'Overview' },
-      { id: 'personality', title: 'Personality' },
+      { id: 'personality', title: 'Identity' },
     ];
 
     const waitForRender = async (delay = 900) => {
@@ -5790,7 +5828,7 @@ const [user, setUser] = useState(null);
     const getLiveChartSnapshotMap = (root) => {
       const titles = [
         'Rating Distribution',
-        'Most Watched Genres',
+        'Dominant Genres',
         'Yearly Rating Activity',
         'Genre Affinity',
         'Era Preference',
@@ -5873,7 +5911,7 @@ const [user, setUser] = useState(null);
           if (tab.id === 'overview') {
             [
               'Rating Distribution',
-              'Most Watched Genres',
+              'Dominant Genres',
               'Yearly Rating Activity',
               'Genre Affinity',
               'Era Preference',
@@ -6270,16 +6308,39 @@ const [user, setUser] = useState(null);
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0b0f17] text-gray-100 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-[#111827] border border-gray-800 rounded-2xl px-8 py-9 text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+      <div className="min-h-screen bg-[#0b0f17] text-gray-100 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md bg-[#111827] border border-gray-800 rounded-2xl px-7 sm:px-8 py-8 sm:py-9 text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <img
             src="/flickd-brand.png"
             alt="Flickd"
-            className="h-10 w-auto mx-auto mb-6 object-contain"
+            className="h-10 sm:h-11 w-auto mx-auto mb-6 object-contain"
           />
+          <div className="mb-7 flex items-end justify-center gap-2.5 sm:gap-3">
+            {[0, 1, 2].map((idx) => {
+              const posterUrl = loginPosterUrls[idx] || '';
+              const rotateClass = idx === 0 ? '-rotate-12 -mr-1' : idx === 2 ? 'rotate-12 -ml-1' : '';
+              return (
+                <div
+                  key={`login_poster_${idx}`}
+                  className={`w-20 sm:w-24 h-28 sm:h-32 rounded-xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_24px_rgba(0,0,0,0.35)] ${rotateClass}`}
+                >
+                  {posterUrl ? (
+                    <img
+                      src={posterUrl}
+                      alt="Film poster"
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-b from-[#13203a] to-[#0b1220]" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
           <h1 className="text-3xl md:text-4xl leading-tight font-bold tracking-tight text-white">Welcome</h1>
           <p className="mt-3 text-sm md:text-base leading-relaxed text-gray-400 max-w-[330px] mx-auto">
-            Decode your cinematic taste through powerful, personal film analytics.
+            A living editorial portrait of your cinema taste, shaped through what you watch and rate.
           </p>
           <p className="text-sm text-gray-400 mt-6">Sign in with Google to continue.</p>
           <button
@@ -6415,7 +6476,7 @@ const [user, setUser] = useState(null);
                       </div>
                       <div className="bg-gray-800 p-3 rounded-lg text-center">
                         <p className="text-gray-400 text-xs">Your Rating</p>
-                        <p className="text-2xl font-bold text-green-400"> {selectedMovie?.yourRating ?? '�'}</p>
+                        <p className="text-2xl font-bold text-green-400"> {selectedMovie?.yourRating ?? '-'}</p>
                       </div>
                     </div>
 
@@ -6565,7 +6626,7 @@ const [user, setUser] = useState(null);
                         </div>
                         <div className="flex justify-between mt-2 text-[11px] text-gray-400">
                           <span>You: {Math.round(axis.mine)}</span>
-                          <span>{memberViewName || 'Member'}: {Math.round(axis.theirs)}</span>
+                          <span>{memberViewName || 'Cinephile'}: {Math.round(axis.theirs)}</span>
                         </div>
                       </div>
                     ))}
@@ -6641,7 +6702,7 @@ const [user, setUser] = useState(null);
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-white">{shareCardConfig.title}</h3>
-                  <p className="text-xs text-gray-400 mt-1">Share your card from Flickd</p>
+                  <p className="text-xs text-gray-400 mt-1">Share a cinematic snapshot from Flickd.</p>
                 </div>
                 <button
                   type="button"
@@ -6683,7 +6744,7 @@ const [user, setUser] = useState(null);
                   disabled={shareCardBusy}
                   className="px-3 py-2 rounded-xl border border-gray-700 bg-[#0b1220] text-gray-100 hover:bg-[#1f2937] disabled:opacity-60"
                 >
-                  {shareCardBusy ? 'Preparing...' : 'Download Card'}
+                  {shareCardBusy ? 'Preparing...' : 'Export Card'}
                 </button>
                 <button
                   type="button"
@@ -6691,7 +6752,7 @@ const [user, setUser] = useState(null);
                   disabled={shareCardBusy}
                   className="px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  {shareCardBusy ? 'Preparing...' : 'Share'}
+                  {shareCardBusy ? 'Preparing...' : 'Share Profile'}
                 </button>
               </div>
             </div>
@@ -6744,7 +6805,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Members
+                    Cinephiles
                   </button>
                   <button
                     type="button"
@@ -6755,7 +6816,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Following
+                    Following Taste
                   </button>
                   <button
                     type="button"
@@ -6767,7 +6828,7 @@ const [user, setUser] = useState(null);
                     }`}
                   >
                     <span className="relative inline-flex items-center gap-2">
-                      Followers
+                      Audience
                       {newFollowersList.length > 0 && (
                         <span className="inline-flex items-center justify-center">
                           <span className="absolute -top-1 -right-2 w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.75)]" />
@@ -6784,7 +6845,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Settings
+                    Preferences
                   </button>
                   {user && (
                     <button
@@ -6845,7 +6906,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Members
+                    Cinephiles
                   </button>
                   <button
                     type="button"
@@ -6856,7 +6917,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Following
+                    Following Taste
                   </button>
                   <button
                     type="button"
@@ -6867,7 +6928,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Followers {newFollowersList.length > 0 ? `(${newFollowersList.length} new)` : ''}
+                    Audience {newFollowersList.length > 0 ? `(${newFollowersList.length} new)` : ''}
                   </button>
                   <button
                     type="button"
@@ -6878,7 +6939,7 @@ const [user, setUser] = useState(null);
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
                     }`}
                   >
-                    Settings
+                    Preferences
                   </button>
                   {user && (
                     <button
@@ -6936,7 +6997,7 @@ const [user, setUser] = useState(null);
                   </button>
                 )}
                 <h2 className="flickd-profile-name">
-                  {memberViewUserId ? (memberViewName || 'Member') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
+                  {memberViewUserId ? (memberViewName || 'Cinephile') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
                 </h2>
                   <p className="flickd-profile-subtitle">
                     {memberViewUserId ? 'Shared cinematic dashboard' : 'Your cinematic dashboard'}
@@ -6951,11 +7012,11 @@ const [user, setUser] = useState(null);
                   )}
                 </div>
                 <div className="flickd-profile-stats">
-                <SidebarStat label="Total Films" value={stats.totalFilms} />
-                <SidebarStat label="Avg Rating" value={stats.avgYourRating} />
-                <SidebarStat label="Favorite Genre" value={stats.mostRatedGenre} />
+                <SidebarStat label="Films Logged" value={stats.totalFilms} />
+                <SidebarStat label="Critical Average" value={stats.avgYourRating} />
+                <SidebarStat label="Dominant Genre" value={stats.mostRatedGenre} />
                 <SidebarStat
-                  label="Most Active Era"
+                  label="Peak Era"
                   value={
                     eraPreference.length > 0
                       ? ([...eraPreference].sort((a, b) => b.count - a.count)[0]?.decade ?? 'N/A')
@@ -7084,7 +7145,7 @@ const [user, setUser] = useState(null);
                       </button>
                     )}
                     <h2 className="flickd-profile-name">
-                      {memberViewUserId ? (memberViewName || 'Member') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
+                      {memberViewUserId ? (memberViewName || 'Cinephile') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
                     </h2>
                       <p className="flickd-profile-subtitle">
                         {memberViewUserId ? 'Shared cinematic dashboard' : 'Your cinematic dashboard'}
@@ -7099,11 +7160,11 @@ const [user, setUser] = useState(null);
                       )}
                     </div>
                     <div className="flickd-profile-stats">
-                    <SidebarStat label="Total Films" value={stats.totalFilms} />
-                    <SidebarStat label="Avg Rating" value={stats.avgYourRating} />
-                    <SidebarStat label="Favorite Genre" value={stats.mostRatedGenre} />
+                    <SidebarStat label="Films Logged" value={stats.totalFilms} />
+                    <SidebarStat label="Critical Average" value={stats.avgYourRating} />
+                    <SidebarStat label="Dominant Genre" value={stats.mostRatedGenre} />
                     <SidebarStat
-                      label="Most Active Era"
+                      label="Peak Era"
                       value={
                         eraPreference.length > 0
                           ? ([...eraPreference].sort((a, b) => b.count - a.count)[0]?.decade ?? 'N/A')
@@ -7162,41 +7223,39 @@ const [user, setUser] = useState(null);
                       <div className="flickd-overview-hero__content">
                         <div className="flickd-overview-hero__eyebrow">
                           <Sparkles className="h-4 w-4 text-blue-300" />
-                          Profile Snapshot
+                          Taste Snapshot
                         </div>
                         <div>
                           <CardTitle className="flickd-overview-hero__title">
-                            Overview Studio
+                            Cinematic Overview
                           </CardTitle>
                           <CardDescription className="flickd-overview-hero__description">
-                            Your cinema history, shaped into an editorial read of ratings, genres, eras, and director loyalties.
+                            Your viewing history distilled into patterns of emotion, authorship, and cinematic identity.
                           </CardDescription>
                         </div>
                         <div className="flickd-overview-hero__stats">
                           <div>
-                            <span>Total films</span>
+                            <span>Films Logged</span>
                             <strong>{stats?.totalFilms ?? 0}</strong>
                           </div>
                           <div>
-                            <span>Average rating</span>
+                            <span>Critical Average</span>
                             <strong>{stats?.avgYourRating ?? 0}</strong>
                           </div>
                           <div>
-                            <span>Signature genre</span>
+                            <span>Dominant Genre</span>
                             <strong>{stats?.mostRatedGenre ?? 'N/A'}</strong>
                           </div>
                           <div>
-                            <span>Most active era</span>
+                            <span>Peak Era</span>
                             <strong>{eraPreference.length > 0 ? ([...eraPreference].sort((a, b) => b.count - a.count)[0]?.decade ?? 'N/A') : 'N/A'}</strong>
                           </div>
                         </div>
                       </div>
                       <div className="flickd-overview-hero__side">
-                        <span className="text-xs uppercase tracking-[0.28em] text-blue-200/70">Taste Signals</span>
+                        <span className="text-xs md:text-sm font-medium text-blue-200/80">Cinematic Signals</span>
                         <p>
-                          {mostWatchedGenres.topGenre
-                            ? `${mostWatchedGenres.topGenre.genre} anchors your watched library, while rating movement and era patterns reveal where your taste sharpens.`
-                            : 'Upload more films to reveal the shape of your cinematic rhythm.'}
+                          Your ratings lean toward emotionally weighty cinema, with recurring attraction to morally complex storytelling and auteur-driven worlds.
                         </p>
                         <div className="flickd-overview-hero__chips">
                           <span>Ratings</span>
@@ -7212,9 +7271,9 @@ const [user, setUser] = useState(null);
                   <div className="flickd-overview-section-heading">
                     <div>
                       <span>Watching Patterns</span>
-                      <h2>How your ratings move</h2>
+                      <h2>The emotional rhythm of your ratings.</h2>
                     </div>
-                    <p>Primary signals from your watched history.</p>
+                    <p>Patterns shaped through genre loyalty, emotional intensity, and cinematic eras.</p>
                   </div>
 
                   <div className="flickd-overview-primary-grid">
@@ -7234,7 +7293,7 @@ const [user, setUser] = useState(null);
                     </ChartCard>
 
                     {mostWatchedGenres.genres.length > 0 && (
-                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Most Watched Genres</span>} className="flickd-overview-support-chart h-full" bodyClassName="flickd-chart-stage">
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Dominant Genres</span>} className="flickd-overview-support-chart h-full" bodyClassName="flickd-chart-stage">
                         <div className="mb-4 text-sm text-gray-300">
                           Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>
                           {mostWatchedGenres.topGenre && (
@@ -7269,7 +7328,7 @@ const [user, setUser] = useState(null);
                       <div className="flickd-overview-card-heading">
                         <div>
                           <h2 className="text-lg font-semibold inline-flex items-center gap-2"><Activity className="h-4 w-4 text-pink-300" /> Yearly Rating Activity</h2>
-                          <p>Release-year rhythm across your library.</p>
+                          <p>How your ratings distribute across cinema history.</p>
                         </div>
                       </div>
                       <ResponsiveContainer width="100%" height={320}>
@@ -7375,7 +7434,7 @@ const [user, setUser] = useState(null);
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h2 className="text-lg font-semibold">Global Cinema Preference Map</h2>
+                          <h2 className="text-lg font-semibold">Global Cinema Preference Map</h2>
                           </div>
                           <p className="text-xs text-gray-400 mt-1">Films grouped by country of origin from your ratings data.</p>
                         </div>
@@ -7499,7 +7558,10 @@ const [user, setUser] = useState(null);
                 <div className="space-y-4">
                   <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                      <h2 className="text-lg font-semibold text-white">All Watched Films</h2>
+                      <div>
+                        <h2 className="text-lg font-semibold text-white">Film Archive</h2>
+                        <p className="text-xs text-gray-400 mt-1">Every rated film, organized as a living archive of taste.</p>
+                      </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           type="text"
@@ -7644,7 +7706,7 @@ const [user, setUser] = useState(null);
                         ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-gray-400 py-6 text-center">No films match the selected filters.</div>
+                      <div className="text-sm text-gray-400 py-6 text-center">Your cinematic profile will begin to take shape once ratings are imported.</div>
                     )}
 
                     {watchedTotalPages > 1 && (
@@ -8003,7 +8065,7 @@ const [user, setUser] = useState(null);
                                             })}
                                             className="px-2.5 py-1 text-[11px] rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-gray-800"
                                           >
-                                            Share
+                                            Share Profile
                                           </button>
                                         </div>
                                         <div className="text-xs text-gray-400 mt-1">
@@ -8225,7 +8287,7 @@ const [user, setUser] = useState(null);
 
                   <div className="flex flex-wrap items-center justify-between gap-2 bg-[#111827] border border-gray-800 rounded-xl p-3">
                     <p className="text-xs text-gray-400">
-                      Page {membersPage + 1} • Showing up to 30 members
+                      Page {membersPage + 1} • Showing up to 30 cinephiles
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -8260,7 +8322,7 @@ const [user, setUser] = useState(null);
                       type="text"
                       value={membersSearchQuery}
                       onChange={(e) => setMembersSearchQuery(e.target.value)}
-                      placeholder="Search members by name or email..."
+                      placeholder="Search cinephiles by name or email..."
                       className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -8297,7 +8359,7 @@ const [user, setUser] = useState(null);
                           )}
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-white truncate">{member.name}</div>
-                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Member'}</div>
+                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Cinephile'}</div>
                           </div>
                         </div>
 
@@ -8321,7 +8383,7 @@ const [user, setUser] = useState(null);
                           onClick={() => openMemberDashboard(member)}
                           className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg"
                         >
-                          View Full Dashboard
+                          View Profile
                         </button>
                             </>
                           );
@@ -8332,7 +8394,7 @@ const [user, setUser] = useState(null);
 
                   {!membersLoading && filteredMembersDirectory.length === 0 && (
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 text-center text-sm text-gray-400">
-                      No members found.
+                      No cinephiles found.
                     </div>
                   )}
                 </div>
@@ -8376,7 +8438,7 @@ const [user, setUser] = useState(null);
                       type="text"
                       value={followingSearchQuery}
                       onChange={(e) => setFollowingSearchQuery(e.target.value)}
-                      placeholder="Search following by name or email..."
+                      placeholder="Search followed cinephiles by name or email..."
                       className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -8402,7 +8464,7 @@ const [user, setUser] = useState(null);
                           )}
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-white truncate">{member.name}</div>
-                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Member'}</div>
+                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Cinephile'}</div>
                           </div>
                         </div>
 
@@ -8427,7 +8489,7 @@ const [user, setUser] = useState(null);
                             onClick={() => openMemberDashboard(member)}
                             className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg"
                           >
-                            View Full Dashboard
+                            View Profile
                           </button>
                           <button
                             type="button"
@@ -8446,7 +8508,7 @@ const [user, setUser] = useState(null);
 
                   {!membersLoading && filteredFollowedMembersList.length === 0 && (
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 text-center text-sm text-gray-400">
-                      No matching following members.
+                      No matching followed cinephiles.
                     </div>
                   )}
                 </div>
@@ -8490,7 +8552,7 @@ const [user, setUser] = useState(null);
                       type="text"
                       value={followersSearchQuery}
                       onChange={(e) => setFollowersSearchQuery(e.target.value)}
-                      placeholder="Search followers by name or email..."
+                      placeholder="Search your audience by name or email..."
                       className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -8514,7 +8576,7 @@ const [user, setUser] = useState(null);
                               New
                             </div>
                             <div className="mb-3 text-[10px] uppercase tracking-wide text-emerald-300 font-semibold">
-                              New follower
+                              New audience member
                             </div>
                           </>
                         )}
@@ -8528,7 +8590,7 @@ const [user, setUser] = useState(null);
                           )}
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-white truncate">{member.name}</div>
-                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Member'}</div>
+                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Cinephile'}</div>
                           </div>
                         </div>
 
@@ -8553,7 +8615,7 @@ const [user, setUser] = useState(null);
                             onClick={() => openMemberDashboard(member)}
                             className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg"
                           >
-                            View Full Dashboard
+                            View Profile
                           </button>
                           <button
                             type="button"
@@ -8573,7 +8635,7 @@ const [user, setUser] = useState(null);
 
                   {!membersLoading && filteredFollowersMembersList.length === 0 && (
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-6 text-center text-sm text-gray-400">
-                      No matching followers.
+                      No matching audience members.
                     </div>
                   )}
                   </div>
@@ -8586,9 +8648,9 @@ const [user, setUser] = useState(null);
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <h2 className="text-lg font-semibold text-white">Cinematic Timeline Map</h2>
+                          <h2 className="text-lg font-semibold text-white">Timeline Map</h2>
                           <p className="text-xs text-gray-400 mt-1">
-                            A horizontal year map of your films from Arthouse to Mainstream storytelling.
+                            Your films positioned between mainstream storytelling and auteur-driven cinema across decades.
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -8786,9 +8848,9 @@ const [user, setUser] = useState(null);
                       <CardHeader className="pb-4">
                         <CardTitle className="flex items-center gap-2 text-xl">
                           <Brain className="h-5 w-5 text-blue-300" />
-                          Your Cinematic Identity
+                          Your Cinema Persona
                         </CardTitle>
-                        <CardDescription>A psychological reading of your movie taste patterns.</CardDescription>
+                        <CardDescription>An editorial interpretation of the themes, emotions, and cinematic instincts behind your ratings.</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-5">
                         <div>
@@ -8815,10 +8877,10 @@ const [user, setUser] = useState(null);
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                          <MetricCard label="Top Genre" value={personality.topGenres[0]} />
+                          <MetricCard label="Dominant Genre" value={personality.topGenres[0]} />
                           <MetricCard label="Era" value={`${personality.mostWatchedDecade}s`} />
-                          <MetricCard label="Avg Runtime" value={`${personality.avgRuntime} min`} />
-                          <MetricCard label="Niche" value={`${personality.nichePercentage}%`} />
+                          <MetricCard label="Preferred Runtime" value={`${personality.avgRuntime} min`} />
+                          <MetricCard label="Obscurity Index" value={`${personality.nichePercentage}%`} />
                           <MetricCard className="col-span-2 sm:col-span-1" label="Your Avg" value={`★ ${personality.avgRating}`} />
                         </div>
                       </CardContent>
@@ -8874,7 +8936,7 @@ const [user, setUser] = useState(null);
                     accent: 'from-rose-500 to-red-500',
                   },
                   {
-                    title: 'Niche Score',
+                    title: 'Obscurity Index',
                     subtitle: 'Films with <50k votes',
                     value: `${patterns.nicheScore}%`,
                     progress: patterns.nicheScore,
@@ -9146,7 +9208,7 @@ const [user, setUser] = useState(null);
                 <div className="flickd-settings-page space-y-5">
                   <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                      <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Settings</h2>
+                      <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Preferences</h2>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -9764,10 +9826,10 @@ const [user, setUser] = useState(null);
                             onClick={() => openShareCard({ title: 'Hidden Gems', subtitle: 'Personal Discovery Card', filenameBase: 'flickd-hidden-gems', films: hiddenGems.allFilms })}
                             className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                           >
-                            Share
+                            Share Profile
                           </button>
                         </div>
-                        <p className="text-xs text-gray-400 mb-4">Films where your rating is significantly higher than IMDb consensus.</p>
+                        <p className="text-xs text-gray-400 mb-4">Films you valued far more deeply than the wider audience.</p>
                         <div className="mb-4 flex items-center justify-between gap-3">
                           <div className="text-xs text-gray-400">
                             Showing {(hiddenGemsPage - 1) * hiddenGemsPerPage + 1} - {Math.min(hiddenGemsPage * hiddenGemsPerPage, hiddenGems.allFilms.length)} of {hiddenGems.allFilms.length}
@@ -9926,10 +9988,10 @@ const [user, setUser] = useState(null);
                             onClick={() => openShareCard({ title: 'Hidden Treasures', subtitle: 'Undiscovered Favorites', filenameBase: 'flickd-hidden-treasures', films: hiddenTreasures.allFilms })}
                             className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                           >
-                            Share
+                            Share Profile
                           </button>
                         </div>
-                        <p className="text-xs text-gray-400 mb-4">Your highest-rated low-vote films that feel truly undiscovered.</p>
+                        <p className="text-xs text-gray-400 mb-4">Rare films buried beneath the algorithm that still left a lasting imprint on you.</p>
 
                         <div className="mb-4 flex items-center justify-between gap-3">
                           <div className="text-xs text-gray-400">
@@ -10106,7 +10168,7 @@ const [user, setUser] = useState(null);
                             })}
                             className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                           >
-                            Share
+                            Share Profile
                           </button>
                         </div>
                         <p className="text-xs text-gray-400 mb-4">Top-rated films grouped by release year from your watched history.</p>
@@ -10291,7 +10353,7 @@ const [user, setUser] = useState(null);
                               onClick={() => openShareCard({ title: `${selected.decade} Personal Canon`, subtitle: 'Films That Define Your Taste', filenameBase: `flickd-personal-canon-${selected.decade}`, films: selected.films })}
                               className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                             >
-                              Share
+                              Share Profile
                             </button>
                           </div>
                           <p className="text-xs text-gray-400 mb-4">The films that define your taste, organized decade by decade.</p>
@@ -10480,11 +10542,11 @@ const [user, setUser] = useState(null);
                               onClick={() => openShareCard({ title: `Top 10 ${selectedGenreGroup.genre} Films`, subtitle: 'Genre Signature Card', filenameBase: `flickd-top-genre-${selectedGenreGroup.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, films: selectedGenreGroup.films })}
                               className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                             >
-                              Share
+                              Share Profile
                             </button>
                           </div>
                           <p className="text-xs text-gray-400 mb-4">
-                            Explore your strongest films across each genre. Avg {selectedGenreGroup.avgGenreRating.toFixed(2)}
+                            The defining films across the genres that shape your cinematic identity. Avg {selectedGenreGroup.avgGenreRating.toFixed(2)}
                           </p>
                           <div className="mb-4 flex flex-wrap items-center gap-3">
                             <label className="text-xs text-gray-300">Genre</label>
@@ -10670,8 +10732,8 @@ const [user, setUser] = useState(null);
         {(!fetchingCountries && !data) && (
           <div className="text-center py-24">
             <div className="text-8xl mb-8"></div>
-            <h3 className="text-3xl font-semibold mb-6 text-gray-100">Ready to analyze your taste?</h3>
-            <p className="text-xl text-gray-300 mb-8">Upload your IMDb ratings export file to begin</p>
+            <h3 className="text-3xl font-semibold mb-6 text-gray-100">Import Your Cinema History</h3>
+            <p className="text-xl text-gray-300 mb-8">Upload your IMDb ratings export to generate a living editorial portrait of your cinematic taste.</p>
             <p className="text-gray-400">
               Get the file here {' '}
               <a
@@ -10689,6 +10751,7 @@ const [user, setUser] = useState(null);
     </div>
   );
 }
+
 
 
 
