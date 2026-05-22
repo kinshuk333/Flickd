@@ -5645,6 +5645,18 @@ const [user, setUser] = useState(null);
     traceTouchGestureRef.current = { mode: null };
   };
 
+  useEffect(() => {
+    if (!mobileTopNavOpen) return undefined;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [mobileTopNavOpen]);
+
   const handleDownloadPdfBook = async () => {
     if (isBookExporting) return;
     setIsBookExporting(true);
@@ -6583,7 +6595,7 @@ const [user, setUser] = useState(null);
         const portalHost = typeof document !== 'undefined' ? document.body : null;
         return portalHost ? createPortal(shareModal, portalHost) : shareModal;
       })()}
-<div className="flickd-immersive-shell">
+<div className={`flickd-immersive-shell ${mobileTopNavOpen ? 'flickd-mobile-menu-open' : ''}`}>
         <header className="flickd-shell-header">
             <div className="flickd-shell-header__inner">
               <div className="flex h-full items-center justify-between gap-3">
@@ -6697,7 +6709,7 @@ const [user, setUser] = useState(null);
                   />
                   <div className="flickd-mobile-menu-panel">
                   <div className="flickd-mobile-menu-header">
-                    <img src="/flickd-wordmark.png" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
+                    <img src="/flickd-logo.png" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
                     <button
                       type="button"
                       className="flickd-mobile-menu-close"
@@ -6803,7 +6815,7 @@ const [user, setUser] = useState(null);
                 </div>
                 <div className="flickd-mobile-menu-footer">
                   <span>Legal Notice</span>
-                  <img src="/flickd-wordmark.png" alt="Flickd" className="flickd-mobile-menu-footer-logo" />
+                  <img src="/flickd-logo.png" alt="Flickd" className="flickd-mobile-menu-footer-logo" />
                 </div>
                 </div>
                 </div>

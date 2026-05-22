@@ -2038,7 +2038,7 @@ body {
   .flickd-secondary-nav {
     margin-left: 0 !important;
     transform: none !important;
-    border-left: 1px solid rgba(150, 166, 198, 0.08) !important;
+    border-left: 0 !important;
   }
 }
 
@@ -2435,7 +2435,7 @@ body {
 
   .flickd-overview-hero {
     min-height: auto !important;
-    padding: 22px !important;
+    padding: var(--mobile-card-padding) !important;
     border-radius: 28px !important;
   }
 
@@ -3140,6 +3140,7 @@ body {
 .flickd-content-stack :where(p, .ui-chart-card__description, .ui-section-header__description, .flickd-overview-hero__description, .text-sm, .text-base) {
   color: var(--text-secondary) !important;
   font-size: var(--type-body) !important;
+  font-weight: 400 !important;
   line-height: var(--type-leading-body) !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -3148,7 +3149,7 @@ body {
 .flickd-content-stack :where(.text-xs, small, label, .metadata, .ui-sidebar-stat__label, .ui-sidebar-stat__sub, .ui-metric-card__label, .ui-metric-card__sub, .ui-film-poster-card__meta, .ui-film-poster-card__sub, .flickd-overview-hero__eyebrow, .flickd-overview-section-heading span, .timeline-lane-label, .timeline-axis-label, .timeline-year-marker) {
   color: var(--text-muted) !important;
   font-size: var(--type-meta) !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   line-height: 1.35 !important;
   letter-spacing: var(--type-tracking-meta) !important;
   text-transform: none !important;
@@ -3203,7 +3204,7 @@ body {
 .flickd-content-stack :where(.grid, .cinematic-rail) :where(.text-\[11px\], .text-xs) {
   color: var(--text-muted) !important;
   font-size: var(--type-meta) !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   letter-spacing: var(--type-tracking-meta) !important;
   text-transform: none !important;
 }
@@ -3228,7 +3229,7 @@ body {
   margin-top: 0.25rem;
   color: var(--text-muted) !important;
   font-size: 0.75rem !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   line-height: 1.35 !important;
   letter-spacing: 0.01em !important;
   text-transform: none !important;
@@ -3363,13 +3364,22 @@ body {
 
 /* Fullscreen premium mobile menu */
 @media (max-width: 767px) {
+  .flickd-immersive-shell.flickd-mobile-menu-open,
+  .flickd-immersive-shell.flickd-mobile-menu-open .flickd-main-scroll {
+    overflow: hidden !important;
+    height: 100dvh !important;
+  }
+
   .flickd-mobile-menu-overlay {
     position: fixed;
     inset: 0;
+    width: 100vw;
+    height: 100dvh;
     z-index: 120;
     display: flex;
     align-items: stretch;
     justify-content: stretch;
+    overflow: hidden;
     animation: flickd-mobile-overlay-in 220ms ease-out both;
   }
 
@@ -3386,7 +3396,7 @@ body {
     position: relative;
     z-index: 1;
     width: 100%;
-    min-height: 100dvh;
+    height: 100dvh;
     padding: calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 24px) !important;
     border: 0 !important;
     border-radius: 0 !important;
@@ -3395,6 +3405,9 @@ body {
     display: flex !important;
     flex-direction: column;
     gap: 0 !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     animation: flickd-mobile-sheet-in 220ms ease-out both;
   }
 
