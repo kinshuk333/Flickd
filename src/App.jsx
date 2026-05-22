@@ -6684,14 +6684,28 @@ const [user, setUser] = useState(null);
                 </div>
               </div>
               {mobileTopNavOpen && (
-                <>
-                <button
-                  type="button"
-                  className="flickd-mobile-menu-backdrop md:hidden"
-                  aria-label="Close navigation menu"
-                  onClick={() => setMobileTopNavOpen(false)}
-                />
-                <div className="flickd-mobile-menu-panel md:hidden flex flex-col gap-2 rounded-2xl border border-gray-700 bg-[#0f172a]/98 p-3 shadow-2xl backdrop-blur">
+                <div className="flickd-mobile-menu-overlay md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+                  <button
+                    type="button"
+                    className="flickd-mobile-menu-backdrop"
+                    aria-label="Close navigation menu"
+                    onClick={() => setMobileTopNavOpen(false)}
+                  />
+                  <div className="flickd-mobile-menu-panel">
+                  <div className="flickd-mobile-menu-header">
+                    <div className="flickd-mobile-menu-title">Navigation</div>
+                    <button
+                      type="button"
+                      className="flickd-mobile-menu-close"
+                      onClick={() => setMobileTopNavOpen(false)}
+                      aria-label="Close menu"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flickd-mobile-menu-list">
                   <button
                     type="button"
                     onClick={() => {
@@ -6699,7 +6713,7 @@ const [user, setUser] = useState(null);
                       handleTabChange('overview');
                       setMobileTopNavOpen(false);
                     }}
-                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--home px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--home ${
                       isHomeActive
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6710,7 +6724,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('members'); setMobileTopNavOpen(false); }}
-                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--members px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--members ${
                       isMembersTopActive
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6721,7 +6735,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('following'); setMobileTopNavOpen(false); }}
-                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--following px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--following ${
                       activeTab === 'following'
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6732,7 +6746,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('followers'); setMobileTopNavOpen(false); }}
-                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--followers px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--followers ${
                       activeTab === 'followers'
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6743,7 +6757,7 @@ const [user, setUser] = useState(null);
                   <button
                     type="button"
                     onClick={() => { handleTabChange('settings'); setMobileTopNavOpen(false); }}
-                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--settings px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                    className={`flickd-mobile-menu-item flickd-mobile-menu-item--settings ${
                       activeTab === 'settings'
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
@@ -6754,7 +6768,7 @@ const [user, setUser] = useState(null);
                   <button
                     onClick={() => { handleDownloadPdfBook(); setMobileTopNavOpen(false); }}
                     disabled={isBookExporting}
-                    className="flickd-mobile-menu-item flickd-mobile-menu-item--download px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-left"
+                    className="flickd-mobile-menu-item flickd-mobile-menu-item--download border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isBookExporting ? 'Preparing PDF Book...' : 'Download'}
                   </button>
@@ -6763,13 +6777,14 @@ const [user, setUser] = useState(null);
                       type="button"
                       onClick={() => { handleSignOut(); setMobileTopNavOpen(false); }}
                       disabled={signingOut}
-                      className="flickd-mobile-menu-item flickd-mobile-menu-item--danger px-3 py-2 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] disabled:opacity-60 disabled:cursor-not-allowed text-left"
+                      className="flickd-mobile-menu-item flickd-mobile-menu-item--danger border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {signingOut ? 'Signing Out...' : 'Sign Out'}
                     </button>
                   )}
                 </div>
-                </>
+                </div>
+                </div>
               )}
             </div>
         </header>
@@ -8972,31 +8987,31 @@ const [user, setUser] = useState(null);
                 </Motion.div>
               )}
               {activeTab === 'settings' && (
-                <div className="space-y-6">
-                  <div className="bg-[#111827] border border-gray-800 rounded-xl p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-                      <h2 className="text-lg font-semibold">Settings</h2>
+                <div className="flickd-settings-page space-y-5">
+                  <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                      <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Settings</h2>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={handleRetrySupabaseConnection}
                           disabled={supabasePinging}
-                          className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937] disabled:opacity-60"
+                          className="px-3 py-2 text-sm rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937] disabled:opacity-60"
                         >
                           {supabasePinging ? 'Checking...' : 'Retry connection'}
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm md:text-base text-gray-400 leading-relaxed">
                       Manage your social profiles and update your IMDb spreadsheet. Changes save to your profile and refresh the dashboard.
                     </p>
                   </div>
 
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-5">
-                      <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                         <div>
-                          <h3 className="text-base font-semibold text-white">Social Links</h3>
-                          <p className="text-xs text-gray-400">Add your social profiles to show on your profile card.</p>
+                          <h3 className="text-lg font-semibold text-white leading-tight">Social Links</h3>
+                          <p className="text-sm text-gray-400 leading-relaxed">Add your social profiles to show on your profile card.</p>
                       </div>
                       <button
                         type="button"
@@ -9006,87 +9021,87 @@ const [user, setUser] = useState(null);
                           && socialLinksDraft.x === socialLinks.x
                           && socialLinksDraft.facebook === socialLinks.facebook
                         )}
-                        className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                        className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
                       >
                         {savingSocialLinks ? 'Saving...' : 'Save Links'}
                       </button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                        <label className="text-xs text-gray-400">Instagram Link</label>
+                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
+                        <label className="text-sm text-gray-400 font-medium">Instagram Link</label>
                         <input
                           type="url"
                           value={socialLinksDraft.instagram}
                           onChange={(e) => setSocialLinksDraft((prev) => ({ ...prev, instagram: e.target.value }))}
                           placeholder="https://instagram.com/username"
-                          className="mt-2 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          className="mt-2.5 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                         />
                       </div>
-                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                        <label className="text-xs text-gray-400">X (Twitter) Link</label>
+                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
+                        <label className="text-sm text-gray-400 font-medium">X (Twitter) Link</label>
                         <input
                           type="url"
                           value={socialLinksDraft.x}
                           onChange={(e) => setSocialLinksDraft((prev) => ({ ...prev, x: e.target.value }))}
                           placeholder="https://x.com/username"
-                          className="mt-2 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          className="mt-2.5 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                         />
                       </div>
-                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                        <label className="text-xs text-gray-400">Facebook Link</label>
+                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
+                        <label className="text-sm text-gray-400 font-medium">Facebook Link</label>
                         <input
                           type="url"
                           value={socialLinksDraft.facebook}
                           onChange={(e) => setSocialLinksDraft((prev) => ({ ...prev, facebook: e.target.value }))}
                           placeholder="https://facebook.com/username"
-                          className="mt-2 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          className="mt-2.5 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                         />
                       </div>
                       </div>
                     </div>
 
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-5">
-                      <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                         <div>
-                          <h3 className="text-base font-semibold text-white">About Me</h3>
-                          <p className="text-xs text-gray-400">A short bio shown on your profile card.</p>
+                          <h3 className="text-lg font-semibold text-white leading-tight">About Me</h3>
+                          <p className="text-sm text-gray-400 leading-relaxed">A short bio shown on your profile card.</p>
                         </div>
                         <button
                           type="button"
                           onClick={handleSaveAboutMe}
                           disabled={savingAboutMe || aboutMeDraft.trim() === aboutMe.trim()}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                          className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
                         >
                           {savingAboutMe ? 'Saving...' : 'Save Bio'}
                         </button>
                       </div>
-                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-3">
-                        <label className="text-xs text-gray-400">About me</label>
+                      <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
+                        <label className="text-sm text-gray-400 font-medium">About me</label>
                         <textarea
                           value={aboutMeDraft}
                           onChange={(e) => setAboutMeDraft(String(e.target.value || '').slice(0, 250))}
                           placeholder="Write a few lines about your cinema taste..."
                           rows={4}
                           maxLength={250}
-                          className="mt-2 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+                          className="mt-2.5 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
                         />
-                        <div className="mt-2 text-[11px] text-gray-500 flex items-center justify-between">
+                        <div className="mt-2.5 text-xs text-gray-500 font-medium flex items-center justify-between">
                           <span>Tip: keep it short. Line breaks are supported.</span>
                           <span>{String(aboutMeDraft || '').length}/250</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-base font-semibold text-white">IMDb Spreadsheet</h3>
+                    <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-lg font-semibold text-white leading-tight">IMDb Spreadsheet</h3>
                       </div>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm md:text-base text-gray-400 leading-relaxed">
                       Replace your IMDb spreadsheet anytime from the section below. Your charts refresh automatically after upload.
                     </p>
                     <div className="mt-4 space-y-3">
                       <label className="flex flex-col items-center justify-center h-28 border border-dashed border-gray-600 rounded-xl cursor-pointer bg-[#0f172a] hover:bg-[#141b28] transition-colors group">
-                        <p className="text-base font-semibold text-gray-100">Drop your IMDb file here</p>
+                        <p className="text-lg font-semibold text-gray-100 leading-tight">Drop your IMDb file here</p>
                         <p className="mt-1 text-xs text-gray-400">or click to browse .csv .xlsx .xls</p>
                         <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
                       </label>
@@ -9561,7 +9576,7 @@ const [user, setUser] = useState(null);
 
               {activeTab === 'deepdive' && (
                 <div className="flex flex-col gap-6">
-                  <div className="order-last grid grid-cols-1 gap-4">
+                  <div className="flickd-discovery-sections order-last grid grid-cols-1 gap-4">
                     {hiddenGems.allFilms?.length > 0 && (
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                         <div className="flex items-center justify-between gap-2 mb-1">
@@ -9617,7 +9632,7 @@ const [user, setUser] = useState(null);
                           </div>
                         </div>
                         {hiddenGemsView === 'grid' ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-5">
+                          <div className="flickd-discovery-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-5">
                             {hiddenGems.allFilms.slice((hiddenGemsPage - 1) * hiddenGemsPerPage, hiddenGemsPage * hiddenGemsPerPage).map((movie, idx) => (
                               <div key={`${movie.title}_${movie.year}_${idx}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                                 {posters[`${movie.title}_${movie.year}`] ? (
@@ -9781,7 +9796,7 @@ const [user, setUser] = useState(null);
                         </div>
 
                         {hiddenTreasuresView === 'grid' ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          <div className="flickd-discovery-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                             {hiddenTreasures.allFilms.slice((hiddenTreasuresPage - 1) * hiddenTreasuresPerPage, hiddenTreasuresPage * hiddenTreasuresPerPage).map((m, i) => (
                               <div key={`${m.title}_${m.year}_${i}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                                 {posters[`${m.title}_${m.year}`] ? (

@@ -3323,6 +3323,176 @@ body {
   .flickd-content-stack :where(.ui-chart-card__header) {
     gap: 0.5rem !important;
   }
+
+  .flickd-discovery-sections {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .flickd-discovery-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+/* Settings UI cleanup */
+.flickd-settings-page .flickd-settings-card {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  background: linear-gradient(180deg, rgba(9, 15, 28, 0.78), rgba(6, 11, 21, 0.84)) !important;
+}
+
+.flickd-settings-page :where(label, .text-xs) {
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+}
+
+.flickd-settings-page :where(input, textarea) {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background: rgba(7, 12, 23, 0.74) !important;
+}
+
+.flickd-settings-page :where(input:focus, textarea:focus) {
+  border-color: rgba(96, 132, 255, 0.46) !important;
+  box-shadow: 0 0 0 2px rgba(96, 132, 255, 0.12) !important;
+}
+
+/* Fullscreen premium mobile menu */
+@media (max-width: 767px) {
+  .flickd-mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    animation: flickd-mobile-overlay-in 220ms ease-out both;
+  }
+
+  .flickd-mobile-menu-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(2, 6, 15, 0.72) !important;
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+  }
+
+  .flickd-mobile-menu-panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    min-height: 100dvh;
+    padding: calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 24px) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(96, 132, 255, 0.2), transparent 36%),
+      linear-gradient(180deg, rgba(7, 12, 22, 0.96), rgba(3, 7, 15, 0.96)) !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px !important;
+    animation: flickd-mobile-sheet-in 220ms ease-out both;
+  }
+
+  .flickd-mobile-menu-panel::before {
+    display: none !important;
+  }
+
+  .flickd-mobile-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .flickd-mobile-menu-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: rgba(241, 245, 255, 0.95);
+  }
+
+  .flickd-mobile-menu-close {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(15, 23, 42, 0.62);
+    color: rgba(226, 232, 240, 0.96);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flickd-mobile-menu-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .flickd-mobile-menu-item {
+    min-height: 56px !important;
+    width: 100%;
+    border-radius: 14px !important;
+    padding: 0 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  .flickd-mobile-menu-item::before {
+    display: none !important;
+  }
+
+  .flickd-mobile-menu-item--danger {
+    margin-top: 10px;
+  }
+
+  @keyframes flickd-mobile-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes flickd-mobile-sheet-in {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
+
+/* Button sizing consistency pass */
+.flickd-content-stack :where(button):not(.ui-premium-tabs__button) {
+  min-height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+}
+
+.flickd-content-stack :where(button).bg-blue-600,
+.flickd-content-stack :where(button)[class*="bg-blue-600"] {
+  min-height: 38px !important;
+}
+
+.flickd-content-stack :where(.inline-flex.rounded-lg.border) > button {
+  min-height: 34px !important;
+  padding: 0 10px !important;
+}
+
+.flickd-content-stack :where(button).rounded-full {
+  min-height: 32px !important;
+  padding: 0 11px !important;
+}
+
+.flickd-content-stack :where(button)[class*="bg-red-500"] {
+  min-height: 34px !important;
 }
 
 /* Shadcn Select + fingerprint mobile rendering fixes */
