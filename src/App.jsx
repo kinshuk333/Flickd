@@ -331,6 +331,11 @@ export default function App() {
   const [watchedYearFilter, setWatchedYearFilter] = useState('all');
   const [watchedRatingFilter, setWatchedRatingFilter] = useState('all');
   const [watchedGenreFilter, setWatchedGenreFilter] = useState('all');
+  const [watchedCountryFilter, setWatchedCountryFilter] = useState('all');
+  const [watchedDirectorFilter, setWatchedDirectorFilter] = useState('all');
+  const [watchedLanguageFilter, setWatchedLanguageFilter] = useState('all');
+  const [watchedSortBy, setWatchedSortBy] = useState('year_desc');
+  const [watchedMoreFiltersOpen, setWatchedMoreFiltersOpen] = useState(false);
   const [watchedSearchQuery, setWatchedSearchQuery] = useState('');
   const [selectedTopGenre, setSelectedTopGenre] = useState('all');
   const [topGenrePage, setTopGenrePage] = useState(1);
@@ -372,6 +377,9 @@ export default function App() {
   const [moodboardGenreFilter, setMoodboardGenreFilter] = useState('all');
   const [moodboardDecadeFilter, setMoodboardDecadeFilter] = useState('all');
   const [moodboardYearFilter, setMoodboardYearFilter] = useState('all');
+  const [moodboardCountryFilter, setMoodboardCountryFilter] = useState('all');
+  const [moodboardDirectorFilter, setMoodboardDirectorFilter] = useState('all');
+  const [moodboardLanguageFilter, setMoodboardLanguageFilter] = useState('all');
   const [moodboardMinRatingFilter, setMoodboardMinRatingFilter] = useState('all');
   const [moodboardFiltersExpanded, setMoodboardFiltersExpanded] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -2412,6 +2420,40 @@ const [user, setUser] = useState(null);
     });
     return Array.from(set).sort((a, b) => b - a);
   }, [data]);
+  const moodboardCountryOptions = useMemo(() => {
+    if (!data?.length) return [];
+    const set = new Set();
+    data.forEach((film) => {
+      const rawCountry = String(film?.country || '').split(',')[0]?.trim();
+      const normalized = normalizeCountryName(rawCountry);
+      if (normalized) set.add(normalized);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [data]);
+  const moodboardDirectorOptions = useMemo(() => {
+    if (!data?.length) return [];
+    const set = new Set();
+    data.forEach((film) => {
+      String(film?.directors || '')
+        .split(',')
+        .map((d) => d.trim())
+        .filter(Boolean)
+        .forEach((d) => set.add(d));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [data]);
+  const moodboardLanguageOptions = useMemo(() => {
+    if (!data?.length) return [];
+    const set = new Set();
+    data.forEach((film) => {
+      String(film?.language || '')
+        .split(',')
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .forEach((l) => set.add(l));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [data]);
   const filteredMoodboardFilms = useMemo(() => {
     if (!data?.length) return [];
     const board = moodboards.find((b) => b.id === activeMoodboard);
@@ -2438,12 +2480,30 @@ const [user, setUser] = useState(null);
           if (decade !== moodboardDecadeFilter) return false;
         }
         if (moodboardYearFilter !== 'all' && String(Number(film.year) || '') !== moodboardYearFilter) return false;
+        if (moodboardCountryFilter !== 'all') {
+          const filmCountry = normalizeCountryName(String(film?.country || '').split(',')[0]?.trim());
+          if (filmCountry !== moodboardCountryFilter) return false;
+        }
+        if (moodboardDirectorFilter !== 'all') {
+          const filmDirectors = String(film?.directors || '')
+            .split(',')
+            .map((d) => d.trim().toLowerCase())
+            .filter(Boolean);
+          if (!filmDirectors.includes(moodboardDirectorFilter.toLowerCase())) return false;
+        }
+        if (moodboardLanguageFilter !== 'all') {
+          const filmLanguages = String(film?.language || '')
+            .split(',')
+            .map((l) => l.trim().toLowerCase())
+            .filter(Boolean);
+          if (!filmLanguages.includes(moodboardLanguageFilter.toLowerCase())) return false;
+        }
         if (minRating !== null && (Number(film.yourRating) || 0) < minRating) return false;
         return true;
       })
       .sort((a, b) => (Number(b.yourRating) || 0) - (Number(a.yourRating) || 0))
       .slice(0, 400);
-  }, [data, moodboards, activeMoodboard, moodboardFilmSearch, moodboardGenreFilter, moodboardDecadeFilter, moodboardYearFilter, moodboardMinRatingFilter]);
+  }, [data, moodboards, activeMoodboard, moodboardFilmSearch, moodboardGenreFilter, moodboardDecadeFilter, moodboardYearFilter, moodboardCountryFilter, moodboardDirectorFilter, moodboardLanguageFilter, moodboardMinRatingFilter]);
 
   const getCinematicPersonality = () => {
     if (!data || data.length === 0) return null;
@@ -3617,6 +3677,39 @@ const [user, setUser] = useState(null);
   const watchedGenres = data
     ? Array.from(new Set(data.flatMap((movie) => String(movie?.genres || '').split(',').map((genre) => genre.trim()).filter(Boolean)))).sort((a, b) => a.localeCompare(b))
     : [];
+  const watchedCountries = data
+    ? Array.from(
+      new Set(
+        data
+          .map((movie) => normalizeCountryName(String(movie?.country || '').split(',')[0]?.trim()))
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b))
+    : [];
+  const watchedDirectors = data
+    ? Array.from(
+      new Set(
+        data.flatMap((movie) =>
+          String(movie?.directors || '')
+            .split(',')
+            .map((director) => director.trim())
+            .filter(Boolean)
+        )
+      )
+    ).sort((a, b) => a.localeCompare(b))
+    : [];
+  const watchedLanguages = data
+    ? Array.from(
+      new Set(
+        data.flatMap((movie) =>
+          String(movie?.language || '')
+            .split(',')
+            .map((language) => language.trim())
+            .filter(Boolean)
+        )
+      )
+    ).sort((a, b) => a.localeCompare(b))
+    : [];
 
   const watchedYearOptions = watchedYears.filter((year) => {
     if (watchedDecadeFilter === 'all') return true;
@@ -3647,10 +3740,31 @@ const [user, setUser] = useState(null);
     if (watchedRatingFilter === 'below6' && rating >= 6) return false;
 
     if (watchedGenreFilter !== 'all' && !genresText.includes(watchedGenreFilter.toLowerCase())) return false;
+    if (watchedCountryFilter !== 'all') {
+      const country = normalizeCountryName(String(movie?.country || '').split(',')[0]?.trim());
+      if (country !== watchedCountryFilter) return false;
+    }
+    if (watchedDirectorFilter !== 'all') {
+      const directors = String(movie?.directors || '').toLowerCase();
+      if (!directors.split(',').map((d) => d.trim()).includes(watchedDirectorFilter.toLowerCase())) return false;
+    }
+    if (watchedLanguageFilter !== 'all') {
+      const languages = String(movie?.language || '').toLowerCase();
+      if (!languages.split(',').map((l) => l.trim()).includes(watchedLanguageFilter.toLowerCase())) return false;
+    }
     if (query && !titleText.includes(query)) return false;
 
     return true;
-  }).sort((a, b) => (Number(b?.year) || 0) - (Number(a?.year) || 0) || (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0));
+  }).sort((a, b) => {
+    if (watchedSortBy === 'year_asc') return (Number(a?.year) || 0) - (Number(b?.year) || 0);
+    if (watchedSortBy === 'rating_desc') return (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0);
+    if (watchedSortBy === 'rating_asc') return (Number(a?.yourRating) || 0) - (Number(b?.yourRating) || 0);
+    if (watchedSortBy === 'imdb_desc') return (Number(b?.imdbRating) || 0) - (Number(a?.imdbRating) || 0);
+    if (watchedSortBy === 'imdb_asc') return (Number(a?.imdbRating) || 0) - (Number(b?.imdbRating) || 0);
+    if (watchedSortBy === 'title_az') return String(a?.title || '').localeCompare(String(b?.title || ''));
+    if (watchedSortBy === 'title_za') return String(b?.title || '').localeCompare(String(a?.title || ''));
+    return (Number(b?.year) || 0) - (Number(a?.year) || 0) || (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0);
+  });
 
   const watchedTotalPages = Math.max(1, Math.ceil(watchedFilteredFilms.length / watchedFilmsPerPage));
   const watchedSafePage = Math.min(watchedPage, watchedTotalPages);
@@ -5338,7 +5452,7 @@ const [user, setUser] = useState(null);
 
   React.useEffect(() => {
     setWatchedPage(1);
-  }, [watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedSearchQuery]);
+  }, [watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedCountryFilter, watchedDirectorFilter, watchedLanguageFilter, watchedSearchQuery, watchedSortBy]);
 
   React.useEffect(() => {
     if (watchedPage > watchedTotalPages) {
@@ -5349,7 +5463,7 @@ const [user, setUser] = useState(null);
   React.useEffect(() => {
     if (activeTab !== 'allwatched' || watchedPageFilms.length === 0) return;
     loadPostersForFilms(watchedPageFilms);
-  }, [activeTab, watchedSafePage, watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedSearchQuery, data]);
+  }, [activeTab, watchedSafePage, watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedCountryFilter, watchedDirectorFilter, watchedLanguageFilter, watchedSearchQuery, watchedSortBy, data]);
 
   React.useEffect(() => {
     if (activeTab !== 'moodboard' || !displayedMoodboards?.length) return;
@@ -5461,7 +5575,8 @@ const [user, setUser] = useState(null);
   };
 
   const onTimelineWheelCapture = (e) => {
-    const el = e.currentTarget;
+    const el = tasteTimelineRef.current;
+    if (!el) return;
     if (e.ctrlKey || e.metaKey || e.altKey) {
       e.preventDefault();
       e.stopPropagation();
@@ -5479,6 +5594,7 @@ const [user, setUser] = useState(null);
     e.preventDefault();
     e.stopPropagation();
     el.scrollLeft += delta * 1.15;
+    setTimelineScrollLeft(el.scrollLeft || 0);
   };
 
   const onTimelineRailScroll = () => {
@@ -6709,7 +6825,7 @@ const [user, setUser] = useState(null);
                   />
                   <div className="flickd-mobile-menu-panel">
                   <div className="flickd-mobile-menu-header">
-                    <img src="/flickd-wordmark.png" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
+                    <img src="/flickd-menu-wordmark.svg" alt="Flickd" className="flickd-mobile-menu-brand-logo" />
                     <button
                       type="button"
                       className="flickd-mobile-menu-close"
@@ -6781,6 +6897,16 @@ const [user, setUser] = useState(null);
                   >
                     Settings
                   </button>
+                  {user && (
+                    <button
+                      type="button"
+                      onClick={() => { handleSignOut(); setMobileTopNavOpen(false); }}
+                      disabled={signingOut}
+                      className="flickd-mobile-menu-item flickd-mobile-menu-item--danger disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {signingOut ? 'Signing Out...' : 'Sign Out'}
+                    </button>
+                  )}
                 </div>
                 </div>
                 </div>
@@ -7400,6 +7526,32 @@ const [user, setUser] = useState(null);
                           placeholder="Search title..."
                           className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 w-40 sm:w-52"
                         />
+                        <Select value={watchedSortBy} onValueChange={setWatchedSortBy}>
+                          <SelectTrigger className="h-10 w-full sm:w-48">
+                            <SelectValue placeholder="Sort by" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="year_desc">Year (Newest first)</SelectItem>
+                            <SelectItem value="year_asc">Year (Oldest first)</SelectItem>
+                            <SelectItem value="rating_desc">Your Rating (High to low)</SelectItem>
+                            <SelectItem value="rating_asc">Your Rating (Low to high)</SelectItem>
+                            <SelectItem value="imdb_desc">IMDb Rating (High to low)</SelectItem>
+                            <SelectItem value="imdb_asc">IMDb Rating (Low to high)</SelectItem>
+                            <SelectItem value="title_az">Title (A-Z)</SelectItem>
+                            <SelectItem value="title_za">Title (Z-A)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <button
+                          type="button"
+                          onClick={() => setWatchedMoreFiltersOpen((prev) => !prev)}
+                          className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-300 hover:bg-[#101a2d]"
+                        >
+                          {watchedMoreFiltersOpen ? 'Hide filters' : 'More filters'}
+                        </button>
+                      </div>
+                    </div>
+                    {watchedMoreFiltersOpen && (
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-7 gap-2">
                         <Select
                           value={watchedDecadeFilter}
                           onValueChange={(value) => { setWatchedDecadeFilter(value); setWatchedYearFilter('all'); }}
@@ -7415,7 +7567,7 @@ const [user, setUser] = useState(null);
                           </SelectContent>
                         </Select>
                         <Select value={watchedYearFilter} onValueChange={setWatchedYearFilter}>
-                          <SelectTrigger className="h-10 w-full sm:w-36">
+                          <SelectTrigger className="h-10 w-full">
                             <SelectValue placeholder="All Years" />
                           </SelectTrigger>
                           <SelectContent>
@@ -7426,7 +7578,7 @@ const [user, setUser] = useState(null);
                           </SelectContent>
                         </Select>
                         <Select value={watchedRatingFilter} onValueChange={setWatchedRatingFilter}>
-                          <SelectTrigger className="h-10 w-full sm:w-40">
+                          <SelectTrigger className="h-10 w-full">
                             <SelectValue placeholder="All Ratings" />
                           </SelectTrigger>
                           <SelectContent>
@@ -7439,7 +7591,7 @@ const [user, setUser] = useState(null);
                           </SelectContent>
                         </Select>
                         <Select value={watchedGenreFilter} onValueChange={setWatchedGenreFilter}>
-                          <SelectTrigger className="h-10 w-full sm:w-44">
+                          <SelectTrigger className="h-10 w-full">
                             <SelectValue placeholder="All Genres" />
                           </SelectTrigger>
                           <SelectContent>
@@ -7449,8 +7601,41 @@ const [user, setUser] = useState(null);
                             ))}
                           </SelectContent>
                         </Select>
+                        <Select value={watchedCountryFilter} onValueChange={setWatchedCountryFilter}>
+                          <SelectTrigger className="h-10 w-full">
+                            <SelectValue placeholder="All Countries" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Countries</SelectItem>
+                            {watchedCountries.map((country) => (
+                              <SelectItem key={country} value={country}>{country}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={watchedDirectorFilter} onValueChange={setWatchedDirectorFilter}>
+                          <SelectTrigger className="h-10 w-full">
+                            <SelectValue placeholder="All Directors" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Directors</SelectItem>
+                            {watchedDirectors.map((director) => (
+                              <SelectItem key={director} value={director}>{director}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={watchedLanguageFilter} onValueChange={setWatchedLanguageFilter}>
+                          <SelectTrigger className="h-10 w-full">
+                            <SelectValue placeholder="All Languages" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Languages</SelectItem>
+                            {watchedLanguages.map((language) => (
+                              <SelectItem key={language} value={language}>{language}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </div>
+                    )}
                     <p className="text-xs text-gray-400 mt-3">
                       Showing {watchedFilteredFilms.length === 0 ? 0 : (watchedSafePage - 1) * watchedFilmsPerPage + 1} - {Math.min(watchedSafePage * watchedFilmsPerPage, watchedFilteredFilms.length)} of {watchedFilteredFilms.length} films
                     </p>
@@ -8471,7 +8656,7 @@ const [user, setUser] = useState(null);
                     </div>
 
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-3" style={timelineFullscreen ? { height: 'calc(100vh - 150px)' } : undefined}>
-                      <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full">
+                      <div className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full" onWheelCapture={onTimelineWheelCapture}>
                         <div className="absolute left-0 top-0 bottom-0 z-20 w-24 border-r border-gray-800/80 bg-[#050811]/95 backdrop-blur-sm">
                           <span className="absolute top-[14%] left-3 text-[10px] text-gray-300 tracking-wide uppercase">Mainstream</span>
                           <span className="absolute top-[42%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Hybrid</span>
@@ -8519,8 +8704,8 @@ const [user, setUser] = useState(null);
 
                               <div className="relative z-10 flex gap-4">
                                 {timelineYearClusters.map((cluster) => {
-                                  const posterW = Math.max(36, Math.round(42 * timelineZoom));
-                                  const posterH = Math.max(52, Math.round(60 * timelineZoom));
+                                  const posterW = Math.max(48, Math.round(56 * timelineZoom));
+                                  const posterH = Math.max(72, Math.round(84 * timelineZoom));
                                   const laneRows = ['Mainstream', 'Hybrid', 'Arthouse'];
                                   const columnWidth = timelineColumnWidth;
 
@@ -9243,7 +9428,7 @@ const [user, setUser] = useState(null);
                             </div>
                           </div>
                           {moodboardFiltersExpanded && (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 mt-3">
                               <Select value={moodboardGenreFilter} onValueChange={setMoodboardGenreFilter}>
                                 <SelectTrigger className="w-full min-w-0 h-10">
                                   <SelectValue placeholder="All genres" />
@@ -9274,6 +9459,39 @@ const [user, setUser] = useState(null);
                                   <SelectItem value="all">All years</SelectItem>
                                   {moodboardYearOptions.map((year) => (
                                     <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={moodboardCountryFilter} onValueChange={setMoodboardCountryFilter}>
+                                <SelectTrigger className="w-full min-w-0 h-10">
+                                  <SelectValue placeholder="All countries" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All countries</SelectItem>
+                                  {moodboardCountryOptions.map((country) => (
+                                    <SelectItem key={country} value={country}>{country}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={moodboardDirectorFilter} onValueChange={setMoodboardDirectorFilter}>
+                                <SelectTrigger className="w-full min-w-0 h-10">
+                                  <SelectValue placeholder="All directors" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All directors</SelectItem>
+                                  {moodboardDirectorOptions.map((director) => (
+                                    <SelectItem key={director} value={director}>{director}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={moodboardLanguageFilter} onValueChange={setMoodboardLanguageFilter}>
+                                <SelectTrigger className="w-full min-w-0 h-10">
+                                  <SelectValue placeholder="All languages" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All languages</SelectItem>
+                                  {moodboardLanguageOptions.map((language) => (
+                                    <SelectItem key={language} value={language}>{language}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
