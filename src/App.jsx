@@ -333,7 +333,6 @@ export default function App() {
   const [watchedGenreFilter, setWatchedGenreFilter] = useState('all');
   const [watchedCountryFilter, setWatchedCountryFilter] = useState('all');
   const [watchedDirectorFilter, setWatchedDirectorFilter] = useState('all');
-  const [watchedLanguageFilter, setWatchedLanguageFilter] = useState('all');
   const [watchedSortBy, setWatchedSortBy] = useState('year_desc');
   const [watchedMoreFiltersOpen, setWatchedMoreFiltersOpen] = useState(false);
   const [watchedSearchQuery, setWatchedSearchQuery] = useState('');
@@ -379,7 +378,6 @@ export default function App() {
   const [moodboardYearFilter, setMoodboardYearFilter] = useState('all');
   const [moodboardCountryFilter, setMoodboardCountryFilter] = useState('all');
   const [moodboardDirectorFilter, setMoodboardDirectorFilter] = useState('all');
-  const [moodboardLanguageFilter, setMoodboardLanguageFilter] = useState('all');
   const [moodboardMinRatingFilter, setMoodboardMinRatingFilter] = useState('all');
   const [moodboardFiltersExpanded, setMoodboardFiltersExpanded] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -2442,18 +2440,6 @@ const [user, setUser] = useState(null);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [data]);
-  const moodboardLanguageOptions = useMemo(() => {
-    if (!data?.length) return [];
-    const set = new Set();
-    data.forEach((film) => {
-      String(film?.language || '')
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .forEach((l) => set.add(l));
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [data]);
   const filteredMoodboardFilms = useMemo(() => {
     if (!data?.length) return [];
     const board = moodboards.find((b) => b.id === activeMoodboard);
@@ -2491,19 +2477,12 @@ const [user, setUser] = useState(null);
             .filter(Boolean);
           if (!filmDirectors.includes(moodboardDirectorFilter.toLowerCase())) return false;
         }
-        if (moodboardLanguageFilter !== 'all') {
-          const filmLanguages = String(film?.language || '')
-            .split(',')
-            .map((l) => l.trim().toLowerCase())
-            .filter(Boolean);
-          if (!filmLanguages.includes(moodboardLanguageFilter.toLowerCase())) return false;
-        }
         if (minRating !== null && (Number(film.yourRating) || 0) < minRating) return false;
         return true;
       })
       .sort((a, b) => (Number(b.yourRating) || 0) - (Number(a.yourRating) || 0))
       .slice(0, 400);
-  }, [data, moodboards, activeMoodboard, moodboardFilmSearch, moodboardGenreFilter, moodboardDecadeFilter, moodboardYearFilter, moodboardCountryFilter, moodboardDirectorFilter, moodboardLanguageFilter, moodboardMinRatingFilter]);
+  }, [data, moodboards, activeMoodboard, moodboardFilmSearch, moodboardGenreFilter, moodboardDecadeFilter, moodboardYearFilter, moodboardCountryFilter, moodboardDirectorFilter, moodboardMinRatingFilter]);
 
   const getCinematicPersonality = () => {
     if (!data || data.length === 0) return null;
@@ -3698,18 +3677,6 @@ const [user, setUser] = useState(null);
       )
     ).sort((a, b) => a.localeCompare(b))
     : [];
-  const watchedLanguages = data
-    ? Array.from(
-      new Set(
-        data.flatMap((movie) =>
-          String(movie?.language || '')
-            .split(',')
-            .map((language) => language.trim())
-            .filter(Boolean)
-        )
-      )
-    ).sort((a, b) => a.localeCompare(b))
-    : [];
 
   const watchedYearOptions = watchedYears.filter((year) => {
     if (watchedDecadeFilter === 'all') return true;
@@ -3747,10 +3714,6 @@ const [user, setUser] = useState(null);
     if (watchedDirectorFilter !== 'all') {
       const directors = String(movie?.directors || '').toLowerCase();
       if (!directors.split(',').map((d) => d.trim()).includes(watchedDirectorFilter.toLowerCase())) return false;
-    }
-    if (watchedLanguageFilter !== 'all') {
-      const languages = String(movie?.language || '').toLowerCase();
-      if (!languages.split(',').map((l) => l.trim()).includes(watchedLanguageFilter.toLowerCase())) return false;
     }
     if (query && !titleText.includes(query)) return false;
 
@@ -3952,6 +3915,7 @@ const [user, setUser] = useState(null);
 
   const handleMapWheel = (event) => {
     event.preventDefault();
+    event.stopPropagation();
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect?.width || !rect?.height) return;
 
@@ -5452,7 +5416,7 @@ const [user, setUser] = useState(null);
 
   React.useEffect(() => {
     setWatchedPage(1);
-  }, [watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedCountryFilter, watchedDirectorFilter, watchedLanguageFilter, watchedSearchQuery, watchedSortBy]);
+  }, [watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedCountryFilter, watchedDirectorFilter, watchedSearchQuery, watchedSortBy]);
 
   React.useEffect(() => {
     if (watchedPage > watchedTotalPages) {
@@ -5463,7 +5427,7 @@ const [user, setUser] = useState(null);
   React.useEffect(() => {
     if (activeTab !== 'allwatched' || watchedPageFilms.length === 0) return;
     loadPostersForFilms(watchedPageFilms);
-  }, [activeTab, watchedSafePage, watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedCountryFilter, watchedDirectorFilter, watchedLanguageFilter, watchedSearchQuery, watchedSortBy, data]);
+  }, [activeTab, watchedSafePage, watchedDecadeFilter, watchedYearFilter, watchedRatingFilter, watchedGenreFilter, watchedCountryFilter, watchedDirectorFilter, watchedSearchQuery, watchedSortBy, data]);
 
   React.useEffect(() => {
     if (activeTab !== 'moodboard' || !displayedMoodboards?.length) return;
@@ -5506,6 +5470,32 @@ const [user, setUser] = useState(null);
     if (!selected?.films?.length) return;
     loadPostersForFilms(selected.films.slice(0, 40));
   }, [activeTab, personalCanonView, personalCanon, expandedDecades, data]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'deepdive') return undefined;
+    const rails = Array.from(document.querySelectorAll('.cinematic-rail'));
+    if (!rails.length) return undefined;
+
+    const handleDeepDiveRailWheel = (event) => {
+      const el = event.currentTarget;
+      if (!el || el.scrollWidth <= el.clientWidth + 1) return;
+      const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+      if (!delta) return;
+      event.preventDefault();
+      event.stopPropagation();
+      el.scrollLeft += delta;
+    };
+
+    rails.forEach((rail) => {
+      rail.addEventListener('wheel', handleDeepDiveRailWheel, { passive: false });
+    });
+
+    return () => {
+      rails.forEach((rail) => {
+        rail.removeEventListener('wheel', handleDeepDiveRailWheel);
+      });
+    };
+  }, [activeTab, favoriteYearView, personalCanonView, topGenreView, hiddenGemsView, hiddenTreasuresView]);
 
   React.useEffect(() => {
     if (activeTab !== 'tastetimeline' || !timelineMovies.length) return;
@@ -6714,12 +6704,12 @@ const [user, setUser] = useState(null);
 <div className={`flickd-immersive-shell ${mobileTopNavOpen ? 'flickd-mobile-menu-open' : ''}`}>
         <header className="flickd-shell-header">
             <div className="flickd-shell-header__inner">
-              <div className="flex h-full items-center justify-between gap-3">
-                <div className="flickd-brand-lockup">
+              <div className="flex h-full items-center justify-between md:justify-start gap-3 md:gap-4">
+                <div className="flickd-brand-lockup md:w-[292px] md:flex-none md:justify-center">
                   <img
                     src="/flickd-brand.png"
                     alt="Flickd"
-                    className="h-9 w-auto object-contain"
+                    className="h-8 md:h-7 w-auto object-contain"
                   />
                 </div>
                 <button
@@ -6733,7 +6723,7 @@ const [user, setUser] = useState(null);
                     <path d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <div className="flickd-primary-nav hidden md:flex">
+                <div className="flickd-primary-nav hidden md:flex md:mr-auto">
                   <button
                     type="button"
                     onClick={() => { if (memberViewUserId) exitMemberDashboard(); handleTabChange('overview'); }}
@@ -6795,13 +6785,6 @@ const [user, setUser] = useState(null);
                     }`}
                   >
                     Settings
-                  </button>
-                  <button
-                    onClick={handleDownloadPdfBook}
-                    disabled={isBookExporting}
-                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-200 bg-[#111827] hover:bg-[#1f2937] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isBookExporting ? 'Preparing PDF Book...' : 'Download'}
                   </button>
                   {user && (
                     <button
@@ -7443,16 +7426,15 @@ const [user, setUser] = useState(null);
                           </div>
                       </div>
 
-                      <div className="rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative">
+                      <div className="rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative" onWheelCapture={handleMapWheel}>
                         
                           {mapFeatures.length > 0 && mapPathGenerator ? (
                             <svg
                               viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-                                className={`flickd-gesture-surface w-full ${mapFullscreen ? 'h-[82vh]' : 'h-[580px]'} ${isMapDragging ? "cursor-grabbing" : ""}`}
+                              className={`flickd-gesture-surface w-full ${mapFullscreen ? 'h-[82vh]' : 'h-[580px]'} ${isMapDragging ? "cursor-grabbing" : ""}`}
                               onMouseDown={handleMapMouseDown}
                               onMouseMove={handleMapMouseMove}
                               onMouseUp={stopMapDragging}
-                              onWheel={handleMapWheel}
                               onTouchStart={handleMapTouchStart}
                               onTouchMove={handleMapTouchMove}
                               onTouchEnd={handleMapTouchEnd}
@@ -7527,7 +7509,7 @@ const [user, setUser] = useState(null);
                           className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 w-40 sm:w-52"
                         />
                         <Select value={watchedSortBy} onValueChange={setWatchedSortBy}>
-                          <SelectTrigger className="h-10 w-full sm:w-48">
+                          <SelectTrigger className="h-10 w-full sm:w-64">
                             <SelectValue placeholder="Sort by" />
                           </SelectTrigger>
                           <SelectContent>
@@ -7551,7 +7533,7 @@ const [user, setUser] = useState(null);
                       </div>
                     </div>
                     {watchedMoreFiltersOpen && (
-                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-7 gap-2">
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-6 gap-2">
                         <Select
                           value={watchedDecadeFilter}
                           onValueChange={(value) => { setWatchedDecadeFilter(value); setWatchedYearFilter('all'); }}
@@ -7613,24 +7595,13 @@ const [user, setUser] = useState(null);
                           </SelectContent>
                         </Select>
                         <Select value={watchedDirectorFilter} onValueChange={setWatchedDirectorFilter}>
-                          <SelectTrigger className="h-10 w-full">
+                          <SelectTrigger className="h-10 w-full sm:col-span-2">
                             <SelectValue placeholder="All Directors" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Directors</SelectItem>
                             {watchedDirectors.map((director) => (
                               <SelectItem key={director} value={director}>{director}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select value={watchedLanguageFilter} onValueChange={setWatchedLanguageFilter}>
-                          <SelectTrigger className="h-10 w-full">
-                            <SelectValue placeholder="All Languages" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Languages</SelectItem>
-                            {watchedLanguages.map((language) => (
-                              <SelectItem key={language} value={language}>{language}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -8254,7 +8225,7 @@ const [user, setUser] = useState(null);
 
                   <div className="flex flex-wrap items-center justify-between gap-2 bg-[#111827] border border-gray-800 rounded-xl p-3">
                     <p className="text-xs text-gray-400">
-                      Page {membersPage + 1}  �  Showing up to 30 members
+                      Page {membersPage + 1} • Showing up to 30 members
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -8728,7 +8699,7 @@ const [user, setUser] = useState(null);
                                                   return (
                                                     <div
                                                       key={hoverKey}
-                                                      className={`group rounded-md transition-all duration-200 ${faded ? 'opacity-55 grayscale-[0.2]' : primary ? 'opacity-100' : 'opacity-85'} ${isHovered ? 'scale-[1.07] shadow-[0_0_0_1px_rgba(59,130,246,0.65),0_0_24px_rgba(59,130,246,0.25)]' : ''}`}
+                                                      className={`group timeline-poster-frame rounded-md transition-all duration-200 ${faded ? 'opacity-55 grayscale-[0.2]' : primary ? 'opacity-100' : 'opacity-85'} ${isHovered ? 'scale-[1.07] shadow-[0_0_0_1px_rgba(59,130,246,0.65),0_0_24px_rgba(59,130,246,0.25)]' : ''}`}
                                                       style={{ width: `${posterW}px` }}
                                                       onMouseEnter={() => setTimelineHoverKey(hoverKey)}
                                                       onMouseLeave={() => setTimelineHoverKey(null)}
@@ -8739,7 +8710,7 @@ const [user, setUser] = useState(null);
                                                             src={posters[posterKey]}
                                                             alt={movie.title}
                                                             loading="lazy"
-                                                            className="w-full object-cover rounded-md border border-gray-700"
+                                                            className="timeline-poster-image w-full object-cover border border-gray-700"
                                                             style={{ height: `${posterH}px` }}
                                                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                                           />
@@ -8748,7 +8719,7 @@ const [user, setUser] = useState(null);
                                                         <button
                                                           type="button"
                                                           onClick={() => fetchPoster(movie.title, movie.year, movie.imdbId)}
-                                                          className="timeline-poster-trigger w-full rounded-md border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
+                                                          className="timeline-poster-trigger timeline-poster-image w-full border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
                                                           style={{ height: `${posterH}px` }}
                                                           title="Load poster"
                                                         >
@@ -9428,7 +9399,7 @@ const [user, setUser] = useState(null);
                             </div>
                           </div>
                           {moodboardFiltersExpanded && (
-                            <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 mt-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mt-3">
                               <Select value={moodboardGenreFilter} onValueChange={setMoodboardGenreFilter}>
                                 <SelectTrigger className="w-full min-w-0 h-10">
                                   <SelectValue placeholder="All genres" />
@@ -9481,17 +9452,6 @@ const [user, setUser] = useState(null);
                                   <SelectItem value="all">All directors</SelectItem>
                                   {moodboardDirectorOptions.map((director) => (
                                     <SelectItem key={director} value={director}>{director}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Select value={moodboardLanguageFilter} onValueChange={setMoodboardLanguageFilter}>
-                                <SelectTrigger className="w-full min-w-0 h-10">
-                                  <SelectValue placeholder="All languages" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="all">All languages</SelectItem>
-                                  {moodboardLanguageOptions.map((language) => (
-                                    <SelectItem key={language} value={language}>{language}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
