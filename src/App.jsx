@@ -477,7 +477,7 @@ export default function App() {
   const posterLoadInFlightRef = React.useRef(new Set());
   const posterFailedAtRef = React.useRef({});
   const omdbCacheAvailableRef = React.useRef(true);
-  const countryFetchSignatureRef = React.useRef('');
+  const lastCountryFetchAttemptAtRef = React.useRef(0);
   const membersFetchInFlightRef = React.useRef(false);
   const lastAuthUserIdRef = React.useRef(null);
 
@@ -1336,11 +1336,9 @@ const [user, setUser] = useState(null);
 
     const hasMissingCountry = data.some((movie) => !hasUsableCountryName(movie?.country));
     if (!hasMissingCountry) return;
-    const signature = data
-      .map((movie) => `${String(movie?.imdbId || movie?.imdbID || movie?.title || '').trim()}::${Number(movie?.year) || ''}::${String(movie?.country || '')}`)
-      .join('|');
-    if (countryFetchSignatureRef.current === signature) return;
-    countryFetchSignatureRef.current = signature;
+    const now = Date.now();
+    if (now - lastCountryFetchAttemptAtRef.current < 60000) return;
+    lastCountryFetchAttemptAtRef.current = now;
 
     let cancelled = false;
     (async () => {
@@ -1860,8 +1858,7 @@ const [user, setUser] = useState(null);
             // Ignore lookup failures and keep country as Unknown.
           }
 
-          cache[key] = 'Unknown';
-          return { ...movie, country: 'Unknown' };
+          return movie;
         });
 
         const results = await Promise.all(promises);
@@ -1874,6 +1871,16 @@ const [user, setUser] = useState(null);
     }
 
     return updated;
+  };
+
+  const retryCountryMapping = async () => {
+    if (!Array.isArray(data) || !data.length || fetchingCountries) return;
+    lastCountryFetchAttemptAtRef.current = 0;
+    const enriched = await fetchCountryData(data, OMDB_API_KEY);
+    if (enriched?.length) {
+      setData(enriched);
+      persistDataset(enriched, fileName || 'IMDb Ratings');
+    }
   };
 
   const _getFeatureName = (feature) => {
@@ -7615,11 +7622,22 @@ const [user, setUser] = useState(null);
                       >
                         {(countryDataCount === 0 || countryHighlightCount === 0 || usingCountryPreferenceFallback) && (
                           <div className="absolute left-4 top-4 z-10 max-w-xs rounded-lg border border-gray-700 bg-[#050a14]/90 px-3 py-2 text-xs text-gray-300 shadow-lg">
-                            {countryDataCount === 0
-                              ? (fetchingCountries ? 'Mapping countries from OMDb...' : 'Country data is not available yet. Try re-uploading or wait for OMDb enrichment to finish.')
-                              : countryHighlightCount === 0
-                                ? 'No mapped countries match this rating scope yet.'
-                                : 'Showing all mapped countries until the 8+ country set is ready.'}
+                            <p>
+                              {countryDataCount === 0
+                                ? (fetchingCountries ? 'Mapping countries from OMDb...' : 'Country data is not available yet.')
+                                : countryHighlightCount === 0
+                                  ? 'No mapped countries match this rating scope yet.'
+                                  : 'Showing all mapped countries until the 8+ country set is ready.'}
+                            </p>
+                            {countryDataCount === 0 && !fetchingCountries && (
+                              <button
+                                type="button"
+                                onClick={retryCountryMapping}
+                                className="mt-2 rounded-md border border-blue-500/40 bg-blue-600/20 px-2 py-1 text-[11px] text-blue-200 hover:bg-blue-600/30"
+                              >
+                                Retry country mapping
+                              </button>
+                            )}
                           </div>
                         )}
                         
