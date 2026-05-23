@@ -473,6 +473,7 @@ export default function App() {
   const mainContentRef = React.useRef(null);
   const tasteTimelineFullscreenRef = React.useRef(null);
   const mapFullscreenRef = React.useRef(null);
+  const mapWheelSurfaceRef = React.useRef(null);
   const traceFullscreenRef = React.useRef(null);
   const tasteTimelineRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
@@ -4038,6 +4039,9 @@ const [user, setUser] = useState(null);
   const handleMapWheel = (event) => {
     if (event.cancelable) event.preventDefault();
     event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
     if (event.nativeEvent?.stopImmediatePropagation) {
       event.nativeEvent.stopImmediatePropagation();
     }
@@ -4089,6 +4093,18 @@ const [user, setUser] = useState(null);
     setIsMapDragging(false);
     setMapDragStart(null);
   };
+
+  useEffect(() => {
+    const el = mapWheelSurfaceRef.current;
+    if (!el) return undefined;
+    const wheelLockHandler = (event) => {
+      handleMapWheel(event);
+    };
+    el.addEventListener('wheel', wheelLockHandler, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', wheelLockHandler);
+    };
+  }, []);
 
   const handleMapTouchStart = (event) => {
     if (event.touches.length === 2) {
@@ -6452,38 +6468,28 @@ const [user, setUser] = useState(null);
             alt="Flickd"
             className="h-7 sm:h-8 w-auto mx-auto mb-6 object-contain"
           />
-          <div className="mb-8 h-40 sm:h-44 w-full flex items-start justify-center">
-            <div className="relative h-full w-[320px] sm:w-[380px]">
-            {[0, 1, 2, 3, 4].map((idx) => {
-              const posterUrl = loginPosterUrls[idx] || '';
-              const translateClass =
-                idx === 0
-                  ? '-translate-x-[120px] sm:-translate-x-[138px] translate-y-3 scale-[0.95]'
-                  : idx === 1
-                    ? '-translate-x-[62px] sm:-translate-x-[72px] translate-y-1 scale-[0.98]'
-                    : idx === 2
-                      ? 'translate-x-0 translate-y-0 scale-100 z-20'
-                      : idx === 3
-                        ? 'translate-x-[62px] sm:translate-x-[72px] translate-y-1 scale-[0.98]'
-                        : 'translate-x-[120px] sm:translate-x-[138px] translate-y-3 scale-[0.95]';
-              return (
-                <div
-                  key={`login_poster_${idx}`}
-                  className={`absolute left-1/2 top-0 -translate-x-1/2 w-20 sm:w-24 h-[120px] sm:h-36 rounded-xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_24px_rgba(0,0,0,0.35)] transition-all opacity-100 ${translateClass}`}
-                >
-                  {posterUrl ? (
-                    <img
-                      src={posterUrl}
-                      alt="Film poster"
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-gradient-to-b from-[#13203a] to-[#0b1220]" />
-                  )}
-                </div>
-              );
-            })}
+          <div className="mb-8 h-36 sm:h-40 w-full flex items-start justify-center">
+            <div className="flex items-start justify-center">
+              {[0, 1, 2, 3, 4].map((idx) => {
+                const posterUrl = loginPosterUrls[idx] || '';
+                return (
+                  <div
+                    key={`login_poster_${idx}`}
+                    className={`w-20 sm:w-24 h-[118px] sm:h-[132px] rounded-2xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_20px_rgba(0,0,0,0.28)] ${idx === 0 ? '' : '-ml-2 sm:-ml-3'}`}
+                  >
+                    {posterUrl ? (
+                      <img
+                        src={posterUrl}
+                        alt="Film poster"
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-gradient-to-b from-[#13203a] to-[#0b1220]" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl leading-tight font-bold tracking-tight text-white">Welcome</h1>
@@ -7634,6 +7640,7 @@ const [user, setUser] = useState(null);
                       </div>
 
                       <div
+                        ref={mapWheelSurfaceRef}
                         className="rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative overscroll-contain"
                         style={{ overscrollBehavior: 'contain' }}
                         onWheel={handleMapWheel}
@@ -8916,10 +8923,10 @@ const [user, setUser] = useState(null);
 
                               <div className="relative z-10 flex gap-4">
                                 {timelineYearClusters.map((cluster) => {
-                                  const posterW = Math.max(48, Math.round(56 * timelineZoom));
-                                  const posterH = Math.max(72, Math.round(84 * timelineZoom));
-                                  const laneRows = ['Mainstream', 'Hybrid', 'Arthouse'];
                                   const columnWidth = timelineColumnWidth;
+                                  const posterW = Math.max(62, Math.min(columnWidth - 10, Math.round(72 * timelineZoom)));
+                                  const posterH = Math.max(92, Math.round(posterW * 1.5));
+                                  const laneRows = ['Mainstream', 'Hybrid', 'Arthouse'];
 
                                   return (
                                     <div key={`year-cluster-${cluster.year}`} className="relative shrink-0 border-l border-gray-800/40" style={{ width: `${columnWidth}px` }}>
