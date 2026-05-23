@@ -475,6 +475,7 @@ export default function App() {
   const tasteTimelineFullscreenRef = React.useRef(null);
   const mapFullscreenRef = React.useRef(null);
   const mapWheelSurfaceRef = React.useRef(null);
+  const timelineWheelSurfaceRef = React.useRef(null);
   const traceFullscreenRef = React.useRef(null);
   const tasteTimelineRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
@@ -4101,8 +4102,10 @@ const [user, setUser] = useState(null);
       wheelTarget instanceof Element && wheelTarget.closest('.flickd-map-wheel-surface');
     const insideDeepDiveRail =
       wheelTarget instanceof Element && wheelTarget.closest('.cinematic-rail');
+    const insideTimelineWheelSurface =
+      wheelTarget instanceof Element && wheelTarget.closest('.flickd-timeline-wheel-surface');
 
-    if (insideMapWheelSurface || insideDeepDiveRail) {
+    if (insideMapWheelSurface || insideDeepDiveRail || insideTimelineWheelSurface) {
       // Prevent the app container from vertically scrolling while allowing
       // the inner interactive surface to handle wheel behavior.
       if (event.cancelable) event.preventDefault();
@@ -5769,6 +5772,53 @@ const [user, setUser] = useState(null);
     el.scrollLeft += delta * 1.15;
     setTimelineScrollLeft(el.scrollLeft || 0);
   };
+
+  useEffect(() => {
+    const el = timelineWheelSurfaceRef.current;
+    if (!el) return undefined;
+    const nativeTimelineWheelHandler = (event) => {
+      const rail = tasteTimelineRef.current;
+      if (!rail) return;
+      if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+      }
+
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        const step = event.deltaY < 0 ? 0.08 : -0.08;
+        zoomTimeline(step);
+        return;
+      }
+
+      const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+      rail.scrollLeft += delta * 1.15;
+      setTimelineScrollLeft(rail.scrollLeft || 0);
+    };
+
+    el.addEventListener('wheel', nativeTimelineWheelHandler, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', nativeTimelineWheelHandler);
+    };
+  }, [zoomTimeline]);
+
+  useEffect(() => {
+    const hardWheelGuard = (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const inBlockedZone =
+        target.closest('.flickd-map-wheel-surface') ||
+        target.closest('.cinematic-rail');
+      if (!inBlockedZone) return;
+      if (event.cancelable) event.preventDefault();
+    };
+
+    // Capture-phase + non-passive to reliably block page vertical scroll.
+    window.addEventListener('wheel', hardWheelGuard, { capture: true, passive: false });
+    return () => {
+      window.removeEventListener('wheel', hardWheelGuard, true);
+    };
+  }, []);
 
   const handlePosterRenderError = React.useCallback((posterKey) => {
     if (!posterKey) return;
@@ -8866,7 +8916,11 @@ const [user, setUser] = useState(null);
                       </div>
                     </div>
 
-                    <div className="bg-[#111827] border border-gray-800 rounded-xl p-3" style={timelineFullscreen ? { height: 'calc(100vh - 150px)' } : undefined}>
+                    <div
+                      ref={timelineWheelSurfaceRef}
+                      className="flickd-timeline-wheel-surface bg-[#111827] border border-gray-800 rounded-xl p-3"
+                      style={timelineFullscreen ? { height: 'calc(100vh - 150px)' } : undefined}
+                    >
                       <div
                         className="relative rounded-xl border border-gray-800 bg-gradient-to-b from-[#060c1b] via-[#050811] to-[#04070f] overflow-hidden flex flex-col h-full overscroll-contain"
                         style={{ overscrollBehavior: 'contain' }}
