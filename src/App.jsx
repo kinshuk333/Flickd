@@ -331,6 +331,11 @@ const countryLookupKey = (country) => String(country || '')
   .toLowerCase()
   .replace(/&/g, 'and')
   .replace(/[^a-z0-9]+/g, '');
+const hasUsableCountryName = (country) => {
+  const value = String(country || '').trim();
+  if (!value) return false;
+  return !/^(unknown|n\/a|na|null|undefined|none|error)$/i.test(value);
+};
 
 export default function App() {
   const [data, setData] = useState(null);
@@ -1329,7 +1334,7 @@ const [user, setUser] = useState(null);
   useEffect(() => {
     if (!data?.length || fetchingCountries) return;
 
-    const hasMissingCountry = data.some((movie) => !movie?.country || movie.country === 'Unknown');
+    const hasMissingCountry = data.some((movie) => !hasUsableCountryName(movie?.country));
     if (!hasMissingCountry) return;
     const signature = data
       .map((movie) => `${String(movie?.imdbId || movie?.imdbID || movie?.title || '').trim()}::${Number(movie?.year) || ''}::${String(movie?.country || '')}`)
@@ -1817,7 +1822,7 @@ const [user, setUser] = useState(null);
 
         const promises = batch.map(async (movie) => {
           const key = `${movie.title}_${movie.year}`;
-          if (cache[key] && cache[key] !== 'Unknown') return { ...movie, country: cache[key] };
+          if (hasUsableCountryName(cache[key])) return { ...movie, country: cache[key] };
 
           const cleanTitle = cleanTitleForOmdb(movie.title);
 
@@ -1832,9 +1837,18 @@ const [user, setUser] = useState(null);
               return { ...movie, country: cached.country };
             }
 
-            const json = await fetchOmdbWithFallback((key) =>
-              `https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitle)}&y=${movie.year}&apikey=${key}`
-            );
+            let json = null;
+            const movieImdbId = String(movie?.imdbId || movie?.imdbID || '').trim();
+            if (movieImdbId) {
+              json = await fetchOmdbWithFallback((key) =>
+                `https://www.omdbapi.com/?i=${encodeURIComponent(movieImdbId)}&apikey=${key}`
+              );
+            }
+            if (!json || json?.Response !== 'True') {
+              json = await fetchOmdbWithFallback((key) =>
+                `https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitle)}&y=${movie.year}&apikey=${key}`
+              );
+            }
 
             if (json?.Response === 'True' && json.Country) {
               const country = json.Country.split(',')[0].trim();
@@ -1984,10 +1998,10 @@ const [user, setUser] = useState(null);
         return;
       }
 
-      if (!movie?.country || movie.country === 'Unknown') return;
+      if (!hasUsableCountryName(movie?.country)) return;
 
       const normalizedCountry = normalizeCountryName(String(movie.country).split(',')[0].trim());
-      if (!normalizedCountry) return;
+      if (!hasUsableCountryName(normalizedCountry)) return;
 
       countryStats[normalizedCountry] = (countryStats[normalizedCountry] || 0) + 1;
     });
@@ -3723,6 +3737,10 @@ const [user, setUser] = useState(null);
     });
     return acc;
   }, {});
+  const countryDataCount = data
+    ? data.filter((movie) => hasUsableCountryName(movie?.country)).length
+    : 0;
+  const countryHighlightCount = fallbackCountryPreference.reduce((sum, item) => sum + (Number(item?.count) || 0), 0);
 
   const watchedDecades = data
     ? Array.from(new Set(data.map((movie) => Number(movie?.year)).filter((year) => year >= 1900).map((year) => Math.floor(year / 10) * 10))).sort((a, b) => b - a)
@@ -3740,7 +3758,7 @@ const [user, setUser] = useState(null);
       new Set(
         data
           .map((movie) => normalizeCountryName(String(movie?.country || '').split(',')[0]?.trim()))
-          .filter(Boolean)
+          .filter(hasUsableCountryName)
       )
     ).sort((a, b) => a.localeCompare(b))
     : [];
@@ -7595,6 +7613,15 @@ const [user, setUser] = useState(null);
                         onWheel={handleMapWheel}
                         onWheelCapture={handleMapWheel}
                       >
+                        {(countryDataCount === 0 || countryHighlightCount === 0 || usingCountryPreferenceFallback) && (
+                          <div className="absolute left-4 top-4 z-10 max-w-xs rounded-lg border border-gray-700 bg-[#050a14]/90 px-3 py-2 text-xs text-gray-300 shadow-lg">
+                            {countryDataCount === 0
+                              ? (fetchingCountries ? 'Mapping countries from OMDb...' : 'Country data is not available yet. Try re-uploading or wait for OMDb enrichment to finish.')
+                              : countryHighlightCount === 0
+                                ? 'No mapped countries match this rating scope yet.'
+                                : 'Showing all mapped countries until the 8+ country set is ready.'}
+                          </div>
+                        )}
                         
                           {mapFeatures.length > 0 && mapPathGenerator ? (
                             <svg
