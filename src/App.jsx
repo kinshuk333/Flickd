@@ -4096,7 +4096,22 @@ const [user, setUser] = useState(null);
   };
 
   const handleMainScrollWheelCapture = (event) => {
+    const wheelTarget = event.target;
+    const insideMapWheelSurface =
+      wheelTarget instanceof Element && wheelTarget.closest('.flickd-map-wheel-surface');
+    if (insideMapWheelSurface) {
+      // Always block page-level wheel scrolling while pointer is in the map.
+      if (event.cancelable) event.preventDefault();
+      return;
+    }
+
     if (!mapWheelLock && !deepDiveWheelLock) return;
+    if (deepDiveWheelLock) {
+      if (wheelTarget instanceof Element && wheelTarget.closest('.cinematic-rail')) {
+        // Let the rail consume wheel and translate it to horizontal scroll.
+        return;
+      }
+    }
     if (event.cancelable) event.preventDefault();
     event.stopPropagation();
     if (event.nativeEvent?.stopImmediatePropagation) {
@@ -5727,23 +5742,42 @@ const [user, setUser] = useState(null);
   const onTimelineWheelCapture = (e) => {
     const el = tasteTimelineRef.current;
     if (!el) return;
-    if (e.cancelable) e.preventDefault();
-    e.stopPropagation();
-    if (e.nativeEvent?.stopImmediatePropagation) {
-      e.nativeEvent.stopImmediatePropagation();
-    }
+    // Zoom gesture stays explicit (modifier keys).
     if (e.ctrlKey || e.metaKey || e.altKey) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      if (e.nativeEvent?.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
       const step = e.deltaY < 0 ? 0.08 : -0.08;
       zoomTimeline(step);
       return;
     }
-    if (el.scrollWidth <= el.clientWidth + 1) {
+
+    // Horizontal intent: trackpad deltaX or Shift+wheel should move the rail.
+    const horizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
+    if (horizontalIntent && el.scrollWidth > el.clientWidth + 1) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      if (e.nativeEvent?.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+      const delta = e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      el.scrollLeft += delta * 1.15;
+      setTimelineScrollLeft(el.scrollLeft || 0);
       return;
     }
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (!delta) return;
-    el.scrollLeft += delta * 1.15;
-    setTimelineScrollLeft(el.scrollLeft || 0);
+
+    // Vertical intent should scroll the timeline card area itself (not page).
+    const verticalHost = e.currentTarget?.closest?.('.timeline-y-scroll');
+    if (verticalHost instanceof HTMLElement) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      if (e.nativeEvent?.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+      verticalHost.scrollTop += e.deltaY;
+    }
   };
 
   const handlePosterRenderError = React.useCallback((posterKey) => {
@@ -7612,7 +7646,7 @@ const [user, setUser] = useState(null);
 
                       <div
                         ref={mapWheelSurfaceRef}
-                        className="rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative overscroll-contain"
+                        className="flickd-map-wheel-surface rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative overscroll-contain"
                         style={{ overscrollBehavior: 'contain' }}
                         onMouseEnter={() => setMapWheelLock(true)}
                         onMouseLeave={() => setMapWheelLock(false)}
@@ -8855,7 +8889,7 @@ const [user, setUser] = useState(null);
                           <span className="absolute top-[70%] left-3 text-[10px] text-gray-400 tracking-wide uppercase">Arthouse</span>
                         </div>
 
-                        <div className="timeline-y-scroll flex-1 min-h-0 overflow-y-hidden overflow-x-hidden" onWheel={onTimelineWheelCapture} onWheelCapture={onTimelineWheelCapture}>
+                        <div className="timeline-y-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden" onWheel={onTimelineWheelCapture} onWheelCapture={onTimelineWheelCapture}>
                           <div
                             ref={tasteTimelineRef}
                             className="cinematic-rail timeline-x-hidden overflow-x-hidden overflow-y-visible scroll-smooth"
