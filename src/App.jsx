@@ -1185,6 +1185,7 @@ const [user, setUser] = useState(null);
     ])];
   }, [OMDB_API_KEY, OMDB_API_KEY_FALLBACK, OMDB_API_KEYS_RAW]);
   const OMDB_CACHE_TABLE = 'omdb_cache';
+  const OMDB_FETCH_TIMEOUT_MS = 8000;
   const invalidOmdbKeysRef = React.useRef(new Set());
 
   const hiddenGemsPerPage = 10;
@@ -1417,7 +1418,14 @@ const [user, setUser] = useState(null);
       try {
         const url = buildUrlForKey(key);
         if (!url) continue;
-        const res = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), OMDB_FETCH_TIMEOUT_MS);
+        let res;
+        try {
+          res = await fetch(url, { signal: controller.signal });
+        } finally {
+          clearTimeout(timeoutId);
+        }
         if (res.status === 401) {
           invalidOmdbKeysRef.current.add(key);
           continue;
@@ -3268,6 +3276,7 @@ const [user, setUser] = useState(null);
   const personality = getCinematicPersonality();
 
   const stats = getSummaryStats();
+  const hasDashboardData = Array.isArray(data) && data.length > 0;
   const ratingDist = getRatingDistribution();
   const genreAffinity = getGenreAffinity();
   const eraPreference = getEraPreference();
@@ -6377,7 +6386,7 @@ const [user, setUser] = useState(null);
     );
   }
 
-  if (!data) {
+  if (!hasDashboardData) {
     return (
       <div className="min-h-screen bg-[#0b0f17] text-gray-100 px-4 py-8">
         <div className="max-w-3xl mx-auto">
@@ -6981,7 +6990,7 @@ const [user, setUser] = useState(null);
             </div>
         </header>
 
-        {(!fetchingCountries && data && stats) ? (
+        {(hasDashboardData && stats) ? (
 
           <>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
@@ -10762,7 +10771,7 @@ const [user, setUser] = useState(null);
         </>
         ) : null}
         
-        {(!fetchingCountries && !data) && (
+        {(!fetchingCountries && !hasDashboardData) && (
           <div className="text-center py-24">
             <div className="text-8xl mb-8"></div>
             <h3 className="text-3xl font-semibold mb-6 text-gray-100">Import Your Cinema History</h3>
