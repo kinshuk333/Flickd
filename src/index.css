@@ -3444,7 +3444,7 @@ body {
     z-index: 1;
     width: 100%;
     height: 100dvh;
-    padding: calc(env(safe-area-inset-top) + 15px) 20px calc(env(safe-area-inset-bottom) + 20px) !important;
+    padding: calc(env(safe-area-inset-top) + 6px) 18px calc(env(safe-area-inset-bottom) + 18px) !important;
     border: 0 !important;
     border-radius: 0 !important;
     background:
@@ -3468,20 +3468,22 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 17px;
-    min-height: 42px;
+    margin-top: 0;
+    margin-bottom: 10px;
+    min-height: 34px;
   }
 
   .flickd-mobile-menu-brand-logo {
     display: block;
-    width: clamp(124px, 35vw, 158px);
+    width: clamp(108px, 30vw, 136px);
+    max-height: 32px;
     height: auto;
     object-fit: contain;
   }
 
   .flickd-mobile-menu-close {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 999px;
     border: 1px solid rgba(178, 193, 222, 0.16);
     background: rgba(13, 19, 32, 0.64);
@@ -3493,22 +3495,24 @@ body {
   }
 
   .flickd-mobile-menu-close svg {
-    width: 17px;
-    height: 17px;
+    width: 15px;
+    height: 15px;
   }
 
   .flickd-mobile-menu-list {
     display: grid;
-    gap: 9px;
+    gap: 8px;
     margin-top: 0;
     align-content: start;
-    padding-top: 2px;
+    padding: 0 10px;
+    box-sizing: border-box;
   }
 
   .flickd-mobile-menu-item {
     min-height: 54px !important;
     height: 54px !important;
     width: 100%;
+    box-sizing: border-box;
     border-radius: 13px !important;
     padding: 0 16px !important;
     display: flex !important;
@@ -3708,7 +3712,7 @@ body {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    transform: translateX(-14px);
+    transform: translateX(-30px);
   }
 
   .flickd-shell-header__inner .flickd-brand-lockup img {
