@@ -4099,8 +4099,12 @@ const [user, setUser] = useState(null);
     const wheelTarget = event.target;
     const insideMapWheelSurface =
       wheelTarget instanceof Element && wheelTarget.closest('.flickd-map-wheel-surface');
-    if (insideMapWheelSurface) {
-      // Always block page-level wheel scrolling while pointer is in the map.
+    const insideDeepDiveRail =
+      wheelTarget instanceof Element && wheelTarget.closest('.cinematic-rail');
+
+    if (insideMapWheelSurface || insideDeepDiveRail) {
+      // Prevent the app container from vertically scrolling while allowing
+      // the inner interactive surface to handle wheel behavior.
       if (event.cancelable) event.preventDefault();
       return;
     }
@@ -5754,30 +5758,16 @@ const [user, setUser] = useState(null);
       return;
     }
 
-    // Horizontal intent: trackpad deltaX or Shift+wheel should move the rail.
-    const horizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
-    if (horizontalIntent && el.scrollWidth > el.clientWidth + 1) {
-      if (e.cancelable) e.preventDefault();
-      e.stopPropagation();
-      if (e.nativeEvent?.stopImmediatePropagation) {
-        e.nativeEvent.stopImmediatePropagation();
-      }
-      const delta = e.shiftKey && Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-      el.scrollLeft += delta * 1.15;
-      setTimelineScrollLeft(el.scrollLeft || 0);
-      return;
+    // In timeline card area, wheel should always drive horizontal rail movement.
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    if (e.nativeEvent?.stopImmediatePropagation) {
+      e.nativeEvent.stopImmediatePropagation();
     }
-
-    // Vertical intent should scroll the timeline card area itself (not page).
-    const verticalHost = e.currentTarget?.closest?.('.timeline-y-scroll');
-    if (verticalHost instanceof HTMLElement) {
-      if (e.cancelable) e.preventDefault();
-      e.stopPropagation();
-      if (e.nativeEvent?.stopImmediatePropagation) {
-        e.nativeEvent.stopImmediatePropagation();
-      }
-      verticalHost.scrollTop += e.deltaY;
-    }
+    if (el.scrollWidth <= el.clientWidth + 1) return;
+    const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    el.scrollLeft += delta * 1.15;
+    setTimelineScrollLeft(el.scrollLeft || 0);
   };
 
   const handlePosterRenderError = React.useCallback((posterKey) => {
