@@ -460,6 +460,7 @@ export default function App() {
   const posterLoadInFlightRef = React.useRef(new Set());
   const posterFailedAtRef = React.useRef({});
   const omdbCacheAvailableRef = React.useRef(true);
+  const countryFetchSignatureRef = React.useRef('');
   const membersFetchInFlightRef = React.useRef(false);
   const lastAuthUserIdRef = React.useRef(null);
 
@@ -1318,6 +1319,11 @@ const [user, setUser] = useState(null);
 
     const hasMissingCountry = data.some((movie) => !movie?.country);
     if (!hasMissingCountry) return;
+    const signature = data
+      .map((movie) => `${String(movie?.imdbId || movie?.imdbID || movie?.title || '').trim()}::${Number(movie?.year) || ''}::${String(movie?.country || '')}`)
+      .join('|');
+    if (countryFetchSignatureRef.current === signature) return;
+    countryFetchSignatureRef.current = signature;
 
     let cancelled = false;
     (async () => {
@@ -3285,7 +3291,10 @@ const [user, setUser] = useState(null);
     : 0;
   const hiddenGems = getHiddenGems();
   const favoriteFilmPerYear = getFavoriteFilmPerYear();
-  const shareCardTop10Films = (shareCardConfig?.films || []).slice(0, 10);
+  const shareCardTop10Films = React.useMemo(
+    () => (shareCardConfig?.films || []).slice(0, 10),
+    [shareCardConfig]
+  );
 
   const openShareCard = async (config) => {
     const safeFilms = (Array.isArray(config?.films) ? config.films : []).filter(Boolean);
@@ -5651,8 +5660,9 @@ const [user, setUser] = useState(null);
     const el = tasteTimelineRef.current;
     if (!el) return;
     const next = el.scrollLeft || 0;
-    setTimelineScrollLeft(next);
-    setTimelineMaxScroll(Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0)));
+    const nextMax = Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0));
+    setTimelineScrollLeft((prev) => (prev === next ? prev : next));
+    setTimelineMaxScroll((prev) => (prev === nextMax ? prev : nextMax));
   };
 
   const onTimelineBottomScrubChange = (nextValue) => {
@@ -5670,8 +5680,10 @@ const [user, setUser] = useState(null);
     const el = tasteTimelineRef.current;
     if (!el) return;
     const recalc = () => {
-      setTimelineMaxScroll(Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0)));
-      setTimelineScrollLeft(el.scrollLeft || 0);
+      const nextMax = Math.max(0, (el.scrollWidth || 0) - (el.clientWidth || 0));
+      const nextLeft = el.scrollLeft || 0;
+      setTimelineMaxScroll((prev) => (prev === nextMax ? prev : nextMax));
+      setTimelineScrollLeft((prev) => (prev === nextLeft ? prev : nextLeft));
     };
     recalc();
     const raf = requestAnimationFrame(recalc);
