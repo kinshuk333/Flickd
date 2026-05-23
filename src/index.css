@@ -3592,7 +3592,7 @@ body {
   display: block !important;
   width: 100% !important;
   aspect-ratio: 2 / 3;
-  object-fit: contain !important;
+  object-fit: cover !important;
   object-position: center center !important;
   background: transparent !important;
   border: 0 !important;

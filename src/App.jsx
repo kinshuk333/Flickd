@@ -336,6 +336,11 @@ const hasUsableCountryName = (country) => {
   if (!value) return false;
   return !/^(unknown|n\/a|na|null|undefined|none|error)$/i.test(value);
 };
+const movieCountryKey = (movie = {}) => {
+  const imdbId = String(movie?.imdbId || movie?.imdbID || movie?.const || '').trim();
+  if (imdbId) return `imdb:${imdbId}`;
+  return `title:${String(movie?.title || '').trim().toLowerCase()}|${Number(movie?.year) || ''}`;
+};
 
 export default function App() {
   const [data, setData] = useState(null);
@@ -379,6 +384,7 @@ export default function App() {
   const [movieDetails, setMovieDetails] = useState(null);
   const [fetchingMovieDetails, setFetchingMovieDetails] = useState(false);
   const [posters, setPosters] = useState({});
+  const [countryOverrides, setCountryOverrides] = useState({});
   const [fetchingCountries, setFetchingCountries] = useState(false);
   const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 });
   const [loadedFromCache, setLoadedFromCache] = useState(false);
@@ -522,6 +528,7 @@ const [user, setUser] = useState(null);
       setLoadedFromCache(false);
       setLastDataSyncAt(null);
       setPosters({});
+      setCountryOverrides({});
       setSelectedMovie(null);
       setMovieDetails(null);
       setHoveredMapCountry(null);
@@ -1334,7 +1341,7 @@ const [user, setUser] = useState(null);
   useEffect(() => {
     if (!data?.length || fetchingCountries) return;
 
-    const hasMissingCountry = data.some((movie) => !hasUsableCountryName(movie?.country));
+    const hasMissingCountry = data.some((movie) => !hasUsableCountryName(movie?.country) && !hasUsableCountryName(countryOverrides[movieCountryKey(movie)]));
     if (!hasMissingCountry) return;
     const now = Date.now();
     if (now - lastCountryFetchAttemptAtRef.current < 60000) return;
@@ -1343,16 +1350,13 @@ const [user, setUser] = useState(null);
     let cancelled = false;
     (async () => {
       const enriched = await fetchCountryData(data, OMDB_API_KEY);
-      if (!cancelled && enriched?.length) {
-        setData(enriched);
-        persistDataset(enriched, fileName || 'IMDb Ratings');
-      }
+      if (!cancelled && enriched?.length) persistDataset(enriched, fileName || 'IMDb Ratings');
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [data, fetchingCountries, fileName]);
+  }, [data, fetchingCountries, fileName, countryOverrides]);
 
   const cleanTitleForOmdb = (title) => {
     if (!title || typeof title !== 'string') return '';
@@ -1812,6 +1816,7 @@ const [user, setUser] = useState(null);
 
     const cache = JSON.parse(localStorage.getItem('countryCache') || '{}');
     const updated = [];
+    const resolvedCountries = {};
     const BATCH_SIZE = 50;
 
     try {
@@ -1820,7 +1825,11 @@ const [user, setUser] = useState(null);
 
         const promises = batch.map(async (movie) => {
           const key = `${movie.title}_${movie.year}`;
-          if (hasUsableCountryName(cache[key])) return { ...movie, country: cache[key] };
+          const overrideKey = movieCountryKey(movie);
+          if (hasUsableCountryName(cache[key])) {
+            resolvedCountries[overrideKey] = cache[key];
+            return { ...movie, country: cache[key] };
+          }
 
           const cleanTitle = cleanTitleForOmdb(movie.title);
 
@@ -1832,6 +1841,7 @@ const [user, setUser] = useState(null);
             });
             if (cached?.country) {
               cache[key] = cached.country;
+              resolvedCountries[overrideKey] = cached.country;
               return { ...movie, country: cached.country };
             }
 
@@ -1851,6 +1861,7 @@ const [user, setUser] = useState(null);
             if (json?.Response === 'True' && json.Country) {
               const country = json.Country.split(',')[0].trim();
               cache[key] = country;
+              resolvedCountries[overrideKey] = country;
               setOmdbCache({ title: movie.title, year: movie.year, imdbId: movie.imdbId || movie.imdbID || null, payload: json });
               return { ...movie, country };
             }
@@ -1867,6 +1878,9 @@ const [user, setUser] = useState(null);
       }
     } finally {
       localStorage.setItem('countryCache', JSON.stringify(cache));
+      if (Object.keys(resolvedCountries).length) {
+        setCountryOverrides((prev) => ({ ...prev, ...resolvedCountries }));
+      }
       setFetchingCountries(false);
     }
 
@@ -1877,10 +1891,13 @@ const [user, setUser] = useState(null);
     if (!Array.isArray(data) || !data.length || fetchingCountries) return;
     lastCountryFetchAttemptAtRef.current = 0;
     const enriched = await fetchCountryData(data, OMDB_API_KEY);
-    if (enriched?.length) {
-      setData(enriched);
-      persistDataset(enriched, fileName || 'IMDb Ratings');
-    }
+    if (enriched?.length) persistDataset(enriched, fileName || 'IMDb Ratings');
+  };
+
+  const getMovieCountry = (movie) => {
+    const direct = String(movie?.country || '').trim();
+    if (hasUsableCountryName(direct)) return direct;
+    return countryOverrides[movieCountryKey(movie)] || '';
   };
 
   const _getFeatureName = (feature) => {
@@ -2005,9 +2022,10 @@ const [user, setUser] = useState(null);
         return;
       }
 
-      if (!hasUsableCountryName(movie?.country)) return;
+      const movieCountry = getMovieCountry(movie);
+      if (!hasUsableCountryName(movieCountry)) return;
 
-      const normalizedCountry = normalizeCountryName(String(movie.country).split(',')[0].trim());
+      const normalizedCountry = normalizeCountryName(String(movieCountry).split(',')[0].trim());
       if (!hasUsableCountryName(normalizedCountry)) return;
 
       countryStats[normalizedCountry] = (countryStats[normalizedCountry] || 0) + 1;
@@ -2509,7 +2527,7 @@ const [user, setUser] = useState(null);
     if (!data?.length) return [];
     const set = new Set();
     data.forEach((film) => {
-      const rawCountry = String(film?.country || '').split(',')[0]?.trim();
+      const rawCountry = String(getMovieCountry(film)).split(',')[0]?.trim();
       const normalized = normalizeCountryName(rawCountry);
       if (normalized) set.add(normalized);
     });
@@ -2554,7 +2572,7 @@ const [user, setUser] = useState(null);
         }
         if (moodboardYearFilter !== 'all' && String(Number(film.year) || '') !== moodboardYearFilter) return false;
         if (moodboardCountryFilter !== 'all') {
-          const filmCountry = normalizeCountryName(String(film?.country || '').split(',')[0]?.trim());
+          const filmCountry = normalizeCountryName(String(getMovieCountry(film)).split(',')[0]?.trim());
           if (filmCountry !== moodboardCountryFilter) return false;
         }
         if (moodboardDirectorFilter !== 'all') {
@@ -3745,7 +3763,7 @@ const [user, setUser] = useState(null);
     return acc;
   }, {});
   const countryDataCount = data
-    ? data.filter((movie) => hasUsableCountryName(movie?.country)).length
+    ? data.filter((movie) => hasUsableCountryName(getMovieCountry(movie))).length
     : 0;
   const countryHighlightCount = fallbackCountryPreference.reduce((sum, item) => sum + (Number(item?.count) || 0), 0);
 
@@ -3764,7 +3782,7 @@ const [user, setUser] = useState(null);
     ? Array.from(
       new Set(
         data
-          .map((movie) => normalizeCountryName(String(movie?.country || '').split(',')[0]?.trim()))
+          .map((movie) => normalizeCountryName(String(getMovieCountry(movie)).split(',')[0]?.trim()))
           .filter(hasUsableCountryName)
       )
     ).sort((a, b) => a.localeCompare(b))
@@ -3812,7 +3830,7 @@ const [user, setUser] = useState(null);
 
     if (watchedGenreFilter !== 'all' && !genresText.includes(watchedGenreFilter.toLowerCase())) return false;
     if (watchedCountryFilter !== 'all') {
-      const country = normalizeCountryName(String(movie?.country || '').split(',')[0]?.trim());
+      const country = normalizeCountryName(String(getMovieCountry(movie)).split(',')[0]?.trim());
       if (country !== watchedCountryFilter) return false;
     }
     if (watchedDirectorFilter !== 'all') {
@@ -6432,26 +6450,26 @@ const [user, setUser] = useState(null);
           <img
             src="/flickd-brand.png"
             alt="Flickd"
-            className="h-8 sm:h-9 w-auto mx-auto mb-6 object-contain"
+            className="h-7 sm:h-8 w-auto mx-auto mb-6 object-contain"
           />
-          <div className="mb-8 relative h-40 sm:h-44 w-full">
+          <div className="mb-8 h-40 sm:h-44 w-full flex items-start justify-center">
+            <div className="relative h-full w-[320px] sm:w-[380px]">
             {[0, 1, 2, 3, 4].map((idx) => {
               const posterUrl = loginPosterUrls[idx] || '';
-              const opacityClass = idx === 2 ? 'opacity-100' : (idx === 1 || idx === 3 ? 'opacity-90' : 'opacity-70');
               const translateClass =
                 idx === 0
-                  ? '-translate-x-[130px] sm:-translate-x-[168px] translate-y-3 scale-[0.95]'
+                  ? '-translate-x-[120px] sm:-translate-x-[138px] translate-y-3 scale-[0.95]'
                   : idx === 1
-                    ? '-translate-x-[68px] sm:-translate-x-[92px] translate-y-1 scale-[0.98]'
+                    ? '-translate-x-[62px] sm:-translate-x-[72px] translate-y-1 scale-[0.98]'
                     : idx === 2
                       ? 'translate-x-0 translate-y-0 scale-100 z-20'
                       : idx === 3
-                        ? 'translate-x-[68px] sm:translate-x-[92px] translate-y-1 scale-[0.98]'
-                        : 'translate-x-[130px] sm:translate-x-[168px] translate-y-3 scale-[0.95]';
+                        ? 'translate-x-[62px] sm:translate-x-[72px] translate-y-1 scale-[0.98]'
+                        : 'translate-x-[120px] sm:translate-x-[138px] translate-y-3 scale-[0.95]';
               return (
                 <div
                   key={`login_poster_${idx}`}
-                  className={`absolute left-1/2 top-0 -translate-x-1/2 w-20 sm:w-24 h-[120px] sm:h-36 rounded-xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_24px_rgba(0,0,0,0.35)] transition-all ${translateClass} ${opacityClass}`}
+                  className={`absolute left-1/2 top-0 -translate-x-1/2 w-20 sm:w-24 h-[120px] sm:h-36 rounded-xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_24px_rgba(0,0,0,0.35)] transition-all opacity-100 ${translateClass}`}
                 >
                   {posterUrl ? (
                     <img
@@ -6466,6 +6484,7 @@ const [user, setUser] = useState(null);
                 </div>
               );
             })}
+            </div>
           </div>
           <h1 className="text-3xl md:text-4xl leading-tight font-bold tracking-tight text-white">Welcome</h1>
           <p className="mt-3 text-sm md:text-base leading-relaxed text-gray-400 max-w-[330px] mx-auto">
@@ -8884,7 +8903,7 @@ const [user, setUser] = useState(null);
                               className="relative ml-24 px-3 pt-3 pb-3"
                               style={{
                                 minWidth: `${timelineRailWidth}px`,
-                                minHeight: `${Math.max(500, 220 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 2)))}px`,
+                                minHeight: `${Math.max(460, 210 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 0)))}px`,
                               }}
                             >
                               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
@@ -8904,11 +8923,11 @@ const [user, setUser] = useState(null);
 
                                   return (
                                     <div key={`year-cluster-${cluster.year}`} className="relative shrink-0 border-l border-gray-800/40" style={{ width: `${columnWidth}px` }}>
-                                      <div className="pt-2 pb-5 flex flex-col gap-3">
+                                      <div className="pt-1 pb-3 flex flex-col gap-1">
                                         {laneRows.map((laneName) => {
                                           const laneFilms = cluster.lanes?.[laneName] || [];
                                           return (
-                                            <div key={`${cluster.year}-${laneName}`} className="min-h-[68px] flex justify-center">
+                                            <div key={`${cluster.year}-${laneName}`} className="min-h-[56px] flex justify-center">
                                               <div className="space-y-0">
                                                 {laneFilms.map((movie) => {
                                                   const posterKey = `${movie.title}_${movie.year}`;
