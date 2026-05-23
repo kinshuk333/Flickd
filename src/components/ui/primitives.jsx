@@ -178,7 +178,9 @@ export function FilmPosterCard({
       <div className={cx('ui-film-poster-card__image-wrap', imageClassName)}>
         {poster ? (
           <img src={poster} alt={alt || title || 'Film poster'} className="ui-film-poster-card__image" loading="lazy" />
-        ) : null}
+        ) : (
+          <span className="ui-film-poster-card__empty">No poster available</span>
+        )}
       </div>
       {title ? <h4 className="ui-film-poster-card__title">{title}</h4> : null}
       {meta ? <p className="ui-film-poster-card__meta">{meta}</p> : null}

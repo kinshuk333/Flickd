@@ -384,6 +384,7 @@ export default function App() {
   const [movieDetails, setMovieDetails] = useState(null);
   const [fetchingMovieDetails, setFetchingMovieDetails] = useState(false);
   const [posters, setPosters] = useState({});
+  const [unavailablePosters, setUnavailablePosters] = useState({});
   const [countryOverrides, setCountryOverrides] = useState({});
   const [fetchingCountries, setFetchingCountries] = useState(false);
   const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 });
@@ -531,6 +532,7 @@ const [user, setUser] = useState(null);
       setLoadedFromCache(false);
       setLastDataSyncAt(null);
       setPosters({});
+      setUnavailablePosters({});
       setCountryOverrides({});
       setSelectedMovie(null);
       setMovieDetails(null);
@@ -1577,6 +1579,140 @@ const [user, setUser] = useState(null);
     setMovieDetails(null);
   };
 
+  const renderMovieDetailsModal = (zClassName = 'z-[100]') => (
+    <div className={`fixed inset-0 ${zClassName} flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm`} onClick={closeMovieModal}>
+      <div className="bg-[#111] rounded-xl w-full max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white">Movie Details</h2>
+          <button onClick={closeMovieModal} className="text-gray-400 hover:text-white text-xl">&times;</button>
+        </div>
+
+        <div className="p-4">
+          {fetchingMovieDetails ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500 mb-3"></div>
+              <p className="text-gray-400 text-sm">Fetching movie details...</p>
+            </div>
+          ) : safeMovieDetails ? (
+            safeMovieDetails.Error ? (
+              <div className="text-center py-6 text-red-400">{safeMovieDetails.Error}</div>
+            ) : (
+              <div className="space-y-4">
+                {safeMovieDetails.Poster && safeMovieDetails.Poster !== 'N/A' && (
+                  <div className="flex justify-center">
+                    <img src={safeMovieDetails.Poster} alt={safeMovieDetails.Title} className="max-h-56 rounded-lg shadow-lg" />
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">{safeMovieDetails.Title}</h3>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {safeMovieDetails.Year && <span className="bg-gray-800 px-2 py-0.5 rounded-full">{safeMovieDetails.Year}</span>}
+                    {safeMovieDetails.Rated && <span className="bg-gray-800 px-2 py-0.5 rounded-full">{safeMovieDetails.Rated}</span>}
+                    {safeMovieDetails.Runtime && <span className="bg-gray-800 px-2 py-0.5 rounded-full">{safeMovieDetails.Runtime}</span>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-800 p-3 rounded-lg text-center">
+                    <p className="text-gray-400 text-xs">IMDb Rating</p>
+                    <p className="text-2xl font-bold text-yellow-400"> {safeMovieDetails.imdbRating}</p>
+                  </div>
+                  <div className="bg-gray-800 p-3 rounded-lg text-center">
+                    <p className="text-gray-400 text-xs">Your Rating</p>
+                    <p className="text-2xl font-bold text-green-400"> {selectedMovie?.yourRating ?? '-'}</p>
+                  </div>
+                </div>
+
+                {typeof safeMovieDetails.Genre === 'string' && safeMovieDetails.Genre.length > 0 && (
+                  <div>
+                    <h4 className="text-gray-400 text-xs mb-1">Genres</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {safeMovieDetails.Genre.split(', ').map((g, i) => (
+                        <span key={i} className="bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full text-xs">{g}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {safeMovieDetails.Plot && safeMovieDetails.Plot !== 'N/A' && (
+                  <div>
+                    <h4 className="text-gray-400 text-xs mb-1">Plot</h4>
+                    <p className="text-gray-300 text-sm leading-relaxed">{safeMovieDetails.Plot}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {safeMovieDetails.Director && safeMovieDetails.Director !== 'N/A' && (
+                    <div>
+                      <p className="text-gray-400">Director</p>
+                      <p className="text-white font-medium">{safeMovieDetails.Director}</p>
+                    </div>
+                  )}
+                  {safeMovieDetails.Writer && safeMovieDetails.Writer !== 'N/A' && (
+                    <div>
+                      <p className="text-gray-400">Writer</p>
+                      <p className="text-white font-medium">{safeMovieDetails.Writer}</p>
+                    </div>
+                  )}
+                  {safeMovieDetails.Actors && safeMovieDetails.Actors !== 'N/A' && (
+                    <div className="col-span-2">
+                      <p className="text-gray-400">Cast</p>
+                      <p className="text-white font-medium">{safeMovieDetails.Actors}</p>
+                    </div>
+                  )}
+                  {safeMovieDetails.Country && safeMovieDetails.Country !== 'N/A' && (
+                    <div>
+                      <p className="text-gray-400">Country</p>
+                      <p className="text-white font-medium">{safeMovieDetails.Country}</p>
+                    </div>
+                  )}
+                  {safeMovieDetails.Language && safeMovieDetails.Language !== 'N/A' && (
+                    <div>
+                      <p className="text-gray-400">Language</p>
+                      <p className="text-white font-medium">{safeMovieDetails.Language}</p>
+                    </div>
+                  )}
+                  {safeMovieDetails.BoxOffice && safeMovieDetails.BoxOffice !== 'N/A' && (
+                    <div>
+                      <p className="text-gray-400">Box Office</p>
+                      <p className="text-white font-medium">{safeMovieDetails.BoxOffice}</p>
+                    </div>
+                  )}
+                  {safeMovieDetails.Awards && safeMovieDetails.Awards !== 'N/A' && (
+                    <div>
+                      <p className="text-gray-400">Awards</p>
+                      <p className="text-yellow-300 font-medium">{safeMovieDetails.Awards}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+
+  const markPosterUnavailable = React.useCallback((posterKey) => {
+    if (!posterKey) return;
+    setUnavailablePosters((prev) => (prev?.[posterKey] ? prev : { ...prev, [posterKey]: true }));
+  }, []);
+
+  const clearPosterUnavailable = React.useCallback((posterKey) => {
+    if (!posterKey) return;
+    setUnavailablePosters((prev) => {
+      if (!prev?.[posterKey]) return prev;
+      const next = { ...prev };
+      delete next[posterKey];
+      return next;
+    });
+  }, []);
+
+  const renderPosterStatus = React.useCallback((posterKey) => (
+    unavailablePosters?.[posterKey] ? 'No poster available' : 'Load Poster'
+  ), [unavailablePosters]);
+
   const fetchPoster = async (title, year, imdbId = null) => {
     const safeTitle = String(title || '').trim();
     const safeYear = Number(year) || '';
@@ -1599,6 +1735,7 @@ const [user, setUser] = useState(null);
       if (cached?.poster) {
         setPosters((prev) => (prev?.[key] === cached.poster ? prev : { ...prev, [key]: cached.poster }));
         delete posterFailedAtRef.current[key];
+        clearPosterUnavailable(key);
         return cached.poster;
       }
 
@@ -1618,10 +1755,12 @@ const [user, setUser] = useState(null);
         setPosters((prev) => (prev?.[key] === json.Poster ? prev : { ...prev, [key]: json.Poster }));
         setOmdbCache({ title: safeTitle, year: safeYear, imdbId, payload: json });
         delete posterFailedAtRef.current[key];
+        clearPosterUnavailable(key);
         return json.Poster;
       }
 
       posterFailedAtRef.current[key] = Date.now();
+      markPosterUnavailable(key);
       return null;
     } finally {
       inFlight.delete(key);
@@ -1791,6 +1930,7 @@ const [user, setUser] = useState(null);
     setLoadedFromCache(false);
     setLastDataSyncAt(null);
     setPosters({});
+    setUnavailablePosters({});
     setSelectedMovie(null);
     setMovieDetails(null);
     setHoveredMapCountry(null);
@@ -5823,13 +5963,14 @@ const [user, setUser] = useState(null);
   const handlePosterRenderError = React.useCallback((posterKey) => {
     if (!posterKey) return;
     posterFailedAtRef.current[posterKey] = Date.now();
+    markPosterUnavailable(posterKey);
     setPosters((prev) => {
       if (!prev?.[posterKey]) return prev;
       const next = { ...prev };
       delete next[posterKey];
       return next;
     });
-  }, []);
+  }, [markPosterUnavailable]);
 
   const onTimelineRailScroll = () => {
     const el = tasteTimelineRef.current;
@@ -6631,121 +6772,7 @@ const [user, setUser] = useState(null);
           background-clip: padding-box;
         }
       `}</style>
-      {selectedMovie && !traceSelectedDirector && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm" onClick={closeMovieModal}>
-          <div className="bg-[#111] rounded-xl w-full max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Movie Details</h2>
-              <button onClick={closeMovieModal} className="text-gray-400 hover:text-white text-xl">&times;</button>
-            </div>
-            
-            <div className="p-4">
-              {fetchingMovieDetails ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-500 mb-3"></div>
-                  <p className="text-gray-400 text-sm">Fetching movie details...</p>
-                </div>
-              ) : safeMovieDetails ? (
-                safeMovieDetails.Error ? (
-                  <div className="text-center py-6 text-red-400">{safeMovieDetails.Error}</div>
-                ) : (
-                  <div className="space-y-4">
-                    {safeMovieDetails.Poster && safeMovieDetails.Poster !== 'N/A' && (
-                      <div className="flex justify-center">
-                        <img src={safeMovieDetails.Poster} alt={safeMovieDetails.Title} className="max-h-56 rounded-lg shadow-lg" />
-                      </div>
-                    )}
-                    
-                    <div>
-                      <h3 className="text-xl font-bold text-white mb-2">{safeMovieDetails.Title}</h3>
-                      <div className="flex flex-wrap gap-2 text-xs">
-                        {safeMovieDetails.Year && <span className="bg-gray-800 px-2 py-0.5 rounded-full">{safeMovieDetails.Year}</span>}
-                        {safeMovieDetails.Rated && <span className="bg-gray-800 px-2 py-0.5 rounded-full">{safeMovieDetails.Rated}</span>}
-                        {safeMovieDetails.Runtime && <span className="bg-gray-800 px-2 py-0.5 rounded-full">{safeMovieDetails.Runtime}</span>}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-gray-800 p-3 rounded-lg text-center">
-                        <p className="text-gray-400 text-xs">IMDb Rating</p>
-                        <p className="text-2xl font-bold text-yellow-400"> {safeMovieDetails.imdbRating}</p>
-                      </div>
-                      <div className="bg-gray-800 p-3 rounded-lg text-center">
-                        <p className="text-gray-400 text-xs">Your Rating</p>
-                        <p className="text-2xl font-bold text-green-400"> {selectedMovie?.yourRating ?? '-'}</p>
-                      </div>
-                    </div>
-
-                    {typeof safeMovieDetails.Genre === 'string' && safeMovieDetails.Genre.length > 0 && (
-                      <div>
-                        <h4 className="text-gray-400 text-xs mb-1">Genres</h4>
-                        <div className="flex flex-wrap gap-1.5">
-                          {safeMovieDetails.Genre.split(', ').map((g, i) => (
-                            <span key={i} className="bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full text-xs">{g}</span>
-                          ))}
-                        </div>
-
-                      </div>
-                    )}
-
-                    {safeMovieDetails.Plot && safeMovieDetails.Plot !== 'N/A' && (
-                      <div>
-                        <h4 className="text-gray-400 text-xs mb-1">Plot</h4>
-                        <p className="text-gray-300 text-sm leading-relaxed">{safeMovieDetails.Plot}</p>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      {safeMovieDetails.Director && safeMovieDetails.Director !== 'N/A' && (
-                        <div>
-                          <p className="text-gray-400">Director</p>
-                          <p className="text-white font-medium">{safeMovieDetails.Director}</p>
-                        </div>
-                      )}
-                      {safeMovieDetails.Writer && safeMovieDetails.Writer !== 'N/A' && (
-                        <div>
-                          <p className="text-gray-400">Writer</p>
-                          <p className="text-white font-medium">{safeMovieDetails.Writer}</p>
-                        </div>
-                      )}
-                      {safeMovieDetails.Actors && safeMovieDetails.Actors !== 'N/A' && (
-                        <div className="col-span-2">
-                          <p className="text-gray-400">Cast</p>
-                          <p className="text-white font-medium">{safeMovieDetails.Actors}</p>
-                        </div>
-                      )}
-                      {safeMovieDetails.Country && safeMovieDetails.Country !== 'N/A' && (
-                        <div>
-                          <p className="text-gray-400">Country</p>
-                          <p className="text-white font-medium">{safeMovieDetails.Country}</p>
-                        </div>
-                      )}
-                      {safeMovieDetails.Language && safeMovieDetails.Language !== 'N/A' && (
-                        <div>
-                          <p className="text-gray-400">Language</p>
-                          <p className="text-white font-medium">{safeMovieDetails.Language}</p>
-                        </div>
-                      )}
-                      {safeMovieDetails.BoxOffice && safeMovieDetails.BoxOffice !== 'N/A' && (
-                        <div>
-                          <p className="text-gray-400">Box Office</p>
-                          <p className="text-white font-medium">{safeMovieDetails.BoxOffice}</p>
-                        </div>
-                      )}
-                      {safeMovieDetails.Awards && safeMovieDetails.Awards !== 'N/A' && (
-                        <div>
-                          <p className="text-gray-400">Awards</p>
-                          <p className="text-yellow-300 font-medium">{safeMovieDetails.Awards}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
+      {selectedMovie && !traceSelectedDirector && !timelineFullscreen && renderMovieDetailsModal('z-[100]')}
 
       {showTasteResonance && (
         <div className="fixed inset-0 z-[110] bg-[#050912]/95 backdrop-blur-sm overflow-y-auto">
@@ -6839,18 +6866,25 @@ const [user, setUser] = useState(null);
                       {tasteResonance.sharedCanon.map((film, idx) => (
                         <div key={`res_${film.title}_${film.year}_${idx}`} className="rounded-lg border border-gray-800 bg-[#0b1220] p-2">
                           {posters[`${film.title}_${film.year}`] ? (
-                            <img
-                              src={posters[`${film.title}_${film.year}`]}
-                              alt={film.title}
-                              className="w-full aspect-[2/3] rounded object-cover"
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            />
+                            <button
+                              type="button"
+                              onClick={() => handleMovieClick(film)}
+                              className="block w-full rounded"
+                              aria-label={`View details for ${film.title}`}
+                            >
+                              <img
+                                src={posters[`${film.title}_${film.year}`]}
+                                alt={film.title}
+                                className="w-full aspect-[2/3] rounded object-cover"
+                                onError={() => handlePosterRenderError(`${film.title}_${film.year}`)}
+                              />
+                            </button>
                           ) : (
                             <button
                               onClick={() => fetchPoster(film.title, film.year, film.imdbId)}
                               className="w-full aspect-[2/3] rounded bg-gray-800 text-xs text-gray-400"
                             >
-                              Load Poster
+                              {renderPosterStatus(`${film.title}_${film.year}`)}
                             </button>
                           )}
                           <button onClick={() => handleMovieClick(film)} className="flickd-poster-title mt-2 text-left w-full">{film.title}</button>
@@ -6917,9 +6951,16 @@ const [user, setUser] = useState(null);
                     return (
                       <div key={`share_card_${film.title}_${film.year}_${idx}`} className="flex items-center gap-3 rounded-lg bg-[#0f172a] border border-gray-800 p-2">
                         {posters[key] ? (
-                          <img src={posters[key]} alt={film.title} className="w-10 h-14 rounded object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleMovieClick(film)}
+                            className="block w-10 h-14 shrink-0 rounded"
+                            aria-label={`View details for ${film.title}`}
+                          >
+                            <img src={posters[key]} alt={film.title} className="w-10 h-14 rounded object-cover" />
+                          </button>
                         ) : (
-                          <div className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center text-[10px] text-gray-500">Poster</div>
+                          <div className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center text-[8px] leading-tight text-center text-gray-500">No poster available</div>
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-gray-100 truncate">
@@ -6961,7 +7002,7 @@ const [user, setUser] = useState(null);
 <div className={`flickd-immersive-shell ${mobileTopNavOpen ? 'flickd-mobile-menu-open' : ''}`}>
         <header className="flickd-shell-header">
             <div className="flickd-shell-header__inner">
-              <div className="flex h-full items-center justify-between md:justify-start gap-3 md:gap-4">
+              <div className="flex h-full w-full items-center justify-between md:justify-start gap-3 md:gap-4">
                 <div className="flickd-brand-lockup md:w-[286px] md:flex-none md:justify-center">
                   <img
                     src="/flickd-brand.png"
@@ -7908,19 +7949,26 @@ const [user, setUser] = useState(null);
                         {watchedPageFilms.map((movie, idx) => (
                           <div key={`${movie.title}_${movie.year}_${idx}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                             {posters[`${movie.title}_${movie.year}`] ? (
-                              <img
-                                src={posters[`${movie.title}_${movie.year}`]}
-                                alt={movie.title}
-                                className="w-full aspect-[2/3] object-cover rounded"
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              />
+                              <button
+                                type="button"
+                                onClick={() => handleMovieClick(movie)}
+                                className="block w-full rounded"
+                                aria-label={`View details for ${movie.title}`}
+                              >
+                                <img
+                                  src={posters[`${movie.title}_${movie.year}`]}
+                                  alt={movie.title}
+                                  className="w-full aspect-[2/3] object-cover rounded"
+                                  onError={() => handlePosterRenderError(`${movie.title}_${movie.year}`)}
+                                />
+                              </button>
                             ) : (
                               <button
                                 onClick={() => fetchPoster(movie.title, movie.year, movie.imdbId)}
                                 className="w-full aspect-[2/3] bg-gray-800 rounded flex items-center justify-center text-gray-500 text-xs"
                                 title="Load poster"
                               >
-                                Load Poster
+                                {renderPosterStatus(`${movie.title}_${movie.year}`)}
                               </button>
                             )}
                             <button
@@ -8428,19 +8476,36 @@ const [user, setUser] = useState(null);
                                         .map((film, idx) => (
                                           <div key={`${film.title || 'film'}_${film.year || 'na'}_${idx}`} className="bg-[#111827] border border-gray-800 rounded-lg p-2">
                                             {posters[`${film.title}_${film.year}`] ? (
-                                              <img
-                                                src={posters[`${film.title}_${film.year}`]}
-                                                alt={film.title}
-                                                className="w-full aspect-[2/3] object-cover rounded"
-                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                              />
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setTraceDirectorModalView('details');
+                                                  handleMovieClick({
+                                                    title: film.title,
+                                                    year: film.year,
+                                                    imdbId: film.imdbId || null,
+                                                    yourRating: film.rating,
+                                                    genres: Array.isArray(film.genres) ? film.genres.join(', ') : (film.genres || ''),
+                                                    director: traceSelectedDirector.name,
+                                                  });
+                                                }}
+                                                className="block w-full rounded"
+                                                aria-label={`View details for ${film.title}`}
+                                              >
+                                                <img
+                                                  src={posters[`${film.title}_${film.year}`]}
+                                                  alt={film.title}
+                                                  className="w-full aspect-[2/3] object-cover rounded"
+                                                  onError={() => handlePosterRenderError(`${film.title}_${film.year}`)}
+                                                />
+                                              </button>
                                             ) : (
                                               <button
                                                 type="button"
                                                 onClick={() => fetchPoster(film.title, film.year, film.imdbId || null)}
                                                 className="w-full aspect-[2/3] bg-gray-800 rounded flex items-center justify-center text-gray-500 text-xs"
                                               >
-                                                Load Poster
+                                                {renderPosterStatus(`${film.title}_${film.year}`)}
                                               </button>
                                             )}
                                             <button
@@ -8873,6 +8938,7 @@ const [user, setUser] = useState(null);
                     ref={tasteTimelineFullscreenRef}
                     className={`space-y-5 ${timelineFullscreen ? 'bg-[#030712] p-4 h-screen overflow-auto' : ''}`}
                   >
+                    {timelineFullscreen && selectedMovie && !traceSelectedDirector && renderMovieDetailsModal('z-[2147483647]')}
                     <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
@@ -9022,7 +9088,7 @@ const [user, setUser] = useState(null);
                                                           style={{ height: `${posterH}px` }}
                                                           title="Load poster"
                                                         >
-                                                          Load Poster
+                                                          {renderPosterStatus(posterKey)}
                                                         </button>
                                                       )}
                                                     </div>
@@ -9874,59 +9940,70 @@ const [user, setUser] = useState(null);
 
                   {displayedMoodboards.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {displayedMoodboards.map((board) => (
-                        <div
-                          key={board.id}
-                          onClick={() => setActiveMoodboard(board.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setActiveMoodboard(board.id);
-                            }
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          className={`text-left rounded-xl border p-4 transition-all ${
-                            activeMoodboard === board.id
-                              ? 'bg-[#111827] border-blue-500/70 ring-1 ring-blue-500/40'
-                              : 'bg-[#111827] border-gray-800 hover:border-gray-700'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <div>
-                              <h3 className="font-semibold text-white truncate">{board.title}</h3>
-                              <p className="text-xs text-gray-400 mt-1">{board.films.length} films</p>
+                      {displayedMoodboards.map((board) => {
+                        const isSelectedBoard = String(activeMoodboard) === String(board.id);
+                        return (
+                          <div
+                            key={board.id}
+                            onClick={() => setActiveMoodboard(board.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setActiveMoodboard(board.id);
+                              }
+                            }}
+                            role="button"
+                            aria-pressed={isSelectedBoard}
+                            tabIndex={0}
+                            className={`text-left rounded-xl border p-4 transition-all ${
+                              isSelectedBoard
+                                ? 'bg-blue-500/10 border-blue-400 ring-2 ring-blue-400/45 shadow-[0_0_0_1px_rgba(96,165,250,0.25),0_18px_45px_rgba(37,99,235,0.18)]'
+                                : 'bg-[#111827] border-gray-800 hover:border-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="font-semibold text-white truncate">{board.title}</h3>
+                                  {isSelectedBoard && (
+                                    <span className="rounded-full border border-blue-300/50 bg-blue-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-100">
+                                      Selected
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">{board.films.length} films</p>
+                              </div>
+                              {canEditMoodboards && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteMoodboard(board.id);
+                                  }}
+                                  className="text-xs px-2 py-1 rounded-md border border-red-500/30 text-red-300 hover:bg-red-500/10"
+                                >
+                                  Delete
+                                </button>
+                              )}
                             </div>
-                            {canEditMoodboards && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteMoodboard(board.id);
-                                }}
-                                className="text-xs px-2 py-1 rounded-md border border-red-500/30 text-red-300 hover:bg-red-500/10"
-                              >
-                                Delete
-                              </button>
+
+                            {board.films.length > 0 ? (
+                              <div className="flex gap-1.5 overflow-hidden">
+                                {board.films.slice(0, 6).map((f, i) => (
+                                  posters[`${f.title}_${f.year}`] ? (
+                                    <img key={i} src={posters[`${f.title}_${f.year}`]} alt="" className="w-10 h-14 object-cover rounded" />
+                                  ) : (
+                                    <div key={i} className="w-10 h-14 bg-[#0b1220] border border-gray-700 rounded" />
+                                  )
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="h-14 rounded border border-dashed border-gray-700 bg-[#0b1220] flex items-center justify-center text-xs text-gray-500">
+                                No films yet
+                              </div>
                             )}
                           </div>
-
-                          {board.films.length > 0 ? (
-                            <div className="flex gap-1.5 overflow-hidden">
-                              {board.films.slice(0, 6).map((f, i) => (
-                                posters[`${f.title}_${f.year}`] ? (
-                                  <img key={i} src={posters[`${f.title}_${f.year}`]} alt="" className="w-10 h-14 object-cover rounded" />
-                                ) : (
-                                  <div key={i} className="w-10 h-14 bg-[#0b1220] border border-gray-700 rounded" />
-                                )
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="h-14 rounded border border-dashed border-gray-700 bg-[#0b1220] flex items-center justify-center text-xs text-gray-500">
-                              No films yet
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -9975,11 +10052,19 @@ const [user, setUser] = useState(null);
                           {currentMoodboard.films.map((film, idx) => (
                             <div key={idx} className="relative group rounded-lg border border-gray-700 bg-[#0b1220] overflow-hidden">
                               {posters[`${film.title}_${film.year}`] ? (
-                                <img
-                                  src={posters[`${film.title}_${film.year}`]}
-                                  alt={film.title}
-                                  className="w-full aspect-[2/3] object-cover"
-                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleMovieClick(film)}
+                                  className="block w-full"
+                                  aria-label={`View details for ${film.title}`}
+                                >
+                                  <img
+                                    src={posters[`${film.title}_${film.year}`]}
+                                    alt={film.title}
+                                    className="w-full aspect-[2/3] object-cover"
+                                    onError={() => handlePosterRenderError(`${film.title}_${film.year}`)}
+                                  />
+                                </button>
                               ) : (
                                 <div className="w-full aspect-[2/3] bg-gray-800" />
                               )}
@@ -10113,19 +10198,26 @@ const [user, setUser] = useState(null);
                             {hiddenGems.allFilms.slice((hiddenGemsPage - 1) * hiddenGemsPerPage, hiddenGemsPage * hiddenGemsPerPage).map((movie, idx) => (
                               <div key={`${movie.title}_${movie.year}_${idx}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                                 {posters[`${movie.title}_${movie.year}`] ? (
-                                  <img
-                                    src={posters[`${movie.title}_${movie.year}`]}
-                                    alt={movie.title}
-                                    className="w-full aspect-[2/3] object-cover rounded"
-                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMovieClick(movie)}
+                                    className="block w-full rounded"
+                                    aria-label={`View details for ${movie.title}`}
+                                  >
+                                    <img
+                                      src={posters[`${movie.title}_${movie.year}`]}
+                                      alt={movie.title}
+                                      className="w-full aspect-[2/3] object-cover rounded"
+                                      onError={() => handlePosterRenderError(`${movie.title}_${movie.year}`)}
+                                    />
+                                  </button>
                                 ) : (
                                   <button
                                     onClick={() => fetchPoster(movie.title, movie.year, movie.imdbId)}
                                     className="w-full aspect-[2/3] bg-gray-800 rounded flex items-center justify-center text-gray-500 text-xs"
                                     title="Load poster"
                                   >
-                                    Load Poster
+                                    {renderPosterStatus(`${movie.title}_${movie.year}`)}
                                   </button>
                                 )}
                                 <button
@@ -10161,19 +10253,26 @@ const [user, setUser] = useState(null);
                                     className="w-[180px] snap-start bg-[#101827] border border-gray-800 rounded-xl p-2.5 transition-transform duration-200 hover:-translate-y-1 hover:border-blue-500/30"
                                   >
                                     {posters[`${movie.title}_${movie.year}`] ? (
-                                      <img
-                                        src={posters[`${movie.title}_${movie.year}`]}
-                                        alt={movie.title}
-                                        className="w-full h-[250px] object-cover rounded-lg"
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMovieClick(movie)}
+                                        className="block w-full rounded-lg"
+                                        aria-label={`View details for ${movie.title}`}
+                                      >
+                                        <img
+                                          src={posters[`${movie.title}_${movie.year}`]}
+                                          alt={movie.title}
+                                          className="w-full h-[250px] object-cover rounded-lg"
+                                          onError={() => handlePosterRenderError(`${movie.title}_${movie.year}`)}
+                                        />
+                                      </button>
                                     ) : (
                                       <button
                                         onClick={() => fetchPoster(movie.title, movie.year, movie.imdbId)}
                                         className="w-full h-[250px] bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 text-xs"
                                         title="Load poster"
                                       >
-                                        Load Poster
+                                        {renderPosterStatus(`${movie.title}_${movie.year}`)}
                                       </button>
                                     )}
                                     <button
@@ -10279,19 +10378,26 @@ const [user, setUser] = useState(null);
                             {hiddenTreasures.allFilms.slice((hiddenTreasuresPage - 1) * hiddenTreasuresPerPage, hiddenTreasuresPage * hiddenTreasuresPerPage).map((m, i) => (
                               <div key={`${m.title}_${m.year}_${i}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                                 {posters[`${m.title}_${m.year}`] ? (
-                                  <img
-                                    src={posters[`${m.title}_${m.year}`]}
-                                    alt={m.title}
-                                    className="w-full aspect-[2/3] object-cover rounded"
-                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMovieClick(m)}
+                                    className="block w-full rounded"
+                                    aria-label={`View details for ${m.title}`}
+                                  >
+                                    <img
+                                      src={posters[`${m.title}_${m.year}`]}
+                                      alt={m.title}
+                                      className="w-full aspect-[2/3] object-cover rounded"
+                                      onError={() => handlePosterRenderError(`${m.title}_${m.year}`)}
+                                    />
+                                  </button>
                                 ) : (
                                   <button
                                     onClick={() => fetchPoster(m.title, m.year, m.imdbId)}
                                     className="w-full aspect-[2/3] bg-gray-800 rounded flex items-center justify-center text-gray-500 text-xs"
                                     title="Load poster"
                                   >
-                                    Load Poster
+                                    {renderPosterStatus(`${m.title}_${m.year}`)}
                                   </button>
                                 )}
                                 <button
@@ -10330,19 +10436,26 @@ const [user, setUser] = useState(null);
                                     className="w-[180px] snap-start bg-[#101827] border border-gray-800 rounded-xl p-2.5 transition-transform duration-200 hover:-translate-y-1 hover:border-blue-500/30"
                                   >
                                     {posters[`${m.title}_${m.year}`] ? (
-                                      <img
-                                        src={posters[`${m.title}_${m.year}`]}
-                                        alt={m.title}
-                                        className="w-full h-[250px] object-cover rounded-lg"
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMovieClick(m)}
+                                        className="block w-full rounded-lg"
+                                        aria-label={`View details for ${m.title}`}
+                                      >
+                                        <img
+                                          src={posters[`${m.title}_${m.year}`]}
+                                          alt={m.title}
+                                          className="w-full h-[250px] object-cover rounded-lg"
+                                          onError={() => handlePosterRenderError(`${m.title}_${m.year}`)}
+                                        />
+                                      </button>
                                     ) : (
                                       <button
                                         onClick={() => fetchPoster(m.title, m.year, m.imdbId)}
                                         className="w-full h-[250px] bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 text-xs"
                                         title="Load poster"
                                       >
-                                        Load Poster
+                                        {renderPosterStatus(`${m.title}_${m.year}`)}
                                       </button>
                                     )}
                                     <button
@@ -10480,19 +10593,26 @@ const [user, setUser] = useState(null);
                             {selected.films.slice((favoriteYearPage - 1) * deepDiveFilmsPerPage, favoriteYearPage * deepDiveFilmsPerPage).map((f, i) => (
                               <div key={`${f.title}_${f.year}_${i}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                                 {posters[`${f.title}_${f.year}`] ? (
-                                  <img 
-                                    src={posters[`${f.title}_${f.year}`]} 
-                                    alt={f.title}
-                                    className="w-full aspect-[2/3] object-cover rounded"
-                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMovieClick(f)}
+                                    className="block w-full rounded"
+                                    aria-label={`View details for ${f.title}`}
+                                  >
+                                    <img
+                                      src={posters[`${f.title}_${f.year}`]}
+                                      alt={f.title}
+                                      className="w-full aspect-[2/3] object-cover rounded"
+                                      onError={() => handlePosterRenderError(`${f.title}_${f.year}`)}
+                                    />
+                                  </button>
                                 ) : (
                                   <button
                                     onClick={() => fetchPoster(f.title, f.year, f.imdbId)}
                                     className="w-full aspect-[2/3] bg-gray-800 rounded flex items-center justify-center text-gray-500 text-xs"
                                     title="Load poster"
                                   >
-                                    Load Poster
+                                    {renderPosterStatus(`${f.title}_${f.year}`)}
                                   </button>
                                 )}
                                 <button 
@@ -10527,19 +10647,26 @@ const [user, setUser] = useState(null);
                                     className="w-[180px] snap-start bg-[#101827] border border-gray-800 rounded-xl p-2.5 transition-transform duration-200 hover:-translate-y-1 hover:border-blue-500/30"
                                   >
                                     {posters[`${f.title}_${f.year}`] ? (
-                                      <img
-                                        src={posters[`${f.title}_${f.year}`]}
-                                        alt={f.title}
-                                        className="w-full h-[250px] object-cover rounded-lg"
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMovieClick(f)}
+                                        className="block w-full rounded-lg"
+                                        aria-label={`View details for ${f.title}`}
+                                      >
+                                        <img
+                                          src={posters[`${f.title}_${f.year}`]}
+                                          alt={f.title}
+                                          className="w-full h-[250px] object-cover rounded-lg"
+                                          onError={() => handlePosterRenderError(`${f.title}_${f.year}`)}
+                                        />
+                                      </button>
                                     ) : (
                                       <button
                                         onClick={() => fetchPoster(f.title, f.year, f.imdbId)}
                                         className="w-full h-[250px] bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 text-xs"
                                         title="Load poster"
                                       >
-                                        Load Poster
+                                        {renderPosterStatus(`${f.title}_${f.year}`)}
                                       </button>
                                     )}
                                     <button
@@ -10663,19 +10790,26 @@ const [user, setUser] = useState(null);
                                 {selected.films.slice((personalCanonPage - 1) * deepDiveFilmsPerPage, personalCanonPage * deepDiveFilmsPerPage).map((f, i) => (
                                   <div key={`${f.title}_${f.year}_${i}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                                     {posters[`${f.title}_${f.year}`] ? (
-                                      <img
-                                        src={posters[`${f.title}_${f.year}`]}
-                                        alt={f.title}
-                                        className="w-full aspect-[2/3] object-cover rounded"
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMovieClick(f)}
+                                        className="block w-full rounded"
+                                        aria-label={`View details for ${f.title}`}
+                                      >
+                                        <img
+                                          src={posters[`${f.title}_${f.year}`]}
+                                          alt={f.title}
+                                          className="w-full aspect-[2/3] object-cover rounded"
+                                          onError={() => handlePosterRenderError(`${f.title}_${f.year}`)}
+                                        />
+                                      </button>
                                     ) : (
                                       <button
                                         onClick={() => fetchPoster(f.title, f.year, f.imdbId)}
                                         className="w-full aspect-[2/3] bg-gray-800 rounded flex items-center justify-center text-gray-500 text-xs"
                                         title="Load poster"
                                       >
-                                        Load Poster
+                                        {renderPosterStatus(`${f.title}_${f.year}`)}
                                       </button>
                                     )}
                                     <button
@@ -10734,19 +10868,26 @@ const [user, setUser] = useState(null);
                                       className="w-[180px] snap-start bg-[#101827] border border-gray-800 rounded-xl p-2.5 transition-transform duration-200 hover:-translate-y-1 hover:border-blue-500/30"
                                     >
                                       {posters[`${f.title}_${f.year}`] ? (
-                                        <img
-                                          src={posters[`${f.title}_${f.year}`]}
-                                          alt={f.title}
-                                          className="w-full h-[250px] object-cover rounded-lg"
-                                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMovieClick(f)}
+                                          className="block w-full rounded-lg"
+                                          aria-label={`View details for ${f.title}`}
+                                        >
+                                          <img
+                                            src={posters[`${f.title}_${f.year}`]}
+                                            alt={f.title}
+                                            className="w-full h-[250px] object-cover rounded-lg"
+                                            onError={() => handlePosterRenderError(`${f.title}_${f.year}`)}
+                                          />
+                                        </button>
                                       ) : (
                                         <button
                                           onClick={() => fetchPoster(f.title, f.year, f.imdbId)}
                                           className="w-full h-[250px] bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 text-xs"
                                           title="Load poster"
                                         >
-                                          Load Poster
+                                          {renderPosterStatus(`${f.title}_${f.year}`)}
                                         </button>
                                       )}
                                       <button
@@ -10858,19 +10999,26 @@ const [user, setUser] = useState(null);
                               {topGenrePageFilms.map((f, fi) => (
                                 <div key={`${selectedGenreGroup.genre}_${f.title}_${f.year}_${fi}`} className="bg-[#0b1220] border border-gray-800 rounded-lg p-2">
                                   {posters[`${f.title}_${f.year}`] ? (
-                                    <img
-                                      src={posters[`${f.title}_${f.year}`]}
-                                      alt={f.title}
-                                      className="w-full aspect-[2/3] object-cover rounded"
-                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMovieClick(f)}
+                                      className="block w-full rounded"
+                                      aria-label={`View details for ${f.title}`}
+                                    >
+                                      <img
+                                        src={posters[`${f.title}_${f.year}`]}
+                                        alt={f.title}
+                                        className="w-full aspect-[2/3] object-cover rounded"
+                                        onError={() => handlePosterRenderError(`${f.title}_${f.year}`)}
+                                      />
+                                    </button>
                                   ) : (
                                     <button
                                       onClick={() => fetchPoster(f.title, f.year, f.imdbId)}
                                       className="w-full aspect-[2/3] bg-gray-800 rounded flex items-center justify-center text-gray-500 text-xs"
                                       title="Load poster"
                                     >
-                                      Load Poster
+                                      {renderPosterStatus(`${f.title}_${f.year}`)}
                                     </button>
                                   )}
                                   <button
@@ -10906,19 +11054,26 @@ const [user, setUser] = useState(null);
                                       className="w-[180px] snap-start bg-[#101827] border border-gray-800 rounded-xl p-2.5 transition-transform duration-200 hover:-translate-y-1 hover:border-blue-500/30"
                                     >
                                       {posters[`${f.title}_${f.year}`] ? (
-                                        <img
-                                          src={posters[`${f.title}_${f.year}`]}
-                                          alt={f.title}
-                                          className="w-full h-[250px] object-cover rounded-lg"
-                                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMovieClick(f)}
+                                          className="block w-full rounded-lg"
+                                          aria-label={`View details for ${f.title}`}
+                                        >
+                                          <img
+                                            src={posters[`${f.title}_${f.year}`]}
+                                            alt={f.title}
+                                            className="w-full h-[250px] object-cover rounded-lg"
+                                            onError={() => handlePosterRenderError(`${f.title}_${f.year}`)}
+                                          />
+                                        </button>
                                       ) : (
                                         <button
                                           onClick={() => fetchPoster(f.title, f.year, f.imdbId)}
                                           className="w-full h-[250px] bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 text-xs"
                                           title="Load poster"
                                         >
-                                          Load Poster
+                                          {renderPosterStatus(`${f.title}_${f.year}`)}
                                         </button>
                                       )}
                                       <button

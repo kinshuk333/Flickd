@@ -207,6 +207,9 @@
   aspect-ratio: 2 / 3;
   background: var(--surface-muted);
   border: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ui-film-poster-card__image {
@@ -214,6 +217,16 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.ui-film-poster-card__empty {
+  max-width: 80%;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .ui-film-poster-card__title {
