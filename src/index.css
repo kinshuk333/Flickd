@@ -3592,9 +3592,9 @@ body {
   display: block !important;
   width: 100% !important;
   aspect-ratio: 2 / 3;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: center center !important;
-  background: transparent !important;
+  background: rgba(6, 11, 24, 0.92) !important;
   border: 0 !important;
   border-radius: 8px !important;
   transform: none !important;

@@ -413,6 +413,8 @@ export default function App() {
   const [mapZoom, setMapZoom] = useState(1);
   const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
   const [isMapDragging, setIsMapDragging] = useState(false);
+  const [mapWheelLock, setMapWheelLock] = useState(false);
+  const [deepDiveWheelLock, setDeepDiveWheelLock] = useState(false);
   const [mapDragStart, setMapDragStart] = useState(null);
   const [traceHover, setTraceHover] = useState(null);
   const [traceTooltip, setTraceTooltip] = useState(null);
@@ -459,7 +461,6 @@ export default function App() {
   const [savingAboutMe, setSavingAboutMe] = useState(false);
   const [followToast, setFollowToast] = useState(null);
   const [supabasePinging, setSupabasePinging] = useState(false);
-  const [loginPosterUrls, setLoginPosterUrls] = useState([]);
   const [_supabaseHealth, setSupabaseHealth] = useState({
     status: 'idle', // idle | ok | slow | error
     lastMs: null,
@@ -3995,8 +3996,8 @@ const [user, setUser] = useState(null);
     });
     return maxCount;
   }, [timelineYearClusters]);
-  const timelineColumnWidth = Math.max(78, Math.round(84 * timelineZoom));
-  const timelineRailWidth = Math.max(1200, timelineYearClusters.length * Math.round(95 * timelineZoom));
+  const timelineColumnWidth = Math.max(96, Math.round(108 * timelineZoom));
+  const timelineRailWidth = Math.max(1320, timelineYearClusters.length * Math.round(118 * timelineZoom));
 
   const timelineRelated = React.useMemo(() => {
     if (!timelineHoverKey) return new Set();
@@ -4094,6 +4095,15 @@ const [user, setUser] = useState(null);
     setMapDragStart(null);
   };
 
+  const handleMainScrollWheelCapture = (event) => {
+    if (!mapWheelLock && !deepDiveWheelLock) return;
+    if (event.cancelable) event.preventDefault();
+    event.stopPropagation();
+    if (event.nativeEvent?.stopImmediatePropagation) {
+      event.nativeEvent.stopImmediatePropagation();
+    }
+  };
+
   useEffect(() => {
     const el = mapWheelSurfaceRef.current;
     if (!el) return undefined;
@@ -4105,6 +4115,15 @@ const [user, setUser] = useState(null);
       el.removeEventListener('wheel', wheelLockHandler);
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'overview') {
+      setMapWheelLock(false);
+    }
+    if (activeTab !== 'deepdive') {
+      setDeepDiveWheelLock(false);
+    }
+  }, [activeTab]);
 
   const handleMapTouchStart = (event) => {
     if (event.touches.length === 2) {
@@ -5738,43 +5757,6 @@ const [user, setUser] = useState(null);
     });
   }, []);
 
-  useEffect(() => {
-    if (loadingAuth || user) return undefined;
-    let cancelled = false;
-
-    const pickRandomPosters = (items, count = 5) => {
-      const unique = Array.from(
-        new Set(
-          (Array.isArray(items) ? items : [])
-            .map((row) => String(row?.poster || '').trim())
-            .filter((url) => url && url !== 'N/A')
-        )
-      );
-      const shuffled = [...unique].sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, count);
-    };
-
-    const loadLoginPosters = async () => {
-      try {
-        const { data: posterRows, error } = await supabase
-          .from('omdb_cache')
-          .select('poster')
-          .not('poster', 'is', null)
-          .limit(180);
-        if (error || cancelled) return;
-        const picked = pickRandomPosters(posterRows, 5);
-        if (!cancelled) setLoginPosterUrls(picked);
-      } catch {
-        // Keep login resilient if Supabase is temporarily unavailable.
-      }
-    };
-
-    loadLoginPosters();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadingAuth, user]);
-
   const onTimelineRailScroll = () => {
     const el = tasteTimelineRef.current;
     if (!el) return;
@@ -6468,28 +6450,14 @@ const [user, setUser] = useState(null);
             alt="Flickd"
             className="h-7 sm:h-8 w-auto mx-auto mb-6 object-contain"
           />
-          <div className="mb-8 h-36 sm:h-40 w-full flex items-start justify-center">
-            <div className="flex items-start justify-center">
-              {[0, 1, 2, 3, 4].map((idx) => {
-                const posterUrl = loginPosterUrls[idx] || '';
-                return (
-                  <div
-                    key={`login_poster_${idx}`}
-                    className={`w-20 sm:w-24 h-[118px] sm:h-[132px] rounded-2xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_20px_rgba(0,0,0,0.28)] ${idx === 0 ? '' : '-ml-2 sm:-ml-3'}`}
-                  >
-                    {posterUrl ? (
-                      <img
-                        src={posterUrl}
-                        alt="Film poster"
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-b from-[#13203a] to-[#0b1220]" />
-                    )}
-                  </div>
-                );
-              })}
+          <div className="mb-8 w-full flex items-start justify-center">
+            <div className="rounded-2xl border border-gray-700/70 bg-[#0b1220]/45 p-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.28)]">
+              <img
+                src="/login-posters-strip.png"
+                alt="Featured film posters"
+                className="w-[300px] sm:w-[420px] h-auto rounded-xl object-contain"
+                loading="eager"
+              />
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl leading-tight font-bold tracking-tight text-white">Welcome</h1>
@@ -7264,7 +7232,10 @@ const [user, setUser] = useState(null);
               </div>
             )}
 
-          <div className={`flickd-main-scroll flickd-tab-${activeTab} h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'flickd-main-scroll--directory px-3 sm:px-5 py-4' : 'px-3 sm:px-5 py-4 lg:py-0 lg:pr-4 lg:pl-[300px]'}`}>
+          <div
+            className={`flickd-main-scroll flickd-tab-${activeTab} h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'flickd-main-scroll--directory px-3 sm:px-5 py-4' : 'px-3 sm:px-5 py-4 lg:py-0 lg:pr-4 lg:pl-[300px]'}`}
+            onWheelCapture={handleMainScrollWheelCapture}
+          >
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
               <>
                 <div className="hidden" />
@@ -7643,6 +7614,8 @@ const [user, setUser] = useState(null);
                         ref={mapWheelSurfaceRef}
                         className="rounded-lg border border-gray-800 bg-[#0b1220] p-2 relative overscroll-contain"
                         style={{ overscrollBehavior: 'contain' }}
+                        onMouseEnter={() => setMapWheelLock(true)}
+                        onMouseLeave={() => setMapWheelLock(false)}
                         onWheel={handleMapWheel}
                         onWheelCapture={handleMapWheel}
                       >
@@ -8924,7 +8897,7 @@ const [user, setUser] = useState(null);
                               <div className="relative z-10 flex gap-4">
                                 {timelineYearClusters.map((cluster) => {
                                   const columnWidth = timelineColumnWidth;
-                                  const posterW = Math.max(62, Math.min(columnWidth - 10, Math.round(72 * timelineZoom)));
+                                  const posterW = Math.max(78, Math.min(columnWidth - 6, Math.round(88 * timelineZoom)));
                                   const posterH = Math.max(92, Math.round(posterW * 1.5));
                                   const laneRows = ['Mainstream', 'Hybrid', 'Arthouse'];
 
@@ -10093,6 +10066,8 @@ const [user, setUser] = useState(null);
                             <div
                               className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
                               style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                              onMouseEnter={() => setDeepDiveWheelLock(true)}
+                              onMouseLeave={() => setDeepDiveWheelLock(false)}
                               onWheelCapture={(e) => {
                                 const el = e.currentTarget;
                                 e.preventDefault();
@@ -10260,6 +10235,8 @@ const [user, setUser] = useState(null);
                             <div
                               className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
                               style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                              onMouseEnter={() => setDeepDiveWheelLock(true)}
+                              onMouseLeave={() => setDeepDiveWheelLock(false)}
                               onWheelCapture={(e) => {
                                 const el = e.currentTarget;
                                 e.preventDefault();
@@ -10455,6 +10432,8 @@ const [user, setUser] = useState(null);
                             <div
                               className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
                               style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                              onMouseEnter={() => setDeepDiveWheelLock(true)}
+                              onMouseLeave={() => setDeepDiveWheelLock(false)}
                               onWheelCapture={(e) => {
                                 const el = e.currentTarget;
                                 e.preventDefault();
@@ -10660,6 +10639,8 @@ const [user, setUser] = useState(null);
                               <div
                                 className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
                                 style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                                onMouseEnter={() => setDeepDiveWheelLock(true)}
+                                onMouseLeave={() => setDeepDiveWheelLock(false)}
                                 onWheelCapture={(e) => {
                                   const el = e.currentTarget;
                                   e.preventDefault();
@@ -10830,6 +10811,8 @@ const [user, setUser] = useState(null);
                               <div
                                 className="cinematic-rail overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory"
                                 style={{ overscrollBehaviorX: 'contain', overscrollBehaviorY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                                onMouseEnter={() => setDeepDiveWheelLock(true)}
+                                onMouseLeave={() => setDeepDiveWheelLock(false)}
                                 onWheelCapture={(e) => {
                                   const el = e.currentTarget;
                                   e.preventDefault();
