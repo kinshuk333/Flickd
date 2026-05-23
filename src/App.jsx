@@ -5605,7 +5605,7 @@ const [user, setUser] = useState(null);
     if (loadingAuth || user) return undefined;
     let cancelled = false;
 
-    const pickRandomPosters = (items, count = 3) => {
+    const pickRandomPosters = (items, count = 5) => {
       const unique = Array.from(
         new Set(
           (Array.isArray(items) ? items : [])
@@ -5625,7 +5625,7 @@ const [user, setUser] = useState(null);
           .not('poster', 'is', null)
           .limit(180);
         if (error || cancelled) return;
-        const picked = pickRandomPosters(posterRows, 3);
+        const picked = pickRandomPosters(posterRows, 5);
         if (!cancelled) setLoginPosterUrls(picked);
       } catch {
         // Keep login resilient if Supabase is temporarily unavailable.
@@ -6326,16 +6326,26 @@ const [user, setUser] = useState(null);
           <img
             src="/flickd-brand.png"
             alt="Flickd"
-            className="h-10 sm:h-11 w-auto mx-auto mb-6 object-contain"
+            className="h-8 sm:h-9 w-auto mx-auto mb-6 object-contain"
           />
-          <div className="mb-7 flex items-end justify-center gap-2.5 sm:gap-3">
-            {[0, 1, 2].map((idx) => {
+          <div className="mb-8 relative h-40 sm:h-44 w-full">
+            {[0, 1, 2, 3, 4].map((idx) => {
               const posterUrl = loginPosterUrls[idx] || '';
-              const rotateClass = idx === 0 ? '-rotate-12 -mr-1' : idx === 2 ? 'rotate-12 -ml-1' : '';
+              const opacityClass = idx === 2 ? 'opacity-100' : (idx === 1 || idx === 3 ? 'opacity-90' : 'opacity-70');
+              const translateClass =
+                idx === 0
+                  ? '-translate-x-[130px] sm:-translate-x-[168px] translate-y-3 scale-[0.95]'
+                  : idx === 1
+                    ? '-translate-x-[68px] sm:-translate-x-[92px] translate-y-1 scale-[0.98]'
+                    : idx === 2
+                      ? 'translate-x-0 translate-y-0 scale-100 z-20'
+                      : idx === 3
+                        ? 'translate-x-[68px] sm:translate-x-[92px] translate-y-1 scale-[0.98]'
+                        : 'translate-x-[130px] sm:translate-x-[168px] translate-y-3 scale-[0.95]';
               return (
                 <div
                   key={`login_poster_${idx}`}
-                  className={`w-20 sm:w-24 h-28 sm:h-32 rounded-xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_24px_rgba(0,0,0,0.35)] ${rotateClass}`}
+                  className={`absolute left-1/2 top-0 -translate-x-1/2 w-20 sm:w-24 h-[120px] sm:h-36 rounded-xl border border-gray-700 bg-[#0b1220] overflow-hidden shadow-[0_10px_24px_rgba(0,0,0,0.35)] transition-all ${translateClass} ${opacityClass}`}
                 >
                   {posterUrl ? (
                     <img
