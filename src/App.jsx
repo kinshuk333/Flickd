@@ -7112,7 +7112,8 @@ const [user, setUser] = useState(null);
                   )}
                 </div>
               </div>
-              {mobileTopNavOpen && (
+              {mobileTopNavOpen && (() => {
+                const mobileMenu = (
                 <div className="flickd-mobile-menu-overlay md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
                   <button
                     type="button"
@@ -7207,7 +7208,10 @@ const [user, setUser] = useState(null);
                 </div>
                 </div>
                 </div>
-              )}
+                );
+                const mobileMenuHost = typeof document !== 'undefined' ? document.body : null;
+                return mobileMenuHost ? createPortal(mobileMenu, mobileMenuHost) : mobileMenu;
+              })()}
             </div>
         </header>
 
