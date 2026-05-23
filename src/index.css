@@ -3584,6 +3584,8 @@ body {
 .timeline-poster-frame {
   overflow: hidden;
   border-radius: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .timeline-poster-image {
@@ -3592,7 +3594,8 @@ body {
   aspect-ratio: 2 / 3;
   object-fit: contain !important;
   object-position: center center !important;
-  background: rgba(6, 11, 24, 0.9) !important;
+  background: transparent !important;
+  border: 0 !important;
   border-radius: 8px !important;
   transform: none !important;
 }

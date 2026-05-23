@@ -319,6 +319,18 @@ const stableStringify = (value) => {
     return '';
   }
 };
+const sameStringList = (a = [], b = []) => (
+  Array.isArray(a) &&
+  Array.isArray(b) &&
+  a.length === b.length &&
+  a.every((item, index) => String(item) === String(b[index]))
+);
+const countryLookupKey = (country) => String(country || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/&/g, 'and')
+  .replace(/[^a-z0-9]+/g, '');
 
 export default function App() {
   const [data, setData] = useState(null);
@@ -1317,7 +1329,7 @@ const [user, setUser] = useState(null);
   useEffect(() => {
     if (!data?.length || fetchingCountries) return;
 
-    const hasMissingCountry = data.some((movie) => !movie?.country);
+    const hasMissingCountry = data.some((movie) => !movie?.country || movie.country === 'Unknown');
     if (!hasMissingCountry) return;
     const signature = data
       .map((movie) => `${String(movie?.imdbId || movie?.imdbID || movie?.title || '').trim()}::${Number(movie?.year) || ''}::${String(movie?.country || '')}`)
@@ -1575,7 +1587,7 @@ const [user, setUser] = useState(null);
     try {
       const cached = await getOmdbCache({ title: safeTitle, year: safeYear, imdbId });
       if (cached?.poster) {
-        setPosters((prev) => ({ ...prev, [key]: cached.poster }));
+        setPosters((prev) => (prev?.[key] === cached.poster ? prev : { ...prev, [key]: cached.poster }));
         delete posterFailedAtRef.current[key];
         return cached.poster;
       }
@@ -1593,7 +1605,7 @@ const [user, setUser] = useState(null);
       }
 
       if (json?.Response === 'True' && json?.Poster && json.Poster !== 'N/A') {
-        setPosters((prev) => ({ ...prev, [key]: json.Poster }));
+        setPosters((prev) => (prev?.[key] === json.Poster ? prev : { ...prev, [key]: json.Poster }));
         setOmdbCache({ title: safeTitle, year: safeYear, imdbId, payload: json });
         delete posterFailedAtRef.current[key];
         return json.Poster;
@@ -1805,7 +1817,7 @@ const [user, setUser] = useState(null);
 
         const promises = batch.map(async (movie) => {
           const key = `${movie.title}_${movie.year}`;
-          if (cache[key]) return { ...movie, country: cache[key] };
+          if (cache[key] && cache[key] !== 'Unknown') return { ...movie, country: cache[key] };
 
           const cleanTitle = cleanTitleForOmdb(movie.title);
 
@@ -1824,7 +1836,7 @@ const [user, setUser] = useState(null);
               `https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitle)}&y=${movie.year}&apikey=${key}`
             );
 
-            if (json.Response === 'True' && json.Country) {
+            if (json?.Response === 'True' && json.Country) {
               const country = json.Country.split(',')[0].trim();
               cache[key] = country;
               setOmdbCache({ title: movie.title, year: movie.year, imdbId: movie.imdbId || movie.imdbID || null, payload: json });
@@ -1901,6 +1913,45 @@ const [user, setUser] = useState(null);
     };
 
     return aliases[value] || value;
+  };
+
+  const getCountryMatchKeys = (country) => {
+    const normalized = normalizeCountryName(country);
+    const keys = new Set([countryLookupKey(country), countryLookupKey(normalized)]);
+    const aliasGroups = [
+      ['USA', 'US', 'United States', 'United States of America', 'America'],
+      ['UK', 'U.K.', 'United Kingdom', 'Great Britain'],
+      ['Russia', 'Russian Federation'],
+      ['South Korea', 'Korea, South', 'Republic of Korea', 'Korea, Republic of'],
+      ['North Korea', "Democratic People's Republic of Korea"],
+      ['Iran', 'Iran, Islamic Republic of'],
+      ['Vietnam', 'Viet Nam'],
+      ['Turkey', 'Turkiye', 'Trkiye'],
+      ['Czech Republic', 'Czechia'],
+      ["Ivory Coast", "Cote d'Ivoire"],
+      ['Syria', 'Syrian Arab Republic'],
+      ['Bolivia', 'Bolivia, Plurinational State of'],
+      ['Venezuela', 'Venezuela, Bolivarian Republic of'],
+      ['Moldova', 'Moldova, Republic of'],
+      ['Taiwan', 'Taiwan, Province of China'],
+      ['Palestine', 'Palestine, State of'],
+      ['Laos', "Lao People's Democratic Republic"],
+      ['Brunei', 'Brunei Darussalam'],
+      ['Cape Verde', 'Cabo Verde'],
+      ['Swaziland', 'Eswatini'],
+      ['Macedonia', 'North Macedonia'],
+      ['Burma', 'Myanmar'],
+      ['The Netherlands', 'Netherlands'],
+      ['UAE', 'United Arab Emirates'],
+    ];
+    const countryKeys = new Set([countryLookupKey(country), countryLookupKey(normalized)]);
+    aliasGroups.forEach((group) => {
+      const groupKeys = group.map(countryLookupKey);
+      if (groupKeys.some((key) => countryKeys.has(key))) {
+        groupKeys.forEach((key) => keys.add(key));
+      }
+    });
+    return Array.from(keys).filter(Boolean);
   };
 
   const getFeatureCountryName = (feature) => {
@@ -3658,11 +3709,20 @@ const [user, setUser] = useState(null);
   const hiddenTreasures = getHiddenTreasures();
   const mostWatchedGenres = getMostWatchedGenres();
   const countryPreference = getCountryPreference(countryRatingThreshold, countryTimeRange);
+  const fallbackCountryPreference = countryPreference.length
+    ? countryPreference
+    : getCountryPreference(0, countryTimeRange);
+  const usingCountryPreferenceFallback = countryPreference.length === 0 && fallbackCountryPreference.length > 0;
   const isWatchedFilmsMode = countryRatingThreshold === 0;
   const mapCountLabel = isWatchedFilmsMode
     ? 'films watched'
-    : `films rated >= ${countryRatingThreshold}`;
-  const countryPreferenceLookup = Object.fromEntries(countryPreference.map((item) => [item.country, item.count]));
+    : (usingCountryPreferenceFallback ? 'films watched' : `films rated >= ${countryRatingThreshold}`);
+  const countryPreferenceLookup = fallbackCountryPreference.reduce((acc, item) => {
+    getCountryMatchKeys(item.country).forEach((key) => {
+      acc[key] = Math.max(acc[key] || 0, item.count);
+    });
+    return acc;
+  }, {});
 
   const watchedDecades = data
     ? Array.from(new Set(data.map((movie) => Number(movie?.year)).filter((year) => year >= 1900).map((year) => Math.floor(year / 10) * 10))).sort((a, b) => b - a)
@@ -4855,14 +4915,14 @@ const [user, setUser] = useState(null);
         const followingIds = (followingRes.data || [])
           .map((row) => String(row?.followed_user_id || '').trim())
           .filter(Boolean);
-        setFollowedMemberIds(followingIds);
+        setFollowedMemberIds((prev) => (sameStringList(prev, followingIds) ? prev : followingIds));
       }
       if (!followersRes.error) {
         const followerRows = Array.isArray(followersRes.data) ? followersRes.data : [];
         const followerIds = followerRows
           .map((row) => String(row?.follower_user_id || '').trim())
           .filter(Boolean);
-        setFollowerUserIds(followerIds);
+        setFollowerUserIds((prev) => (sameStringList(prev, followerIds) ? prev : followerIds));
         const followerKeys = followerRows
           .map((row) => {
             const idVal = String(row?.follower_user_id || '').trim();
@@ -4871,7 +4931,7 @@ const [user, setUser] = useState(null);
             return `${idVal}|${atVal}`;
           })
           .filter(Boolean);
-        setFollowerFollowKeys(followerKeys);
+        setFollowerFollowKeys((prev) => (sameStringList(prev, followerKeys) ? prev : followerKeys));
       }
     } catch {
       // keep last known local state
@@ -7557,7 +7617,8 @@ const [user, setUser] = useState(null);
                                 {mapFeatures.map((feature, idx) => {
                                   const rawName = getFeatureCountryName(feature);
                                   const normalizedName = normalizeCountryName(rawName);
-                                  const count = countryPreferenceLookup[normalizedName] || 0;
+                                  const count = getCountryMatchKeys(normalizedName)
+                                    .reduce((max, key) => Math.max(max, countryPreferenceLookup[key] || 0), 0);
                                   const pathData = mapPathGenerator(feature);
                                   if (!pathData) return null;
   return (
@@ -8778,7 +8839,7 @@ const [user, setUser] = useState(null);
                               className="relative ml-24 px-3 pt-3 pb-3"
                               style={{
                                 minWidth: `${timelineRailWidth}px`,
-                                minHeight: `${Math.max(520, 230 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 4)))}px`,
+                                minHeight: `${Math.max(500, 220 + (timelineMaxLaneCount * (Math.max(52, Math.round(60 * timelineZoom)) + 2)))}px`,
                               }}
                             >
                               <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
@@ -8803,7 +8864,7 @@ const [user, setUser] = useState(null);
                                           const laneFilms = cluster.lanes?.[laneName] || [];
                                           return (
                                             <div key={`${cluster.year}-${laneName}`} className="min-h-[68px] flex justify-center">
-                                              <div className="space-y-0.5">
+                                              <div className="space-y-0">
                                                 {laneFilms.map((movie) => {
                                                   const posterKey = `${movie.title}_${movie.year}`;
                                                   const hoverKey = movie.timelineKey;
@@ -8826,7 +8887,7 @@ const [user, setUser] = useState(null);
                                                             src={posters[posterKey]}
                                                             alt={movie.title}
                                                             loading="lazy"
-                                                            className="timeline-poster-image w-full object-cover border border-gray-700"
+                                                            className="timeline-poster-image w-full object-cover"
                                                             style={{ height: `${posterH}px` }}
                                                             onError={() => handlePosterRenderError(posterKey)}
                                                           />
@@ -8835,7 +8896,7 @@ const [user, setUser] = useState(null);
                                                         <button
                                                           type="button"
                                                           onClick={() => fetchPoster(movie.title, movie.year, movie.imdbId)}
-                                                          className="timeline-poster-trigger timeline-poster-image w-full border border-gray-700 bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
+                                                          className="timeline-poster-trigger timeline-poster-image w-full bg-[#1f2937] text-[9px] text-gray-400 hover:text-gray-200 hover:bg-[#374151] flex items-center justify-center"
                                                           style={{ height: `${posterH}px` }}
                                                           title="Load poster"
                                                         >
