@@ -409,6 +409,7 @@ export default function App() {
   const [worldGeoJson, setWorldGeoJson] = useState(null);
   const [countryRatingThreshold, setCountryRatingThreshold] = useState(8);
   const [countryTimeRange] = useState('all');
+  const [yearlyChartTooltip, setYearlyChartTooltip] = useState(null);
   const [hoveredMapCountry, setHoveredMapCountry] = useState(null);
   const [mapTooltip, setMapTooltip] = useState(null);
   const [mapZoom, setMapZoom] = useState(1);
@@ -1709,9 +1710,24 @@ const [user, setUser] = useState(null);
     });
   }, []);
 
-  const renderPosterStatus = React.useCallback((posterKey) => (
-    unavailablePosters?.[posterKey] ? 'No poster available' : 'Load Poster'
-  ), [unavailablePosters]);
+  const renderPosterStatus = React.useCallback(() => 'No poster available', []);
+
+  const showYearlyChartTooltip = React.useCallback((payload, coordinate) => {
+    const point = Array.isArray(payload) ? payload[0]?.payload : payload?.payload || payload;
+    if (!point) return;
+    setYearlyChartTooltip({
+      coordinate: coordinate || null,
+      label: point.year,
+      payload: [
+        {
+          name: 'Film count',
+          value: point.filmCount,
+          dataKey: 'filmCount',
+          payload: point,
+        },
+      ],
+    });
+  }, []);
 
   const fetchPoster = async (title, year, imdbId = null) => {
     const safeTitle = String(title || '').trim();
@@ -5679,7 +5695,7 @@ const [user, setUser] = useState(null);
     { id: 'personality', label: 'Identity' },
     { id: 'allwatched', label: 'Film Archive' },
     { id: 'tastetimeline', label: 'Timeline Map' },
-    { id: 'mytrace', label: 'My Trace' },
+    { id: 'mytrace', label: "Director's Fingerprint" },
     { id: 'moodboard', label: 'Filmboards' },
     { id: 'deepdive', label: 'Deep Dive' },
   ];
@@ -6989,7 +7005,7 @@ const [user, setUser] = useState(null);
                   disabled={shareCardBusy}
                   className="px-3 py-2 rounded-xl border border-blue-500/40 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  {shareCardBusy ? 'Preparing...' : 'Share Profile'}
+                  {shareCardBusy ? 'Preparing...' : 'Share'}
                 </button>
               </div>
             </div>
@@ -7572,12 +7588,39 @@ const [user, setUser] = useState(null);
                         </div>
                       </div>
                       <ResponsiveContainer width="100%" height={320}>
-                        <BarChart data={yearlyHighlight} margin={CHART_THEME.margin.vertical}>
+                        <BarChart
+                          data={yearlyHighlight}
+                          margin={CHART_THEME.margin.vertical}
+                          onClick={(state) => showYearlyChartTooltip(state?.activePayload, state?.activeCoordinate)}
+                          onMouseMove={(state) => {
+                            if (state?.isTooltipActive) showYearlyChartTooltip(state.activePayload, state.activeCoordinate);
+                          }}
+                          onMouseLeave={() => setYearlyChartTooltip(null)}
+                        >
                           <CartesianGrid strokeDasharray={CHART_THEME.grid.strokeDasharray} stroke={CHART_THEME.grid.stroke} />
                           <XAxis dataKey="year" stroke={CHART_THEME.axis.stroke} interval="preserveStartEnd" tick={CHART_THEME.axis.tick} />
                           <YAxis stroke={CHART_THEME.axis.stroke} tick={CHART_THEME.axis.tick} />
-                          <Tooltip {...CHART_THEME.tooltip} />
-                          <Bar dataKey="filmCount" fill={ACCENT_COLOR} radius={CHART_THEME.barRadius.vertical} activeBar={false}>
+                          <Tooltip
+                            {...CHART_THEME.tooltip}
+                            active={yearlyChartTooltip ? true : undefined}
+                            payload={yearlyChartTooltip?.payload}
+                            label={yearlyChartTooltip?.label}
+                            coordinate={yearlyChartTooltip?.coordinate}
+                            formatter={(v) => [`${v} films`, 'Count']}
+                          />
+                          <Bar
+                            dataKey="filmCount"
+                            fill={ACCENT_COLOR}
+                            radius={CHART_THEME.barRadius.vertical}
+                            activeBar={false}
+                            onClick={(point, index, event) => {
+                              showYearlyChartTooltip(point, event ? { x: event.clientX, y: event.clientY } : null);
+                            }}
+                            onTouchStart={(point, index, event) => {
+                              event?.stopPropagation?.();
+                              showYearlyChartTooltip(point, null);
+                            }}
+                          >
                             {yearlyHighlight.map((_, i) => <Cell key={i} fill={getChartColor(i)} />)}
                           </Bar>
                         </BarChart>
@@ -8341,7 +8384,7 @@ const [user, setUser] = useState(null);
                                             })}
                                             className="px-2.5 py-1 text-[11px] rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-gray-800"
                                           >
-                                            Share Profile
+                                            Share
                                           </button>
                                         </div>
                                         <div className="text-xs text-gray-400 mt-1">
@@ -9184,7 +9227,7 @@ const [user, setUser] = useState(null);
                           <MetricCard label="Era" value={`${personality.mostWatchedDecade}s`} />
                           <MetricCard label="Preferred Runtime" value={`${personality.avgRuntime} min`} />
                           <MetricCard label="Obscurity Index" value={`${personality.nichePercentage}%`} />
-                          <MetricCard className="col-span-2 sm:col-span-1" label="Your Avg" value={`★ ${personality.avgRating}`} />
+                          <MetricCard className="col-span-2 sm:col-span-1" label="Your Avg" value={`? ${personality.avgRating}`} />
                         </div>
                       </CardContent>
                     </Card>
@@ -9885,7 +9928,7 @@ const [user, setUser] = useState(null);
                               {posters[`${film.title}_${film.year}`] ? (
                                 <img src={posters[`${film.title}_${film.year}`]} alt={film.title} className="w-10 h-14 object-cover rounded" />
                               ) : (
-                                <div className="w-10 h-14 bg-gray-800 rounded" />
+                                <div className="w-10 h-14 bg-gray-800 rounded flex items-center justify-center text-[8px] leading-tight text-center text-gray-500">No poster available</div>
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="text-white text-sm font-medium truncate">{film.title}</div>
@@ -10066,7 +10109,7 @@ const [user, setUser] = useState(null);
                                   />
                                 </button>
                               ) : (
-                                <div className="w-full aspect-[2/3] bg-gray-800" />
+                                <div className="w-full aspect-[2/3] bg-gray-800 flex items-center justify-center px-3 text-center text-xs font-medium text-gray-500">No poster available</div>
                               )}
                               <div className="p-2">
                                 <div className="text-xs text-white truncate">{film.title}</div>
@@ -10148,7 +10191,7 @@ const [user, setUser] = useState(null);
                             onClick={() => openShareCard({ title: 'Hidden Gems', subtitle: 'Personal Discovery Card', filenameBase: 'flickd-hidden-gems', films: hiddenGems.allFilms })}
                             className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                           >
-                            Share Profile
+                            Share
                           </button>
                         </div>
                         <p className="text-xs text-gray-400 mb-4">Films you valued far more deeply than the wider audience.</p>
@@ -10326,7 +10369,7 @@ const [user, setUser] = useState(null);
                             onClick={() => openShareCard({ title: 'Hidden Treasures', subtitle: 'Undiscovered Favorites', filenameBase: 'flickd-hidden-treasures', films: hiddenTreasures.allFilms })}
                             className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                           >
-                            Share Profile
+                            Share
                           </button>
                         </div>
                         <p className="text-xs text-gray-400 mb-4">Rare films buried beneath the algorithm that still left a lasting imprint on you.</p>
@@ -10522,7 +10565,7 @@ const [user, setUser] = useState(null);
                             })}
                             className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                           >
-                            Share Profile
+                            Share
                           </button>
                         </div>
                         <p className="text-xs text-gray-400 mb-4">Top-rated films grouped by release year from your watched history.</p>
@@ -10723,7 +10766,7 @@ const [user, setUser] = useState(null);
                               onClick={() => openShareCard({ title: `${selected.decade} Personal Canon`, subtitle: 'Films That Define Your Taste', filenameBase: `flickd-personal-canon-${selected.decade}`, films: selected.films })}
                               className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                             >
-                              Share Profile
+                              Share
                             </button>
                           </div>
                           <p className="text-xs text-gray-400 mb-4">The films that define your taste, organized decade by decade.</p>
@@ -10928,7 +10971,7 @@ const [user, setUser] = useState(null);
                               onClick={() => openShareCard({ title: `Top 10 ${selectedGenreGroup.genre} Films`, subtitle: 'Genre Signature Card', filenameBase: `flickd-top-genre-${selectedGenreGroup.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, films: selectedGenreGroup.films })}
                               className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
                             >
-                              Share Profile
+                              Share
                             </button>
                           </div>
                           <p className="text-xs text-gray-400 mb-4">
@@ -11153,6 +11196,7 @@ const [user, setUser] = useState(null);
     </div>
   );
 }
+
 
 
 
