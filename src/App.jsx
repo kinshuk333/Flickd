@@ -1879,7 +1879,7 @@ const [user, setUser] = useState(null);
       imdbVotes,
       numVotes: imdbVotes,
       imdbId: isValidOmdb ? String(payload?.imdbID || '').trim() : '',
-      dateRated: null,
+      dateRated: film?.dateRated || null,
       country: isValidOmdb && payload?.Country !== 'N/A' ? String(payload?.Country || '').split(',')[0].trim() : '',
       letterboxdUrl: film?.letterboxdUrl || '',
     };
@@ -1999,6 +1999,66 @@ const [user, setUser] = useState(null);
         }
         return '';
       };
+
+      const isLetterboxdExport = rawRows.some((row) => {
+        const uri = String(getByAliases(row, ['Letterboxd URI', 'Letterboxd URL', 'URI', 'URL'])).trim();
+        return Boolean(uri && /letterboxd\.com/i.test(uri));
+      });
+
+      if (isLetterboxdExport) {
+        const films = rawRows
+          .map((row) => {
+            const title = String(getByAliases(row, ['Name', 'Title'])).trim();
+            const year = Number(getByAliases(row, ['Year', 'Release Year'])) || 0;
+            const ratingRaw = Number(getByAliases(row, ['Rating', 'Your Rating']));
+            const yourRating = Number.isFinite(ratingRaw) ? Math.round(ratingRaw * 2) : 0;
+            const letterboxdUrl = String(getByAliases(row, ['Letterboxd URI', 'Letterboxd URL', 'URI', 'URL'])).trim();
+            const dateRated = parseExcelDate(getByAliases(row, ['Date', 'Date Rated', 'Watched Date']));
+            if (!title || !yourRating || yourRating <= 0) return null;
+            return {
+              title,
+              year,
+              yourRating: Math.min(10, Math.max(1, yourRating)),
+              letterboxdUrl,
+              dateRated,
+            };
+          })
+          .filter(Boolean);
+
+        if (!films.length) {
+          alert('No valid rated films found in the Letterboxd export.');
+          return;
+        }
+
+        const rows = [];
+        const batchSize = 4;
+        setLetterboxdError('');
+        setLetterboxdImporting(true);
+        setLetterboxdProgress({ current: 0, total: films.length, phase: 'Filling Letterboxd export with OMDb data' });
+
+        try {
+          for (let index = 0; index < films.length; index += batchSize) {
+            const batch = films.slice(index, index + batchSize);
+            const enriched = await Promise.all(batch.map((film) => enrichLetterboxdFilm(film)));
+            rows.push(...enriched.filter(Boolean));
+            setLetterboxdProgress({
+              current: Math.min(index + batch.length, films.length),
+              total: films.length,
+              phase: 'Filling Letterboxd export with OMDb data',
+            });
+          }
+        } finally {
+          setLetterboxdImporting(false);
+        }
+
+        if (!rows.length) {
+          alert('Letterboxd films were found, but none could be converted into dashboard data.');
+          return;
+        }
+
+        applyImportedDataset(rows, file.name || 'Letterboxd Export');
+        return;
+      }
 
       const parsed = rawRows
         .map((row) => {
@@ -6845,14 +6905,14 @@ const [user, setUser] = useState(null);
           </div>
           <div className="bg-[#111827] border border-gray-800 rounded-2xl p-6 sm:p-8">
             <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white">Add your film ratings</h2>
-            <p className="text-sm text-gray-400 mt-2">Start with an IMDb ratings export or enter your Letterboxd username.</p>
+            <p className="text-sm text-gray-400 mt-2">Start with an IMDb export, a Letterboxd export, or enter your Letterboxd username.</p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-gray-700 bg-[#0f172a] p-4">
-                <p className="text-sm font-semibold text-gray-100">IMDb CSV/XLSX</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-400">Upload the ratings export from your IMDb ratings page.</p>
+                <p className="text-sm font-semibold text-gray-100">IMDb or Letterboxd CSV/XLSX</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">Upload an IMDb ratings export or Letterboxd ratings.csv export.</p>
                 <label className="mt-4 flex flex-col items-center justify-center h-32 border border-dashed border-gray-600 rounded-xl cursor-pointer bg-[#0b1220] hover:bg-[#141b28] transition-colors">
-                  <p className="text-base font-semibold leading-tight text-gray-100">Drop IMDb file here</p>
+                  <p className="text-base font-semibold leading-tight text-gray-100">Drop ratings file here</p>
                   <p className="mt-1 text-xs text-gray-400">or browse .csv .xlsx .xls</p>
                   <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
                 </label>
@@ -6860,7 +6920,7 @@ const [user, setUser] = useState(null);
 
               <form onSubmit={handleLetterboxdImport} className="rounded-xl border border-gray-700 bg-[#0f172a] p-4">
                 <p className="text-sm font-semibold text-gray-100">Letterboxd Username</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-400">Enter only the username. Ratings are converted to a 10-point scale and metadata is filled from OMDb.</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">Enter only the username. This may import only the first Letterboxd page if pagination is blocked.</p>
                 <div className="mt-4 flex flex-col gap-2">
                   <input
                     type="text"
@@ -6902,11 +6962,11 @@ const [user, setUser] = useState(null);
             </div>
 
             <div className="mt-4 rounded-xl border border-gray-700 bg-[#0f172a] p-4">
-              <p className="text-xs md:text-sm font-medium tracking-normal text-gray-400">IMDb export path</p>
+              <p className="text-xs md:text-sm font-medium tracking-normal text-gray-400">Export paths</p>
               <ol className="mt-2 space-y-1.5 text-sm text-gray-300 list-decimal list-inside">
                 <li>Open IMDb and go to <span className="text-gray-100 font-medium">Your Ratings</span>.</li>
                 <li>Click <span className="text-gray-100 font-medium">Export</span> on the ratings page.</li>
-                <li>Upload that exported file here.</li>
+                <li>For full Letterboxd history, export your Letterboxd data and upload <span className="text-gray-100 font-medium">ratings.csv</span>.</li>
               </ol>
             </div>
 
@@ -9836,12 +9896,12 @@ const [user, setUser] = useState(null);
                         <h3 className="text-lg font-semibold text-white leading-tight">Ratings Import</h3>
                       </div>
                     <p className="text-sm md:text-base text-gray-400 leading-relaxed">
-                      Replace your ratings anytime with an IMDb export or a Letterboxd username. Your charts refresh automatically after import.
+                      Replace your ratings anytime with an IMDb export, Letterboxd export, or a Letterboxd username. Your charts refresh automatically after import.
                     </p>
                     <div className="mt-4 space-y-3">
                       <label className="flex flex-col items-center justify-center h-28 border border-dashed border-gray-600 rounded-xl cursor-pointer bg-[#0f172a] hover:bg-[#141b28] transition-colors group">
-                        <p className="text-lg font-semibold text-gray-100 leading-tight">Drop your IMDb file here</p>
-                        <p className="mt-1 text-xs text-gray-400">or click to browse .csv .xlsx .xls</p>
+                        <p className="text-lg font-semibold text-gray-100 leading-tight">Drop your ratings file here</p>
+                        <p className="mt-1 text-xs text-gray-400">IMDb export or Letterboxd ratings.csv</p>
                         <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
                       </label>
 
@@ -9867,7 +9927,7 @@ const [user, setUser] = useState(null);
                             {letterboxdImporting ? 'Importing...' : 'Import'}
                           </button>
                         </div>
-                        <p className="mt-2 text-xs text-gray-400">Letterboxd stars are converted to the app's 10-point scale and missing fields are fetched from OMDb.</p>
+                        <p className="mt-2 text-xs text-gray-400">Letterboxd stars are converted to the app's 10-point scale. Upload ratings.csv for the complete history if the username scrape is limited.</p>
                         {letterboxdError && (
                           <p className="mt-2 text-xs text-red-300">{letterboxdError}</p>
                         )}
