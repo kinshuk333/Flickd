@@ -1884,23 +1884,6 @@ const [user, setUser] = useState(null);
     };
   };
 
-  const normalizeLetterboxdSeedRow = (film) => ({
-    title: String(film?.title || '').trim(),
-    titleType: 'movie',
-    yourRating: Number(film?.yourRating) || 0,
-    imdbRating: 0,
-    year: Number(film?.year) || 0,
-    genres: '',
-    directors: '',
-    runtime: 0,
-    imdbVotes: 0,
-    numVotes: 0,
-    imdbId: '',
-    dateRated: film?.dateRated || null,
-    country: '',
-    letterboxdUrl: film?.letterboxdUrl || '',
-  });
-
   const enrichLetterboxdFilm = async (film) => {
     const title = String(film?.title || '').trim();
     const year = Number(film?.year) || '';
@@ -1999,55 +1982,27 @@ const [user, setUser] = useState(null);
     return XLSX.read(buffer, { type: 'array' });
   };
 
-  const mergeEnrichedRows = (baseRows, enrichedRows) => {
-    const enrichedByKey = new Map(
-      enrichedRows
-        .filter(Boolean)
-        .map((row) => [`${String(row?.title || '').toLowerCase()}|${Number(row?.year) || 0}`, row])
-    );
-
-    return baseRows.map((row) => {
-      const key = `${String(row?.title || '').toLowerCase()}|${Number(row?.year) || 0}`;
-      const enriched = enrichedByKey.get(key);
-      if (!enriched) return row;
-      return {
-        ...row,
-        ...enriched,
-        yourRating: row.yourRating,
-        dateRated: row.dateRated || enriched.dateRated || null,
-        letterboxdUrl: row.letterboxdUrl || enriched.letterboxdUrl || '',
-      };
-    });
-  };
-
-  const enrichLetterboxdRowsInBackground = async (films, seedRows, sourceName) => {
+  const enrichLetterboxdRows = async (films) => {
     const rows = [];
-    const batchSize = 32;
+    const batchSize = 40;
     setLetterboxdImporting(true);
-    setLetterboxdProgress({ current: 0, total: films.length, phase: 'Improving metadata from OMDb' });
+    setLetterboxdProgress({ current: 0, total: films.length, phase: 'Filling Letterboxd export with OMDb data' });
 
     try {
       for (let index = 0; index < films.length; index += batchSize) {
         const batch = films.slice(index, index + batchSize);
         const enriched = await Promise.all(batch.map((film) => enrichLetterboxdFilm(film)));
         rows.push(...enriched.filter(Boolean));
-        const mergedRows = mergeEnrichedRows(seedRows, rows);
-        setData(mergedRows);
-        persistDataset(mergedRows, sourceName);
         setLetterboxdProgress({
           current: Math.min(index + batch.length, films.length),
           total: films.length,
-          phase: 'Improving metadata from OMDb',
+          phase: 'Filling Letterboxd export with OMDb data',
         });
       }
-      const finalRows = mergeEnrichedRows(seedRows, rows);
-      setData(finalRows);
-      persistDataset(finalRows, sourceName);
-      syncDatasetToMemberProfile(finalRows);
-      setLetterboxdProgress({ current: films.length, total: films.length, phase: 'Import complete' });
+      return rows;
     } catch (error) {
-      console.error('Letterboxd background enrichment failed:', error);
-      setLetterboxdError('The ratings imported, but some OMDb metadata could not be filled.');
+      console.error('Letterboxd enrichment failed:', error);
+      throw error;
     } finally {
       setLetterboxdImporting(false);
     }
@@ -2120,10 +2075,16 @@ const [user, setUser] = useState(null);
         }
 
         setLetterboxdError('');
-        const seedRows = films.map(normalizeLetterboxdSeedRow);
         const sourceName = file.name || 'Letterboxd Export';
-        applyImportedDataset(seedRows, sourceName);
-        enrichLetterboxdRowsInBackground(films, seedRows, sourceName);
+        const rows = await enrichLetterboxdRows(films);
+
+        if (!rows.length) {
+          alert('Letterboxd films were found, but none could be converted into dashboard data.');
+          return;
+        }
+
+        applyImportedDataset(rows, sourceName);
+        setLetterboxdProgress({ current: rows.length, total: rows.length, phase: 'Import complete' });
         return;
       }
 
@@ -3326,6 +3287,17 @@ const [user, setUser] = useState(null);
 
   const getCinemaMindProfile = () => {
     if (!data || data.length === 0) return null;
+    const metadataRows = data.filter((movie) =>
+      String(movie?.genres || '').trim() || String(movie?.directors || '').trim()
+    );
+    if (!metadataRows.length) {
+      return {
+        archetypes: [],
+        signals: [],
+        metadataReady: 0,
+        metadataTotal: data.length,
+      };
+    }
 
     const archetypeTotals = CINEMA_MIND_ARCHETYPES.reduce((acc, archetype) => {
       acc[archetype] = 0;
@@ -3334,7 +3306,7 @@ const [user, setUser] = useState(null);
 
     let totalWeight = 0;
 
-    data.forEach((movie) => {
+    metadataRows.forEach((movie) => {
       const rating = Number(movie?.yourRating);
       if (!rating) return;
 
@@ -3439,7 +3411,12 @@ const [user, setUser] = useState(null);
       },
     ];
 
-    return { archetypes, signals };
+    return {
+      archetypes,
+      signals,
+      metadataReady: metadataRows.length,
+      metadataTotal: data.length,
+    };
   };
 
   const getSummaryStats = () => {
@@ -3463,6 +3440,22 @@ const [user, setUser] = useState(null);
     return { totalFilms: total, avgYourRating: avgYour, avgDifference: avgDiff, mostRatedGenre };
   };
 
+  const getMetadataStatus = () => {
+    if (!Array.isArray(data) || !data.length) return { ready: 0, total: 0, percent: 0, loading: false };
+    const ready = data.filter((movie) =>
+      String(movie?.genres || '').trim() ||
+      String(movie?.directors || '').trim() ||
+      String(movie?.country || '').trim() ||
+      String(movie?.imdbId || '').trim()
+    ).length;
+    return {
+      ready,
+      total: data.length,
+      percent: Math.round((ready / data.length) * 100),
+      loading: ready < data.length && letterboxdImporting,
+    };
+  };
+
   const getRatingDistribution = () => {
     if (!data?.length) return [];
     const dist = Array(11).fill(0);
@@ -3477,7 +3470,9 @@ const [user, setUser] = useState(null);
     if (!data?.length) return [];
     const statsByGenre = {};
 
-    data.forEach((movie) => {
+    data
+      .filter((movie) => String(movie?.genres || '').trim())
+      .forEach((movie) => {
       const rating = Number(movie?.yourRating) || 0;
       String(movie?.genres || '')
         .split(',')
@@ -3782,6 +3777,7 @@ const [user, setUser] = useState(null);
 
   const stats = getSummaryStats();
   const hasDashboardData = Array.isArray(data) && data.length > 0;
+  const metadataStatus = getMetadataStatus();
   const ratingDist = getRatingDistribution();
   const genreAffinity = getGenreAffinity();
   const eraPreference = getEraPreference();
@@ -4056,6 +4052,10 @@ const [user, setUser] = useState(null);
       yearMin: minYear,
       yearMax: maxYear,
       totalFilms: films.length,
+      sourceFilms: data.length,
+      metadataReady: metadataStatus.ready,
+      metadataTotal: metadataStatus.total,
+      metadataLoading: metadataStatus.loading,
       spanStart,
       spanEnd,
       topDirectors: selectedDirectors.slice(0, 6).map((d) => d.name),
@@ -7810,6 +7810,24 @@ const [user, setUser] = useState(null);
                     <p>Patterns shaped through genre loyalty, emotional intensity, and cinematic eras.</p>
                   </div>
 
+                  {metadataStatus.loading && (
+                    <DashboardCard className="p-4 border border-blue-500/20 bg-blue-950/10">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <span className="text-blue-100 font-medium">OMDb metadata is still loading</span>
+                          <span className="text-blue-200/80">{metadataStatus.ready} / {metadataStatus.total}</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-[#1f2937]">
+                          <div
+                            className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                            style={{ width: `${metadataStatus.percent}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-blue-100/70">Rating and year charts are ready. Genre, director, country, and personality charts will settle as metadata fills in.</p>
+                      </div>
+                    </DashboardCard>
+                  )}
+
                   <div className="flickd-overview-primary-grid">
                     <ChartCard title={<span className="inline-flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-300" /> Rating Distribution</span>} className="flickd-overview-feature-chart h-full" bodyClassName="flickd-chart-stage flickd-chart-stage--feature">
                         <ResponsiveContainer width="100%" height={390}>
@@ -7826,7 +7844,7 @@ const [user, setUser] = useState(null);
                         </ResponsiveContainer>
                     </ChartCard>
 
-                    {mostWatchedGenres.genres.length > 0 && (
+                    {mostWatchedGenres.genres.length > 0 ? (
                       <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Dominant Genres</span>} className="flickd-overview-support-chart h-full" bodyClassName="flickd-chart-stage">
                         <div className="mb-4 text-sm text-gray-300">
                           Total: <span className="text-blue-400 font-bold">{mostWatchedGenres.totalGenres}</span>
@@ -7854,7 +7872,13 @@ const [user, setUser] = useState(null);
                           </ResponsiveContainer>
                         </div>
                       </ChartCard>
-                    )}
+                    ) : metadataStatus.loading ? (
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Clapperboard className="h-4 w-4 text-violet-300" /> Dominant Genres</span>} className="flickd-overview-support-chart h-full" bodyClassName="flickd-chart-stage">
+                        <div className="flex h-[340px] items-center justify-center text-center text-sm text-gray-400">
+                          Fetching genres from OMDb...
+                        </div>
+                      </ChartCard>
+                    ) : null}
                   </div>
 
                   {yearlyHighlight.length > 0 && (
@@ -7915,7 +7939,7 @@ const [user, setUser] = useState(null);
                   </div>
 
                   <div className="flickd-overview-support-grid">
-                    {genreAffinity.length > 0 && (
+                    {genreAffinity.length > 0 ? (
                       <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full" bodyClassName="flickd-chart-stage">
                         <div>
                           <ResponsiveContainer width="100%" height={340}>
@@ -7938,7 +7962,13 @@ const [user, setUser] = useState(null);
                           </ResponsiveContainer>
                         </div>
                       </ChartCard>
-                    )}
+                    ) : metadataStatus.loading ? (
+                      <ChartCard title={<span className="inline-flex items-center gap-2"><Blend className="h-4 w-4 text-emerald-300" /> Genre Affinity</span>} className="h-full" bodyClassName="flickd-chart-stage">
+                        <div className="flex h-[340px] items-center justify-center text-center text-sm text-gray-400">
+                          Fetching genres from OMDb...
+                        </div>
+                      </ChartCard>
+                    ) : null}
 
                     {eraPreference.length > 0 && (
                       <ChartCard title={<span className="inline-flex items-center gap-2"><CalendarRange className="h-4 w-4 text-amber-300" /> Era Preference</span>} className="h-full" bodyClassName="flickd-chart-stage">
@@ -8358,10 +8388,26 @@ const [user, setUser] = useState(null);
                          {!traceFullscreen && (
                          <div className="mt-4 mb-3 rounded-lg border border-gray-800 bg-[#0b1220] p-3 text-xs">
                            <div className="text-gray-200">
-                             <span className="text-gray-400">Films Logged:</span> {directorFingerprintData.totalFilms}
+                             <span className="text-gray-400">Films Fingerprinted:</span> {directorFingerprintData.totalFilms}
+                             <span className="text-gray-500"> {' / '} </span>
+                             <span className="text-gray-400">Total Films:</span> {directorFingerprintData.sourceFilms}
                              <span className="text-gray-500"> {' | '} </span>
                              <span className="text-gray-400">Time Span:</span> {directorFingerprintData.spanStart} to {directorFingerprintData.spanEnd}
                            </div>
+                           {directorFingerprintData.metadataLoading && (
+                             <div className="mt-3">
+                               <div className="flex items-center justify-between text-[11px] text-blue-100/80">
+                                 <span>Director metadata still loading from OMDb</span>
+                                 <span>{directorFingerprintData.metadataReady} / {directorFingerprintData.metadataTotal}</span>
+                               </div>
+                               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#1f2937]">
+                                 <div
+                                   className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                                   style={{ width: `${metadataStatus.percent}%` }}
+                                 />
+                               </div>
+                             </div>
+                           )}
                            <div className="text-blue-300 mt-1 break-words">
                              <span className="text-gray-400">Top Directors:</span> {directorFingerprintData.topDirectors.join(', ')}
                            </div>
@@ -9785,45 +9831,56 @@ const [user, setUser] = useState(null);
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                    <div>
-                      <h4 className="flex items-center gap-2 text-base font-semibold text-white mb-4">
-                        <BarChart3 className="h-4 w-4 text-blue-300" />
-                        Cinema Mind
-                      </h4>
-                      <div className="h-[460px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={cinemaMindProfile.archetypes} layout="vertical" margin={{ top: 8, right: 20, left: 20, bottom: 8 }}>
-                            <CartesianGrid {...CHART_THEME.grid} horizontal={false} />
-                            <XAxis type="number" domain={[0, 100]} tick={CHART_THEME.axis.tick} axisLine={false} tickLine={false} />
-                            <YAxis
-                              type="category"
-                              dataKey="name"
-                              width={130}
-                              tick={{ ...CHART_THEME.axis.tick, fill: '#cbd5e1' }}
-                              axisLine={false}
-                              tickLine={false}
-                            />
-                            <Tooltip
-                              cursor={{ fill: 'rgba(59,130,246,0.08)' }}
-                              contentStyle={CHART_THEME.tooltip.contentStyle}
-                              labelStyle={CHART_THEME.tooltip.labelStyle}
-                              itemStyle={CHART_THEME.tooltip.itemStyle}
-                              formatter={(value) => [`${value}%`, 'Affinity']}
-                            />
-                            <Bar dataKey="value" radius={[0, 8, 8, 0]} activeBar={false}>
-                              {cinemaMindProfile.archetypes.map((item, i) => (
-                                <Cell
-                                  key={`cinema-mind-${i}`}
-                                  fill={item.value >= 70 ? '#60a5fa' : item.value >= 40 ? '#3b82f6' : '#1d4ed8'}
-                                  fillOpacity={item.value >= 50 ? 1 : 0.7}
-                                />
-                              ))}
-                              <LabelList dataKey="value" position="right" formatter={(v) => `${v}%`} fill="#cbd5e1" fontSize={11} />
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
+                    {cinemaMindProfile.archetypes.length > 0 ? (
+                      <div>
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="flex items-center gap-2 text-base font-semibold text-white">
+                            <BarChart3 className="h-4 w-4 text-blue-300" />
+                            Cinema Mind
+                          </h4>
+                          {metadataStatus.loading && (
+                            <span className="text-xs text-blue-200/80">Metadata {metadataStatus.ready} / {metadataStatus.total}</span>
+                          )}
+                        </div>
+                        <div className="h-[460px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={cinemaMindProfile.archetypes} layout="vertical" margin={{ top: 8, right: 20, left: 20, bottom: 8 }}>
+                              <CartesianGrid {...CHART_THEME.grid} horizontal={false} />
+                              <XAxis type="number" domain={[0, 100]} tick={CHART_THEME.axis.tick} axisLine={false} tickLine={false} />
+                              <YAxis
+                                type="category"
+                                dataKey="name"
+                                width={130}
+                                tick={{ ...CHART_THEME.axis.tick, fill: '#cbd5e1' }}
+                                axisLine={false}
+                                tickLine={false}
+                              />
+                              <Tooltip
+                                cursor={{ fill: 'rgba(59,130,246,0.08)' }}
+                                contentStyle={CHART_THEME.tooltip.contentStyle}
+                                labelStyle={CHART_THEME.tooltip.labelStyle}
+                                itemStyle={CHART_THEME.tooltip.itemStyle}
+                                formatter={(value) => [`${value}%`, 'Affinity']}
+                              />
+                              <Bar dataKey="value" radius={[0, 8, 8, 0]} activeBar={false}>
+                                {cinemaMindProfile.archetypes.map((item, i) => (
+                                  <Cell
+                                    key={`cinema-mind-${i}`}
+                                    fill={item.value >= 70 ? '#60a5fa' : item.value >= 40 ? '#3b82f6' : '#1d4ed8'}
+                                    fillOpacity={item.value >= 50 ? 1 : 0.7}
+                                  />
+                                ))}
+                                <LabelList dataKey="value" position="right" formatter={(v) => `${v}%`} fill="#cbd5e1" fontSize={11} />
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex h-[360px] items-center justify-center text-center text-sm text-gray-400">
+                        Fetching genres and directors from OMDb...
+                      </div>
+                    )}
                     </CardContent>
                   </Card>
                 </Motion.div>
