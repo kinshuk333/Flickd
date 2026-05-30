@@ -2013,8 +2013,14 @@ const [user, setUser] = useState(null);
       };
 
       const isLetterboxdExport = rawRows.some((row) => {
+        const name = String(getByAliases(row, ['Name'])).trim();
+        const year = String(getByAliases(row, ['Year'])).trim();
+        const rating = String(getByAliases(row, ['Rating'])).trim();
         const uri = String(getByAliases(row, ['Letterboxd URI', 'Letterboxd URL', 'URI', 'URL'])).trim();
-        return Boolean(uri && /letterboxd\.com/i.test(uri));
+        return Boolean(
+          (name && year && rating && uri) ||
+          (name && year && rating && !String(getByAliases(row, ['Title', 'Your Rating', 'IMDb Rating', 'Const'])).trim())
+        );
       });
 
       if (isLetterboxdExport) {
