@@ -388,7 +388,6 @@ export default function App() {
   const [countryOverrides, setCountryOverrides] = useState({});
   const [fetchingCountries, setFetchingCountries] = useState(false);
   const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 });
-  const [letterboxdUsername, setLetterboxdUsername] = useState('');
   const [letterboxdImporting, setLetterboxdImporting] = useState(false);
   const [letterboxdProgress, setLetterboxdProgress] = useState({ current: 0, total: 0, phase: '' });
   const [letterboxdError, setLetterboxdError] = useState('');
@@ -1909,64 +1908,78 @@ const [user, setUser] = useState(null);
     return row;
   };
 
-  const handleLetterboxdImport = async (event) => {
-    event?.preventDefault?.();
-    const username = String(letterboxdUsername || '')
-      .trim()
-      .replace(/^https?:\/\/(?:www\.)?letterboxd\.com\//i, '')
-      .replace(/\/films\/?.*$/i, '')
-      .replace(/^@/, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '');
-
-    if (!username) {
-      setLetterboxdError('Enter your Letterboxd username.');
-      return;
+  const inflateRawZipBytes = async (bytes) => {
+    if (typeof DecompressionStream !== 'function') {
+      throw new Error('This browser cannot read zip exports. Please upload ratings.csv from the export instead.');
     }
-    if (letterboxdImporting) return;
 
-    setLetterboxdImporting(true);
-    setLetterboxdError('');
-    setLetterboxdProgress({ current: 0, total: 0, phase: 'Reading Letterboxd profile' });
+    const decompress = async (format) => {
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(format));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    };
 
     try {
-      const response = await fetch(`/api/letterboxd?username=${encodeURIComponent(username)}`);
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.error || 'Could not import that Letterboxd profile.');
-      }
-
-      const films = Array.isArray(payload?.films) ? payload.films.filter((film) => Number(film?.yourRating) > 0) : [];
-      if (!films.length) {
-        throw new Error('No rated films were found on that Letterboxd profile.');
-      }
-
-      const rows = [];
-      const batchSize = 4;
-      setLetterboxdProgress({ current: 0, total: films.length, phase: 'Filling missing data from OMDb' });
-
-      for (let index = 0; index < films.length; index += batchSize) {
-        const batch = films.slice(index, index + batchSize);
-        const enriched = await Promise.all(batch.map((film) => enrichLetterboxdFilm(film)));
-        rows.push(...enriched.filter(Boolean));
-        setLetterboxdProgress({
-          current: Math.min(index + batch.length, films.length),
-          total: films.length,
-          phase: 'Filling missing data from OMDb',
-        });
-      }
-
-      if (!rows.length) {
-        throw new Error('Letterboxd films were found, but none could be converted into dashboard data.');
-      }
-
-      applyImportedDataset(rows, `Letterboxd: ${username}`);
-      setLetterboxdProgress({ current: rows.length, total: rows.length, phase: 'Import complete' });
-    } catch (error) {
-      console.error('Letterboxd import failed:', error);
-      setLetterboxdError(error?.message || 'Letterboxd import failed. Please try again.');
-    } finally {
-      setLetterboxdImporting(false);
+      return await decompress('deflate-raw');
+    } catch {
+      return decompress('deflate');
     }
+  };
+
+  const extractRatingsCsvFromZip = async (arrayBuffer) => {
+    const view = new DataView(arrayBuffer);
+    const bytes = new Uint8Array(arrayBuffer);
+    const decoder = new TextDecoder('utf-8');
+    const minEocdOffset = Math.max(0, bytes.length - 65557);
+    let eocdOffset = -1;
+
+    for (let offset = bytes.length - 22; offset >= minEocdOffset; offset -= 1) {
+      if (view.getUint32(offset, true) === 0x06054b50) {
+        eocdOffset = offset;
+        break;
+      }
+    }
+
+    if (eocdOffset < 0) {
+      throw new Error('Could not read this Letterboxd zip export.');
+    }
+
+    const totalEntries = view.getUint16(eocdOffset + 10, true);
+    let directoryOffset = view.getUint32(eocdOffset + 16, true);
+
+    for (let index = 0; index < totalEntries; index += 1) {
+      if (view.getUint32(directoryOffset, true) !== 0x02014b50) break;
+
+      const method = view.getUint16(directoryOffset + 10, true);
+      const compressedSize = view.getUint32(directoryOffset + 20, true);
+      const fileNameLength = view.getUint16(directoryOffset + 28, true);
+      const extraLength = view.getUint16(directoryOffset + 30, true);
+      const commentLength = view.getUint16(directoryOffset + 32, true);
+      const localHeaderOffset = view.getUint32(directoryOffset + 42, true);
+      const fileName = decoder.decode(bytes.slice(directoryOffset + 46, directoryOffset + 46 + fileNameLength));
+
+      if (fileName.toLowerCase() === 'ratings.csv' || fileName.toLowerCase().endsWith('/ratings.csv')) {
+        const localFileNameLength = view.getUint16(localHeaderOffset + 26, true);
+        const localExtraLength = view.getUint16(localHeaderOffset + 28, true);
+        const dataOffset = localHeaderOffset + 30 + localFileNameLength + localExtraLength;
+        const compressed = bytes.slice(dataOffset, dataOffset + compressedSize);
+        const textBytes = method === 0 ? compressed : method === 8 ? await inflateRawZipBytes(compressed) : null;
+        if (!textBytes) throw new Error('Unsupported compression in this Letterboxd zip export.');
+        return decoder.decode(textBytes);
+      }
+
+      directoryOffset += 46 + fileNameLength + extraLength + commentLength;
+    }
+
+    throw new Error('ratings.csv was not found in this Letterboxd export.');
+  };
+
+  const getWorkbookFromUploadedFile = async (file) => {
+    const buffer = await file.arrayBuffer();
+    if (/\.zip$/i.test(file.name || '')) {
+      const ratingsCsv = await extractRatingsCsvFromZip(buffer);
+      return XLSX.read(ratingsCsv, { type: 'string' });
+    }
+    return XLSX.read(buffer, { type: 'array' });
   };
   
   const handleFileUpload = async (event) => {
@@ -1974,8 +1987,7 @@ const [user, setUser] = useState(null);
     if (!file) return;
 
     try {
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
+      const workbook = await getWorkbookFromUploadedFile(file);
       const firstSheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[firstSheetName];
       if (!sheet) return;
@@ -2106,7 +2118,7 @@ const [user, setUser] = useState(null);
       applyImportedDataset(parsed, file.name);
     } catch (error) {
       console.error('File upload failed:', error);
-      alert('Could not parse this file. Please upload a valid IMDb CSV/XLSX export.');
+      alert(error?.message || 'Could not parse this file. Please upload a valid IMDb export, Letterboxd ratings.csv, or Letterboxd zip export.');
     }
   };
   const handleRemoveUploadedFile = () => {
@@ -6905,42 +6917,18 @@ const [user, setUser] = useState(null);
           </div>
           <div className="bg-[#111827] border border-gray-800 rounded-2xl p-6 sm:p-8">
             <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white">Add your film ratings</h2>
-            <p className="text-sm text-gray-400 mt-2">Start with an IMDb export, a Letterboxd export, or enter your Letterboxd username.</p>
+            <p className="text-sm text-gray-400 mt-2">Start with an IMDb export, Letterboxd ratings.csv, or the full Letterboxd export zip.</p>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-6">
               <div className="rounded-xl border border-gray-700 bg-[#0f172a] p-4">
-                <p className="text-sm font-semibold text-gray-100">IMDb or Letterboxd CSV/XLSX</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-400">Upload an IMDb ratings export or Letterboxd ratings.csv export.</p>
+                <p className="text-sm font-semibold text-gray-100">IMDb or Letterboxd Export</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">Upload an IMDb ratings export, Letterboxd ratings.csv, or the full Letterboxd export zip. Missing metadata is filled from OMDb.</p>
                 <label className="mt-4 flex flex-col items-center justify-center h-32 border border-dashed border-gray-600 rounded-xl cursor-pointer bg-[#0b1220] hover:bg-[#141b28] transition-colors">
                   <p className="text-base font-semibold leading-tight text-gray-100">Drop ratings file here</p>
-                  <p className="mt-1 text-xs text-gray-400">or browse .csv .xlsx .xls</p>
-                  <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
+                  <p className="mt-1 text-xs text-gray-400">or browse .csv .xlsx .xls .zip</p>
+                  <input type="file" className="hidden" accept=".csv,.xlsx,.xls,.zip" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
                 </label>
-              </div>
 
-              <form onSubmit={handleLetterboxdImport} className="rounded-xl border border-gray-700 bg-[#0f172a] p-4">
-                <p className="text-sm font-semibold text-gray-100">Letterboxd Username</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-400">Enter only the username. This may import only the first Letterboxd page if pagination is blocked.</p>
-                <div className="mt-4 flex flex-col gap-2">
-                  <input
-                    type="text"
-                    value={letterboxdUsername}
-                    onChange={(e) => {
-                      setLetterboxdUsername(e.target.value);
-                      setLetterboxdError('');
-                    }}
-                    placeholder="kinshuk333"
-                    disabled={letterboxdImporting}
-                    className="w-full rounded-xl border border-gray-700 bg-[#0b1220] px-3.5 py-3 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-60"
-                  />
-                  <button
-                    type="submit"
-                    disabled={letterboxdImporting}
-                    className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {letterboxdImporting ? 'Importing...' : 'Import from Letterboxd'}
-                  </button>
-                </div>
                 {letterboxdError && (
                   <p className="mt-3 text-xs text-red-300">{letterboxdError}</p>
                 )}
@@ -6958,7 +6946,7 @@ const [user, setUser] = useState(null);
                     </div>
                   </div>
                 )}
-              </form>
+              </div>
             </div>
 
             <div className="mt-4 rounded-xl border border-gray-700 bg-[#0f172a] p-4">
@@ -6966,7 +6954,7 @@ const [user, setUser] = useState(null);
               <ol className="mt-2 space-y-1.5 text-sm text-gray-300 list-decimal list-inside">
                 <li>Open IMDb and go to <span className="text-gray-100 font-medium">Your Ratings</span>.</li>
                 <li>Click <span className="text-gray-100 font-medium">Export</span> on the ratings page.</li>
-                <li>For full Letterboxd history, export your Letterboxd data and upload <span className="text-gray-100 font-medium">ratings.csv</span>.</li>
+                <li>For Letterboxd, export your data and upload either the zip or <span className="text-gray-100 font-medium">ratings.csv</span>.</li>
               </ol>
             </div>
 
@@ -9896,56 +9884,32 @@ const [user, setUser] = useState(null);
                         <h3 className="text-lg font-semibold text-white leading-tight">Ratings Import</h3>
                       </div>
                     <p className="text-sm md:text-base text-gray-400 leading-relaxed">
-                      Replace your ratings anytime with an IMDb export, Letterboxd export, or a Letterboxd username. Your charts refresh automatically after import.
+                      Replace your ratings anytime with an IMDb export, Letterboxd ratings.csv, or a Letterboxd export zip. Your charts refresh automatically after import.
                     </p>
                     <div className="mt-4 space-y-3">
                       <label className="flex flex-col items-center justify-center h-28 border border-dashed border-gray-600 rounded-xl cursor-pointer bg-[#0f172a] hover:bg-[#141b28] transition-colors group">
                         <p className="text-lg font-semibold text-gray-100 leading-tight">Drop your ratings file here</p>
-                        <p className="mt-1 text-xs text-gray-400">IMDb export or Letterboxd ratings.csv</p>
-                        <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
+                        <p className="mt-1 text-xs text-gray-400">IMDb export, Letterboxd ratings.csv, or Letterboxd zip</p>
+                        <input type="file" className="hidden" accept=".csv,.xlsx,.xls,.zip" onChange={handleFileUpload} onClick={(e) => { e.target.value = null; }} />
                       </label>
 
-                      <form onSubmit={handleLetterboxdImport} className="rounded-xl border border-gray-700 bg-[#0f172a] p-4">
-                        <label className="text-sm font-medium text-gray-300">Letterboxd username</label>
-                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                          <input
-                            type="text"
-                            value={letterboxdUsername}
-                            onChange={(e) => {
-                              setLetterboxdUsername(e.target.value);
-                              setLetterboxdError('');
-                            }}
-                            placeholder="kinshuk333"
-                            disabled={letterboxdImporting}
-                            className="min-w-0 flex-1 rounded-lg border border-gray-700 bg-[#0b1220] px-3 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-60"
-                          />
-                          <button
-                            type="submit"
-                            disabled={letterboxdImporting}
-                            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {letterboxdImporting ? 'Importing...' : 'Import'}
-                          </button>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-400">Letterboxd stars are converted to the app's 10-point scale. Upload ratings.csv for the complete history if the username scrape is limited.</p>
-                        {letterboxdError && (
-                          <p className="mt-2 text-xs text-red-300">{letterboxdError}</p>
-                        )}
-                        {letterboxdImporting && (
-                          <div className="mt-3">
-                            <div className="flex items-center justify-between text-xs text-gray-400">
-                              <span>{letterboxdProgress.phase || 'Importing'}</span>
-                              <span>{letterboxdProgress.total ? `${letterboxdProgress.current} / ${letterboxdProgress.total}` : ''}</span>
-                            </div>
-                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#1f2937]">
-                              <div
-                                className="h-full rounded-full bg-blue-500 transition-all duration-500"
-                                style={{ width: `${letterboxdProgress.total ? (letterboxdProgress.current / letterboxdProgress.total) * 100 : 15}%` }}
-                              />
-                            </div>
+                      {letterboxdError && (
+                        <p className="text-xs text-red-300">{letterboxdError}</p>
+                      )}
+                      {letterboxdImporting && (
+                        <div className="rounded-xl border border-gray-700 bg-[#0f172a] p-4">
+                          <div className="flex items-center justify-between text-xs text-gray-400">
+                            <span>{letterboxdProgress.phase || 'Importing'}</span>
+                            <span>{letterboxdProgress.total ? `${letterboxdProgress.current} / ${letterboxdProgress.total}` : ''}</span>
                           </div>
-                        )}
-                      </form>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#1f2937]">
+                            <div
+                              className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                              style={{ width: `${letterboxdProgress.total ? (letterboxdProgress.current / letterboxdProgress.total) * 100 : 15}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       {fileName && (
                         <div className="p-3 bg-[#0f172a] border border-gray-700 rounded-xl">
