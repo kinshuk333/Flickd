@@ -1386,6 +1386,12 @@ const [user, setUser] = useState(null);
     return `title:${safeTitle}|${Number(year) || ''}`;
   };
 
+  const buildOmdbTitleCacheKey = (title, year) => {
+    const safeTitle = cleanTitleForOmdb(String(title || '')).toLowerCase();
+    if (!safeTitle) return '';
+    return `title:${safeTitle}|${Number(year) || ''}`;
+  };
+
   const syncDatasetToMemberProfile = async (rows = []) => {
     if (!user?.id) return;
     try {
@@ -1444,11 +1450,13 @@ const [user, setUser] = useState(null);
 
   const fetchOmdbWithFallback = async (buildUrlForKey) => {
     const availableKeys = OMDB_API_KEYS.filter((k) => !invalidOmdbKeysRef.current.has(k));
-    const keys = availableKeys.length ? availableKeys : OMDB_API_KEYS;
-    if (!keys.length) return null;
+    if (!availableKeys.length) {
+      return { Response: 'False', Error: 'OMDb API key unavailable or request limit reached.' };
+    }
     let lastPayload = null;
 
-    for (const key of keys) {
+    for (const key of availableKeys) {
+      if (invalidOmdbKeysRef.current.has(key)) continue;
       try {
         const url = buildUrlForKey(key);
         if (!url) continue;
@@ -1468,6 +1476,7 @@ const [user, setUser] = useState(null);
         if (json?.Response === 'True') return json;
         if (json?.Error && /invalid api key|unauthorized|request limit reached/i.test(String(json.Error))) {
           invalidOmdbKeysRef.current.add(key);
+          continue;
         }
         lastPayload = json || lastPayload;
       } catch {
@@ -1496,11 +1505,34 @@ const [user, setUser] = useState(null);
       return null;
     }
 
-    if (!data?.data) return null;
-    return {
+    if (data?.data) return {
       payload: data.data,
       poster: data.poster || null,
       country: data.country || null,
+    };
+
+    const safeTitle = cleanTitleForOmdb(String(title || '')).toLowerCase();
+    const safeYear = Number(year) || null;
+    if (!safeTitle || !safeYear) return null;
+
+    const { data: titleMatches, error: titleError } = await supabase
+      .from(OMDB_CACHE_TABLE)
+      .select('data,poster,country,title,year')
+      .eq('year', safeYear)
+      .ilike('title', cleanTitleForOmdb(String(title || '')))
+      .limit(3);
+
+    if (titleError) return null;
+
+    const match = Array.isArray(titleMatches)
+      ? titleMatches.find((row) => cleanTitleForOmdb(String(row?.title || row?.data?.Title || '')).toLowerCase() === safeTitle)
+      : null;
+
+    if (!match?.data) return null;
+    return {
+      payload: match.data,
+      poster: match.poster || null,
+      country: match.country || null,
     };
   };
 
@@ -1509,20 +1541,26 @@ const [user, setUser] = useState(null);
     const cacheKey = buildOmdbCacheKey(title, year, imdbId);
     if (!cacheKey) return;
 
-    const record = {
-      cache_key: cacheKey,
-      imdb_id: imdbId || payload?.imdbID || payload?.imdbId || null,
-      title: title || payload?.Title || null,
-      year: Number(year) || Number(payload?.Year) || null,
+    const resolvedImdbId = imdbId || payload?.imdbID || payload?.imdbId || null;
+    const resolvedTitle = title || payload?.Title || null;
+    const resolvedYear = Number(year) || Number(String(payload?.Year || '').match(/\d{4}/)?.[0]) || null;
+    const baseRecord = {
+      imdb_id: resolvedImdbId,
+      title: resolvedTitle,
+      year: resolvedYear,
       poster: payload?.Poster && payload.Poster !== 'N/A' ? payload.Poster : null,
       country: payload?.Country && payload.Country !== 'N/A' ? payload.Country : null,
       data: payload,
       updated_at: new Date().toISOString(),
     };
 
+    const titleCacheKey = buildOmdbTitleCacheKey(resolvedTitle, resolvedYear);
+    const cacheKeys = [...new Set([cacheKey, titleCacheKey].filter(Boolean))];
+    const records = cacheKeys.map((key) => ({ ...baseRecord, cache_key: key }));
+
     const { error } = await supabase
       .from(OMDB_CACHE_TABLE)
-      .upsert(record, { onConflict: 'cache_key' });
+      .upsert(records, { onConflict: 'cache_key' });
 
     if (error && (error?.code === 'PGRST205' || error?.status === 404)) {
       omdbCacheAvailableRef.current = false;
@@ -1792,7 +1830,7 @@ const [user, setUser] = useState(null);
   ) => {
     if (!Array.isArray(films) || films.length === 0) return;
     const {
-      batchSize = 6,
+      batchSize = 12,
       retryPasses = 0,
       retryDelayMs = 350,
     } = options;
@@ -1984,7 +2022,7 @@ const [user, setUser] = useState(null);
 
   const enrichLetterboxdRows = async (films) => {
     const rows = [];
-    const batchSize = 40;
+    const batchSize = 60;
     setLetterboxdImporting(true);
     setLetterboxdProgress({ current: 0, total: films.length, phase: 'Filling Letterboxd export with OMDb data' });
 
@@ -2187,7 +2225,7 @@ const [user, setUser] = useState(null);
     const cache = JSON.parse(localStorage.getItem('countryCache') || '{}');
     const updated = [];
     const resolvedCountries = {};
-    const BATCH_SIZE = 50;
+    const BATCH_SIZE = 60;
 
     try {
       for (let i = 0; i < movies.length; i += BATCH_SIZE) {
