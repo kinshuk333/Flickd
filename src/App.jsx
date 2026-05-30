@@ -1884,6 +1884,23 @@ const [user, setUser] = useState(null);
     };
   };
 
+  const normalizeLetterboxdSeedRow = (film) => ({
+    title: String(film?.title || '').trim(),
+    titleType: 'movie',
+    yourRating: Number(film?.yourRating) || 0,
+    imdbRating: 0,
+    year: Number(film?.year) || 0,
+    genres: '',
+    directors: '',
+    runtime: 0,
+    imdbVotes: 0,
+    numVotes: 0,
+    imdbId: '',
+    dateRated: film?.dateRated || null,
+    country: '',
+    letterboxdUrl: film?.letterboxdUrl || '',
+  });
+
   const enrichLetterboxdFilm = async (film) => {
     const title = String(film?.title || '').trim();
     const year = Number(film?.year) || '';
@@ -1895,7 +1912,7 @@ const [user, setUser] = useState(null);
     );
 
     if (payload?.Response === 'True') {
-      await setOmdbCache({ title, year, imdbId: payload?.imdbID || null, payload });
+      setOmdbCache({ title, year, imdbId: payload?.imdbID || null, payload });
     }
 
     const row = normalizeOmdbPayloadToRow(film, payload);
@@ -1981,6 +1998,60 @@ const [user, setUser] = useState(null);
     }
     return XLSX.read(buffer, { type: 'array' });
   };
+
+  const mergeEnrichedRows = (baseRows, enrichedRows) => {
+    const enrichedByKey = new Map(
+      enrichedRows
+        .filter(Boolean)
+        .map((row) => [`${String(row?.title || '').toLowerCase()}|${Number(row?.year) || 0}`, row])
+    );
+
+    return baseRows.map((row) => {
+      const key = `${String(row?.title || '').toLowerCase()}|${Number(row?.year) || 0}`;
+      const enriched = enrichedByKey.get(key);
+      if (!enriched) return row;
+      return {
+        ...row,
+        ...enriched,
+        yourRating: row.yourRating,
+        dateRated: row.dateRated || enriched.dateRated || null,
+        letterboxdUrl: row.letterboxdUrl || enriched.letterboxdUrl || '',
+      };
+    });
+  };
+
+  const enrichLetterboxdRowsInBackground = async (films, seedRows, sourceName) => {
+    const rows = [];
+    const batchSize = 32;
+    setLetterboxdImporting(true);
+    setLetterboxdProgress({ current: 0, total: films.length, phase: 'Improving metadata from OMDb' });
+
+    try {
+      for (let index = 0; index < films.length; index += batchSize) {
+        const batch = films.slice(index, index + batchSize);
+        const enriched = await Promise.all(batch.map((film) => enrichLetterboxdFilm(film)));
+        rows.push(...enriched.filter(Boolean));
+        const mergedRows = mergeEnrichedRows(seedRows, rows);
+        setData(mergedRows);
+        persistDataset(mergedRows, sourceName);
+        setLetterboxdProgress({
+          current: Math.min(index + batch.length, films.length),
+          total: films.length,
+          phase: 'Improving metadata from OMDb',
+        });
+      }
+      const finalRows = mergeEnrichedRows(seedRows, rows);
+      setData(finalRows);
+      persistDataset(finalRows, sourceName);
+      syncDatasetToMemberProfile(finalRows);
+      setLetterboxdProgress({ current: films.length, total: films.length, phase: 'Import complete' });
+    } catch (error) {
+      console.error('Letterboxd background enrichment failed:', error);
+      setLetterboxdError('The ratings imported, but some OMDb metadata could not be filled.');
+    } finally {
+      setLetterboxdImporting(false);
+    }
+  };
   
   const handleFileUpload = async (event) => {
     const file = event?.target?.files?.[0];
@@ -2048,33 +2119,11 @@ const [user, setUser] = useState(null);
           return;
         }
 
-        const rows = [];
-        const batchSize = 4;
         setLetterboxdError('');
-        setLetterboxdImporting(true);
-        setLetterboxdProgress({ current: 0, total: films.length, phase: 'Filling Letterboxd export with OMDb data' });
-
-        try {
-          for (let index = 0; index < films.length; index += batchSize) {
-            const batch = films.slice(index, index + batchSize);
-            const enriched = await Promise.all(batch.map((film) => enrichLetterboxdFilm(film)));
-            rows.push(...enriched.filter(Boolean));
-            setLetterboxdProgress({
-              current: Math.min(index + batch.length, films.length),
-              total: films.length,
-              phase: 'Filling Letterboxd export with OMDb data',
-            });
-          }
-        } finally {
-          setLetterboxdImporting(false);
-        }
-
-        if (!rows.length) {
-          alert('Letterboxd films were found, but none could be converted into dashboard data.');
-          return;
-        }
-
-        applyImportedDataset(rows, file.name || 'Letterboxd Export');
+        const seedRows = films.map(normalizeLetterboxdSeedRow);
+        const sourceName = file.name || 'Letterboxd Export';
+        applyImportedDataset(seedRows, sourceName);
+        enrichLetterboxdRowsInBackground(films, seedRows, sourceName);
         return;
       }
 
