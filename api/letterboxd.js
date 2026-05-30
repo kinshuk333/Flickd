@@ -23,19 +23,40 @@ const getAttribute = (html, name) => {
   return decodeHtml(html.match(pattern)?.[1] || '');
 };
 
+const parseTitleAndYear = (value = '') => {
+  const text = decodeHtml(value);
+  const match = text.match(/^(.*?)\s*\((\d{4})\)\s*$/);
+  if (!match) return { title: text.trim(), year: 0 };
+  return {
+    title: match[1].trim(),
+    year: Number(match[2]) || 0,
+  };
+};
+
 const parseFilmCards = (html) => {
   const cards = [];
   const seen = new Set();
-  const cardPattern = /<li\b[^>]*class=["'][^"']*poster-container[^"']*["'][\s\S]*?<\/li>/gi;
+  const cardPattern = /<li\b[^>]*class=["'][^"']*\b(?:poster-container|griditem)\b[^"']*["'][\s\S]*?<\/li>/gi;
   const matches = html.match(cardPattern) || [];
 
   matches.forEach((card) => {
-    const title =
+    const rawTitle =
       getAttribute(card, 'data-film-name') ||
+      getAttribute(card, 'data-item-name') ||
+      getAttribute(card, 'data-item-full-display-name') ||
       getAttribute(card, 'data-original-title') ||
       getAttribute(card, 'alt');
-    const year = Number(getAttribute(card, 'data-film-release-year') || getAttribute(card, 'data-film-year')) || 0;
-    const slug = getAttribute(card, 'data-film-slug') || getAttribute(card, 'data-target-link');
+    const parsedTitle = parseTitleAndYear(rawTitle);
+    const title = parsedTitle.title;
+    const year =
+      Number(getAttribute(card, 'data-film-release-year') || getAttribute(card, 'data-film-year')) ||
+      parsedTitle.year ||
+      0;
+    const slug =
+      getAttribute(card, 'data-film-slug') ||
+      getAttribute(card, 'data-item-slug') ||
+      getAttribute(card, 'data-target-link') ||
+      getAttribute(card, 'data-item-link');
     const normalizedSlug = slug ? `/${slug.replace(/^\/+|\/+$/g, '')}/` : '';
     const ratingClass = card.match(/\brated-(\d+)\b/i)?.[1];
     const starText = decodeHtml(card.match(/<span\b[^>]*class=["'][^"']*rating[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1] || '');
@@ -58,7 +79,7 @@ const parseFilmCards = (html) => {
       yourRating: rating,
       letterboxdUrl: normalizedSlug ? `${LETTERBOXD_BASE}${normalizedSlug}` : '',
       letterboxdSlug: normalizedSlug,
-      poster: poster && !poster.startsWith('data:') ? poster : '',
+      poster: poster && !poster.startsWith('data:') && !poster.includes('empty-poster') ? poster : '',
     });
   });
 
