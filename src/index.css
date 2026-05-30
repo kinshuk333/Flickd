@@ -3473,7 +3473,7 @@ body {
     align-items: center;
     justify-content: space-between;
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: 18px;
     min-height: 34px;
   }
 
@@ -3505,10 +3505,10 @@ body {
 
   .flickd-mobile-menu-list {
     display: grid;
-    gap: 8px;
+    gap: 11px;
     margin-top: 0;
     align-content: start;
-    padding: 0 10px;
+    padding: 6px 10px 0;
     box-sizing: border-box;
   }
 
