@@ -1644,21 +1644,89 @@ const [user, setUser] = useState(null);
 
   const getBulkMovieCacheMatches = async (films = []) => {
     const results = new Map();
-    const byYear = new Map();
+    const keyEntries = [];
 
     films.forEach((film, index) => {
       const title = cleanTitleForOmdb(String(film?.title || '')).toLowerCase();
       const year = Number(film?.year) || null;
       if (!title || !year) return;
-      if (!byYear.has(year)) byYear.set(year, []);
-      byYear.get(year).push({ index, title });
+      const cacheKey = buildOmdbTitleCacheKey(title, year);
+      if (cacheKey) keyEntries.push({ index, cacheKey, title, year });
     });
 
     const selectedColumns = 'imdb_id,cache_key,title,year,title_type,runtime,imdb_rating,imdb_votes,genres,directors,country,languages,description,movie_link,stars,writers';
-    const yearEntries = Array.from(byYear.entries());
+    const entriesByKey = new Map();
+    keyEntries.forEach((entry) => {
+      if (!entriesByKey.has(entry.cacheKey)) entriesByKey.set(entry.cacheKey, []);
+      entriesByKey.get(entry.cacheKey).push(entry);
+    });
 
-    for (let i = 0; i < yearEntries.length; i += 10) {
-      const chunk = yearEntries.slice(i, i + 10);
+    const uniqueKeys = Array.from(entriesByKey.keys());
+    for (let i = 0; i < uniqueKeys.length; i += 400) {
+      const keys = uniqueKeys.slice(i, i + 400);
+      try {
+        const { data: rows, error } = await supabase
+          .from(MOVIE_CACHE_TABLE)
+          .select(selectedColumns)
+          .in('cache_key', keys);
+        if (!error && Array.isArray(rows)) {
+          rows.forEach((row) => {
+            const entries = entriesByKey.get(row?.cache_key) || [];
+            const payload = normalizeMovieCachePayload(row);
+            if (!payload) return;
+            entries.forEach((entry) => {
+              results.set(entry.index, {
+                payload,
+                poster: payload.Poster !== 'N/A' ? payload.Poster : null,
+                country: payload.Country || null,
+              });
+            });
+          });
+        }
+      } catch {
+        // Use fallback matching below.
+      }
+    }
+
+    const missingKeys = uniqueKeys.filter((key) =>
+      (entriesByKey.get(key) || []).some((entry) => !results.has(entry.index))
+    );
+    for (let i = 0; i < missingKeys.length; i += 400) {
+      const keys = missingKeys.slice(i, i + 400);
+      try {
+        const { data: rows, error } = await supabase
+          .from(OMDB_CACHE_TABLE)
+          .select('cache_key,data,poster,country')
+          .in('cache_key', keys);
+        if (!error && Array.isArray(rows)) {
+          rows.forEach((row) => {
+            const entries = entriesByKey.get(row?.cache_key) || [];
+            if (!row?.data) return;
+            entries.forEach((entry) => {
+              if (results.has(entry.index)) return;
+              results.set(entry.index, {
+                payload: row.data,
+                poster: row.poster || null,
+                country: row.country || null,
+              });
+            });
+          });
+        }
+      } catch {
+        // Missed rows can still use the normal fallback path.
+      }
+    }
+
+    const missesByYear = new Map();
+    keyEntries.forEach((entry) => {
+      if (results.has(entry.index)) return;
+      if (!missesByYear.has(entry.year)) missesByYear.set(entry.year, []);
+      missesByYear.get(entry.year).push(entry);
+    });
+
+    const yearEntries = Array.from(missesByYear.entries());
+    for (let i = 0; i < yearEntries.length; i += 5) {
+      const chunk = yearEntries.slice(i, i + 5);
       await Promise.all(chunk.map(async ([year, entries]) => {
         try {
           const wantedTitles = new Set(entries.map((entry) => entry.title));
@@ -2046,12 +2114,12 @@ const [user, setUser] = useState(null);
     };
   };
 
-  const enrichLetterboxdFilm = async (film) => {
+  const enrichLetterboxdFilm = async (film, options = {}) => {
     const title = String(film?.title || '').trim();
     const year = Number(film?.year) || '';
     if (!title || !Number(film?.yourRating)) return null;
 
-    const cached = await getMovieMetadataCache({ title, year, imdbId: null });
+    const cached = options.skipCache ? null : await getMovieMetadataCache({ title, year, imdbId: null });
     const payload = cached?.payload || await fetchOmdbWithFallback((key) =>
       `https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitleForOmdb(title))}${year ? `&y=${year}` : ''}&apikey=${key}`
     );
@@ -2146,10 +2214,15 @@ const [user, setUser] = useState(null);
 
   const enrichLetterboxdRows = async (films) => {
     const rows = [];
+    setLetterboxdImporting(true);
+    setLetterboxdProgress({ current: 0, total: films.length, phase: 'Checking saved film data' });
     const bulkMatches = await getBulkMovieCacheMatches(films);
     const batchSize = 60;
-    setLetterboxdImporting(true);
-    setLetterboxdProgress({ current: 0, total: films.length, phase: 'Filling Letterboxd export with OMDb data' });
+    setLetterboxdProgress({
+      current: Math.min(bulkMatches.size, films.length),
+      total: films.length,
+      phase: bulkMatches.size ? 'Using saved film data' : 'Filling Letterboxd export with OMDb data',
+    });
 
     try {
       for (let index = 0; index < films.length; index += batchSize) {
@@ -2165,7 +2238,7 @@ const [user, setUser] = useState(null);
             }
             return row;
           }
-          return enrichLetterboxdFilm(film);
+          return enrichLetterboxdFilm(film, { skipCache: true });
         }));
         rows.push(...enriched.filter(Boolean));
         setLetterboxdProgress({
