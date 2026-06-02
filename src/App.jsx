@@ -1219,6 +1219,7 @@ const [user, setUser] = useState(null);
     ])];
   }, [OMDB_API_KEY, OMDB_API_KEY_FALLBACK, OMDB_API_KEYS_RAW]);
   const OMDB_CACHE_TABLE = 'omdb_cache';
+  const MOVIE_CACHE_TABLE = 'movie_cache';
   const OMDB_FETCH_TIMEOUT_MS = 8000;
   const invalidOmdbKeysRef = React.useRef(new Set());
 
@@ -1567,6 +1568,80 @@ const [user, setUser] = useState(null);
     }
   };
 
+  const normalizeMovieCachePayload = (row) => {
+    if (!row) return null;
+    const safeTitle = String(row?.title || '').trim();
+    if (!safeTitle) return null;
+    const year = Number(row?.year) || '';
+    const runtime = Number(row?.runtime) || 0;
+    const poster = String(row?.poster || row?.poster_url || '').trim();
+    return {
+      Response: 'True',
+      Source: 'movie_cache',
+      Title: safeTitle,
+      Year: year ? String(year) : '',
+      Type: row?.title_type || 'movie',
+      Runtime: runtime ? `${runtime} min` : '',
+      Genre: row?.genres || '',
+      Director: row?.directors || '',
+      Writer: row?.writers || '',
+      Actors: row?.stars || '',
+      Plot: row?.description || '',
+      Country: row?.country || '',
+      Language: row?.languages || '',
+      Poster: poster || 'N/A',
+      imdbID: row?.imdb_id || '',
+      imdbRating: row?.imdb_rating != null ? String(row.imdb_rating) : '',
+      imdbVotes: row?.imdb_votes != null ? String(row.imdb_votes) : '',
+    };
+  };
+
+  const getMovieCache = async ({ title, year, imdbId }) => {
+    const safeId = String(imdbId || '').trim();
+    const safeTitle = cleanTitleForOmdb(String(title || '')).toLowerCase();
+    const safeYear = Number(year) || null;
+
+    try {
+      let match = null;
+      if (safeId) {
+        const { data, error } = await supabase
+          .from(MOVIE_CACHE_TABLE)
+          .select('imdb_id,cache_key,title,year,title_type,runtime,imdb_rating,imdb_votes,genres,directors,country,languages,description,movie_link,stars,writers')
+          .eq('imdb_id', safeId)
+          .maybeSingle();
+        if (!error && data) match = data;
+      }
+
+      if (!match && safeTitle && safeYear) {
+        const { data, error } = await supabase
+          .from(MOVIE_CACHE_TABLE)
+          .select('imdb_id,cache_key,title,year,title_type,runtime,imdb_rating,imdb_votes,genres,directors,country,languages,description,movie_link,stars,writers')
+          .eq('year', safeYear)
+          .ilike('title', cleanTitleForOmdb(String(title || '')))
+          .limit(5);
+        if (!error && Array.isArray(data)) {
+          match = data.find((row) => cleanTitleForOmdb(String(row?.title || '')).toLowerCase() === safeTitle) || data[0] || null;
+        }
+      }
+
+      const payload = normalizeMovieCachePayload(match);
+      if (!payload) return null;
+      return {
+        payload,
+        poster: payload.Poster && payload.Poster !== 'N/A' ? payload.Poster : null,
+        country: payload.Country || null,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const getMovieMetadataCache = async ({ title, year, imdbId }) => {
+    const movieCache = await getMovieCache({ title, year, imdbId });
+    if (movieCache?.payload) return movieCache;
+    return getOmdbCache({ title, year, imdbId });
+  };
+
   const fetchMovieDetails = async (movie) => {
     if (!movie) return;
 
@@ -1578,7 +1653,7 @@ const [user, setUser] = useState(null);
       const title = String(movie?.title || '').trim();
       const year = Number(movie?.year) || '';
 
-      const cached = await getOmdbCache({ title, year, imdbId });
+      const cached = await getMovieMetadataCache({ title, year, imdbId });
       if (cached?.payload) {
         setMovieDetails(cached.payload);
         return;
@@ -1788,7 +1863,7 @@ const [user, setUser] = useState(null);
     inFlight.add(key);
 
     try {
-      const cached = await getOmdbCache({ title: safeTitle, year: safeYear, imdbId });
+      const cached = await getMovieMetadataCache({ title: safeTitle, year: safeYear, imdbId });
       if (cached?.poster) {
         setPosters((prev) => (prev?.[key] === cached.poster ? prev : { ...prev, [key]: cached.poster }));
         delete posterFailedAtRef.current[key];
@@ -1927,7 +2002,7 @@ const [user, setUser] = useState(null);
     const year = Number(film?.year) || '';
     if (!title || !Number(film?.yourRating)) return null;
 
-    const cached = await getOmdbCache({ title, year, imdbId: null });
+    const cached = await getMovieMetadataCache({ title, year, imdbId: null });
     const payload = cached?.payload || await fetchOmdbWithFallback((key) =>
       `https://www.omdbapi.com/?t=${encodeURIComponent(cleanTitleForOmdb(title))}${year ? `&y=${year}` : ''}&apikey=${key}`
     );
@@ -2242,7 +2317,7 @@ const [user, setUser] = useState(null);
           const cleanTitle = cleanTitleForOmdb(movie.title);
 
           try {
-            const cached = await getOmdbCache({
+            const cached = await getMovieMetadataCache({
               title: movie.title,
               year: movie.year,
               imdbId: movie.imdbId || movie.imdbID || null,
