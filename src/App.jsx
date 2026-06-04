@@ -5479,7 +5479,8 @@ const [user, setUser] = useState(null);
         const maxRetries = 2;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
-          const queryPromise = fetchMemberList({ page: membersPage, pageSize: 30 });
+          const publicDirectoryPageSize = publicCommunityMode && !user ? 200 : 30;
+          const queryPromise = fetchMemberList({ page: membersPage, pageSize: publicDirectoryPageSize });
           const timeoutPromise = new Promise((resolve) => {
             fetchTimeoutTimer = setTimeout(() => {
               resolve({
@@ -5588,7 +5589,7 @@ const [user, setUser] = useState(null);
       cancelled = true;
       membersFetchInFlightRef.current = false;
     };
-  }, [activeTab, membersEnabled, user?.id, currentMemberRecord?.updatedAt, membersPage, membersRetryNonce]);
+  }, [activeTab, membersEnabled, user?.id, currentMemberRecord?.updatedAt, membersPage, membersRetryNonce, publicCommunityMode]);
 
   useEffect(() => {
     if (!membersEnabled || !user) return;
@@ -7213,6 +7214,7 @@ const [user, setUser] = useState(null);
             onClick={() => {
               setPublicCommunityMode(true);
               setActiveTab('members');
+              setMembersPage(0);
               setShowCreateProfileModal(false);
             }}
             className="w-full px-4 py-3.5 bg-[#0b1220] hover:bg-[#141b28] border border-gray-700 text-gray-100 text-sm font-medium rounded-xl transition-colors"
@@ -9319,25 +9321,31 @@ const [user, setUser] = useState(null);
 
                   <div className="flex flex-wrap items-center justify-between gap-2 bg-[#111827] border border-gray-800 rounded-xl p-3">
                     <p className="text-xs text-gray-400">
-                      Page {membersPage + 1} • Showing up to 30 cinephiles
+                      {publicCommunityMode && !user
+                        ? `Showing ${filteredMembersDirectory.length} cinephiles`
+                        : `Page ${membersPage + 1} • Showing up to 30 cinephiles`}
                     </p>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setMembersPage((p) => Math.max(0, p - 1))}
-                        disabled={membersPage === 0 || membersLoading}
-                        className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-200 bg-[#0b1220] hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Prev
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMembersPage((p) => p + 1)}
-                        disabled={membersLoading}
-                        className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-200 bg-[#0b1220] hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
+                      {!(publicCommunityMode && !user) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setMembersPage((p) => Math.max(0, p - 1))}
+                            disabled={membersPage === 0 || membersLoading}
+                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-200 bg-[#0b1220] hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Prev
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMembersPage((p) => p + 1)}
+                            disabled={membersLoading}
+                            className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-200 bg-[#0b1220] hover:bg-[#1f2937] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
                         onClick={() => setMembersRetryNonce((n) => n + 1)}
