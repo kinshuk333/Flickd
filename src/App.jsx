@@ -7864,6 +7864,26 @@ const [user, setUser] = useState(null);
             </div>
         </header>
 
+        {publicCommunityMode && !user && !memberViewUserId && (
+          <section className="mx-3 sm:mx-5 mt-4 rounded-2xl border border-blue-500/20 bg-[#111827] px-5 py-5 sm:px-6 shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-3xl">
+                <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-white">Become part of the Flickd community</h2>
+                <p className="mt-2 text-sm sm:text-base leading-relaxed text-gray-400">
+                  Share your cinema taste, discover people with similar film instincts, and build a profile that reflects what you love.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateProfileModal(true)}
+                className="inline-flex w-full md:w-auto items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                Join Flickd
+              </button>
+            </div>
+          </section>
+        )}
+
         {((hasDashboardData && stats) || (publicCommunityMode && activeTab === 'members' && !memberViewUserId)) ? (
 
           <>
