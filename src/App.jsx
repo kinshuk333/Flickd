@@ -5348,6 +5348,14 @@ const [user, setUser] = useState(null);
   const fetchMemberList = async ({ page = 0, pageSize = 30, publicOnly = false } = {}) => {
     const from = Math.max(0, Number(page) || 0) * (Number(pageSize) || 30);
     const to = from + (Number(pageSize) || 30) - 1;
+    if (publicOnly) {
+      return runSupabaseResilient('member_profiles:list_public', () =>
+        supabase.rpc('get_public_member_profiles', {
+          page_limit: Number(pageSize) || 200,
+          page_offset: from,
+        })
+      , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
+    }
     const source = publicOnly ? 'public_member_profiles' : 'member_profiles';
     const columns = publicOnly
       ? `
@@ -5383,8 +5391,15 @@ const [user, setUser] = useState(null);
     , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
   };
 
-  const fetchMemberProfile = async (memberUserId) => {
+  const fetchMemberProfile = async (memberUserId, { publicOnly = false } = {}) => {
     if (!memberUserId) return { data: null, error: null };
+    if (publicOnly) {
+      return runSupabaseResilient('member_profiles:profile_public', () =>
+        supabase.rpc('get_public_member_profile', {
+          profile_user_id: String(memberUserId),
+        })
+      , { timeoutMs: 12000, retries: 2, baseDelayMs: 350 });
+    }
     return runSupabaseResilient('member_profiles:profile', () =>
       supabase
         .from('member_profiles')
@@ -5985,6 +6000,18 @@ const [user, setUser] = useState(null);
     if (!memberUserId || !membersEnabled) return { snapshot: null, updatedAt: null, error: null };
     console.time('member_profiles:snapshot');
     try {
+      if (publicCommunityMode && !user) {
+        const { data: profileResult, error } = await fetchMemberProfile(memberUserId, { publicOnly: true });
+        if (error) return { snapshot: null, updatedAt: null, error };
+        const profileRow = Array.isArray(profileResult) ? profileResult[0] : profileResult;
+        const snapshot = {
+          stats: profileRow?.stats || null,
+          aboutMe: profileRow?.aboutMe || '',
+          profileLinks: profileRow?.profileLinks || { instagram: '', x: '', facebook: '' },
+          dataset: Array.isArray(profileRow?.dataset) ? profileRow.dataset : [],
+        };
+        return { snapshot, updatedAt: profileRow?.updated_at || null, error: null };
+      }
       const { data: remoteRow, error } = await runSupabaseResilient(
         'member_profiles:snapshot',
         () => supabase
@@ -6018,7 +6045,8 @@ const [user, setUser] = useState(null);
     let memberRecord = member;
     if (member?.userId) {
       try {
-        const { data: profileRow } = await fetchMemberProfile(member.userId);
+        const { data: profileResult } = await fetchMemberProfile(member.userId, { publicOnly: publicCommunityMode && !user });
+        const profileRow = Array.isArray(profileResult) ? profileResult[0] : profileResult;
         if (profileRow) {
           memberRecord = {
             ...memberRecord,
@@ -6031,6 +6059,7 @@ const [user, setUser] = useState(null);
               stats: profileRow?.stats || memberRecord?.snapshot?.stats || null,
               aboutMe: profileRow?.aboutMe || memberRecord?.snapshot?.aboutMe || '',
               profileLinks: profileRow?.profileLinks || memberRecord?.snapshot?.profileLinks || { instagram: '', x: '', facebook: '' },
+              dataset: profileRow?.dataset || memberRecord?.snapshot?.dataset || [],
             },
           };
         }
@@ -7883,7 +7912,7 @@ const [user, setUser] = useState(null);
             </div>
         </header>
 
-        {publicCommunityMode && !user && !memberViewUserId && (
+        {publicCommunityMode && !user && (
           <section className="mx-3 sm:mx-5 mt-4 rounded-2xl border border-blue-500/20 bg-[#111827] px-5 py-5 sm:px-6 shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="max-w-3xl">
