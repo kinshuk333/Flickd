@@ -5348,28 +5348,41 @@ const [user, setUser] = useState(null);
   const fetchMemberList = async ({ page = 0, pageSize = 30, publicOnly = false } = {}) => {
     const from = Math.max(0, Number(page) || 0) * (Number(pageSize) || 30);
     const to = from + (Number(pageSize) || 30) - 1;
+    const publicColumns = `
+      id,
+      user_id,
+      display_name,
+      avatar_url,
+      created_at,
+      updated_at,
+      stats,
+      followings,
+      aboutMe,
+      profileLinks
+    `;
     if (publicOnly) {
-      return runSupabaseResilient('member_profiles:list_public', () =>
+      const rpcResult = await runSupabaseResilient('member_profiles:list_public', () =>
         supabase.rpc('get_public_member_profiles', {
           page_limit: Number(pageSize) || 200,
           page_offset: from,
         })
       , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
+      if (!rpcResult?.error) return rpcResult;
+
+      const rpcMissing = rpcResult?.error?.code === 'PGRST202' || /get_public_member_profiles/i.test(String(rpcResult?.error?.message || ''));
+      if (!rpcMissing) return rpcResult;
+
+      return runSupabaseResilient('member_profiles:list_public_view', () =>
+        supabase
+          .from('public_member_profiles')
+          .select(publicColumns)
+          .order('updated_at', { ascending: false })
+          .range(from, to)
+      , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
     }
     const source = publicOnly ? 'public_member_profiles' : 'member_profiles';
     const columns = publicOnly
-      ? `
-          id,
-          user_id,
-          display_name,
-          avatar_url,
-          created_at,
-          updated_at,
-          stats,
-          followings,
-          aboutMe,
-          profileLinks
-        `
+      ? publicColumns
       : `
           id,
           user_id,
@@ -5394,10 +5407,32 @@ const [user, setUser] = useState(null);
   const fetchMemberProfile = async (memberUserId, { publicOnly = false } = {}) => {
     if (!memberUserId) return { data: null, error: null };
     if (publicOnly) {
-      return runSupabaseResilient('member_profiles:profile_public', () =>
+      const rpcResult = await runSupabaseResilient('member_profiles:profile_public', () =>
         supabase.rpc('get_public_member_profile', {
           profile_user_id: String(memberUserId),
         })
+      , { timeoutMs: 12000, retries: 2, baseDelayMs: 350 });
+      if (!rpcResult?.error) return rpcResult;
+
+      const rpcMissing = rpcResult?.error?.code === 'PGRST202' || /get_public_member_profile/i.test(String(rpcResult?.error?.message || ''));
+      if (!rpcMissing) return rpcResult;
+
+      return runSupabaseResilient('member_profiles:profile_public_view', () =>
+        supabase
+          .from('public_member_profiles')
+          .select(`
+            id,
+            user_id,
+            display_name,
+            avatar_url,
+            created_at,
+            updated_at,
+            stats,
+            aboutMe,
+            profileLinks
+          `)
+          .eq('user_id', String(memberUserId))
+          .maybeSingle()
       , { timeoutMs: 12000, retries: 2, baseDelayMs: 350 });
     }
     return runSupabaseResilient('member_profiles:profile', () =>
