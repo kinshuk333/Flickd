@@ -5361,23 +5361,20 @@ const [user, setUser] = useState(null);
       profileLinks
     `;
     if (publicOnly) {
-      const rpcResult = await runSupabaseResilient('member_profiles:list_public', () =>
-        supabase.rpc('get_public_member_profiles', {
-          page_limit: Number(pageSize) || 200,
-          page_offset: from,
-        })
-      , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
-      if (!rpcResult?.error) return rpcResult;
-
-      const rpcMissing = rpcResult?.error?.code === 'PGRST202' || /get_public_member_profiles/i.test(String(rpcResult?.error?.message || ''));
-      if (!rpcMissing) return rpcResult;
-
-      return runSupabaseResilient('member_profiles:list_public_view', () =>
+      const viewResult = await runSupabaseResilient('member_profiles:list_public_view', () =>
         supabase
           .from('public_member_profiles')
           .select(publicColumns)
           .order('updated_at', { ascending: false })
           .range(from, to)
+      , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
+      if (!viewResult?.error) return viewResult;
+
+      return runSupabaseResilient('member_profiles:list_public', () =>
+        supabase.rpc('get_public_member_profiles', {
+          page_limit: Number(pageSize) || 200,
+          page_offset: from,
+        })
       , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
     }
     const source = publicOnly ? 'public_member_profiles' : 'member_profiles';
@@ -5407,17 +5404,7 @@ const [user, setUser] = useState(null);
   const fetchMemberProfile = async (memberUserId, { publicOnly = false } = {}) => {
     if (!memberUserId) return { data: null, error: null };
     if (publicOnly) {
-      const rpcResult = await runSupabaseResilient('member_profiles:profile_public', () =>
-        supabase.rpc('get_public_member_profile', {
-          profile_user_id: String(memberUserId),
-        })
-      , { timeoutMs: 12000, retries: 2, baseDelayMs: 350 });
-      if (!rpcResult?.error) return rpcResult;
-
-      const rpcMissing = rpcResult?.error?.code === 'PGRST202' || /get_public_member_profile/i.test(String(rpcResult?.error?.message || ''));
-      if (!rpcMissing) return rpcResult;
-
-      return runSupabaseResilient('member_profiles:profile_public_view', () =>
+      const viewResult = await runSupabaseResilient('member_profiles:profile_public_view', () =>
         supabase
           .from('public_member_profiles')
           .select(`
@@ -5433,6 +5420,13 @@ const [user, setUser] = useState(null);
           `)
           .eq('user_id', String(memberUserId))
           .maybeSingle()
+      , { timeoutMs: 12000, retries: 2, baseDelayMs: 350 });
+      if (!viewResult?.error) return viewResult;
+
+      return runSupabaseResilient('member_profiles:profile_public', () =>
+        supabase.rpc('get_public_member_profile', {
+          profile_user_id: String(memberUserId),
+        })
       , { timeoutMs: 12000, retries: 2, baseDelayMs: 350 });
     }
     return runSupabaseResilient('member_profiles:profile', () =>
@@ -5565,6 +5559,12 @@ const [user, setUser] = useState(null);
           error = result?.error || null;
 
           if (!error) break;
+          const publicAccessMissing = publicCommunityMode && !user && (
+            error?.code === 'PGRST202' ||
+            error?.code === 'PGRST205' ||
+            /public_member_profiles|get_public_member_profiles/i.test(String(error?.message || ''))
+          );
+          if (publicAccessMissing) break;
           if (attempt < maxRetries) {
             const base = 400 * (attempt + 1);
             const jitter = Math.floor(Math.random() * 220);
@@ -5584,7 +5584,14 @@ const [user, setUser] = useState(null);
 
         if (error) {
           console.error('member_profiles select failed:', error);
-          if (error?.code === 'PGRST205' || error?.status === 404) {
+          const publicAccessMissing = publicCommunityMode && !user && (
+            error?.code === 'PGRST202' ||
+            error?.code === 'PGRST205' ||
+            /public_member_profiles|get_public_member_profiles/i.test(String(error?.message || ''))
+          );
+          if (publicAccessMissing) {
+            setMembersError('Public community access is not configured in Supabase yet. Showing cached members.');
+          } else if (error?.code === 'PGRST205' || error?.status === 404) {
             setMembersEnabled(false);
             setMembersError('Member directory table not configured yet.');
           } else if (error?.code === 'CLIENT_TIMEOUT') {
