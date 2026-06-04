@@ -2217,7 +2217,7 @@ const [user, setUser] = useState(null);
     setLetterboxdImporting(true);
     setLetterboxdProgress({ current: 0, total: films.length, phase: 'Checking saved film data' });
     const bulkMatches = await getBulkMovieCacheMatches(films);
-    const batchSize = 60;
+    const batchSize = 80;
     setLetterboxdProgress({
       current: Math.min(bulkMatches.size, films.length),
       total: films.length,
