@@ -5345,13 +5345,24 @@ const [user, setUser] = useState(null);
     };
   }, [user?.id, membersEnabled, memberViewUserId, publicMemberSnapshotKey, hasHydratedCurrentUserData]);
 
-  const fetchMemberList = async ({ page = 0, pageSize = 30 } = {}) => {
+  const fetchMemberList = async ({ page = 0, pageSize = 30, publicOnly = false } = {}) => {
     const from = Math.max(0, Number(page) || 0) * (Number(pageSize) || 30);
     const to = from + (Number(pageSize) || 30) - 1;
-    return runSupabaseResilient('member_profiles:list', () =>
-      supabase
-        .from('member_profiles')
-        .select(`
+    const source = publicOnly ? 'public_member_profiles' : 'member_profiles';
+    const columns = publicOnly
+      ? `
+          id,
+          user_id,
+          display_name,
+          avatar_url,
+          created_at,
+          updated_at,
+          stats,
+          followings,
+          aboutMe,
+          profileLinks
+        `
+      : `
           id,
           user_id,
           display_name,
@@ -5362,7 +5373,11 @@ const [user, setUser] = useState(null);
           followings:snapshot->followings,
           aboutMe:snapshot->aboutMe,
           profileLinks:snapshot->profileLinks
-        `)
+        `;
+    return runSupabaseResilient('member_profiles:list', () =>
+      supabase
+        .from(source)
+        .select(columns)
         .order('updated_at', { ascending: false })
         .range(from, to)
     , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
@@ -5480,7 +5495,11 @@ const [user, setUser] = useState(null);
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           const publicDirectoryPageSize = publicCommunityMode && !user ? 200 : 30;
-          const queryPromise = fetchMemberList({ page: membersPage, pageSize: publicDirectoryPageSize });
+          const queryPromise = fetchMemberList({
+            page: membersPage,
+            pageSize: publicDirectoryPageSize,
+            publicOnly: publicCommunityMode && !user,
+          });
           const timeoutPromise = new Promise((resolve) => {
             fetchTimeoutTimer = setTimeout(() => {
               resolve({
