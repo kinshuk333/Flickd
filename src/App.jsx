@@ -438,6 +438,8 @@ export default function App() {
   const [membersSearchQuery, setMembersSearchQuery] = useState('');
   const [followingSearchQuery, setFollowingSearchQuery] = useState('');
   const [followersSearchQuery, setFollowersSearchQuery] = useState('');
+  const [publicCommunityMode, setPublicCommunityMode] = useState(false);
+  const [showCreateProfileModal, setShowCreateProfileModal] = useState(false);
   const [membersEnabled, setMembersEnabled] = useState(true);
   const [memberViewUserId, setMemberViewUserId] = useState(null);
   const [memberViewName, setMemberViewName] = useState('');
@@ -5353,7 +5355,6 @@ const [user, setUser] = useState(null);
           id,
           user_id,
           display_name,
-          email,
           avatar_url,
           created_at,
           updated_at,
@@ -5376,7 +5377,6 @@ const [user, setUser] = useState(null);
           id,
           user_id,
           display_name,
-          email,
           avatar_url,
           created_at,
           updated_at,
@@ -5857,8 +5857,7 @@ const [user, setUser] = useState(null);
     if (!q) return list;
     return (Array.isArray(list) ? list : []).filter((member) => {
       const name = String(member?.name || '').toLowerCase();
-      const email = String(member?.email || '').toLowerCase();
-      return name.includes(q) || email.includes(q);
+      return name.includes(q);
     });
   }, []);
 
@@ -6180,6 +6179,13 @@ const [user, setUser] = useState(null);
       setMemberViewAboutMe('');
       setMemberViewMoodboards([]);
       setShowTasteResonance(false);
+      if (publicCommunityMode && !user) {
+        setData(null);
+        setFileName('');
+        setLoadedFromCache(false);
+        setLastDataSyncAt(null);
+        return;
+      }
       if (originalData) {
         setData(originalData);
       }
@@ -6197,12 +6203,19 @@ const [user, setUser] = useState(null);
     { id: 'moodboard', label: 'Filmboards' },
     { id: 'deepdive', label: 'Deep Dive' },
   ];
-  const isViewingOtherMember = Boolean(memberViewUserId) && String(memberViewUserId) !== String(user?.id || '');
+  const isViewingOtherMember = Boolean(user) && Boolean(memberViewUserId) && String(memberViewUserId) !== String(user?.id || '');
   const isHomeActive = !memberViewUserId && navItems.some((item) => item.id === activeTab);
   const isMembersTopActive =
     activeTab === 'members' ||
     (Boolean(memberViewUserId) && !['following', 'followers', 'settings'].includes(activeTab));
   const handleTabChange = (tabId) => {
+    if (publicCommunityMode && !user && !memberViewUserId) {
+      if (tabId === 'members') {
+        if (memberViewUserId) exitMemberDashboard();
+        setActiveTab('members');
+      }
+      return;
+    }
     if (tabId === 'settings' && memberViewUserId) {
       exitMemberDashboard();
     }
@@ -7159,6 +7172,58 @@ const [user, setUser] = useState(null);
     }
   };
 
+  React.useEffect(() => {
+    if (!publicCommunityMode || user || memberViewUserId || activeTab === 'members') return;
+    setActiveTab('members');
+  }, [publicCommunityMode, user, memberViewUserId, activeTab]);
+
+  const renderLoginPanel = ({ showExplore = true, compact = false } = {}) => (
+    <div className={`w-full max-w-md bg-[#111827] border border-gray-800 rounded-2xl px-7 sm:px-8 ${compact ? 'py-7' : 'py-8 sm:py-9'} text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)]`}>
+      <img
+        src="/flickd-brand.png"
+        alt="Flickd"
+        className="h-7 sm:h-8 w-auto mx-auto mb-6 object-contain"
+      />
+      <div className="mb-8 w-full flex items-start justify-center">
+        <div className="rounded-2xl border border-gray-700/70 bg-[#0b1220]/45 p-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.28)]">
+          <img
+            src="/login-posters-strip.png"
+            alt="Featured film posters"
+            className="w-[300px] sm:w-[420px] h-auto rounded-xl object-contain"
+            loading="eager"
+          />
+        </div>
+      </div>
+      <h1 className="text-3xl md:text-4xl leading-tight font-bold tracking-tight text-white">Welcome</h1>
+      <p className="mt-3 text-sm md:text-base leading-relaxed text-gray-400 max-w-[330px] mx-auto">
+        A living editorial portrait of your cinema taste, shaped through what you watch and rate.
+      </p>
+      <p className="text-sm text-gray-400 mt-6">Sign in with Google to continue.</p>
+      <div className="mt-7 space-y-3">
+        <button
+          type="button"
+          onClick={handleSignIn}
+          className="w-full px-4 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          Continue with Google
+        </button>
+        {showExplore && (
+          <button
+            type="button"
+            onClick={() => {
+              setPublicCommunityMode(true);
+              setActiveTab('members');
+              setShowCreateProfileModal(false);
+            }}
+            className="w-full px-4 py-3.5 bg-[#0b1220] hover:bg-[#141b28] border border-gray-700 text-gray-100 text-sm font-medium rounded-xl transition-colors"
+          >
+            Explore the community
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   if (loadingAuth) {
     return (
       <div className="min-h-screen bg-[#0b0f17] text-gray-100 flex items-center justify-center px-4">
@@ -7170,42 +7235,15 @@ const [user, setUser] = useState(null);
     );
   }
 
-  if (!user) {
+  if (!user && !publicCommunityMode) {
     return (
       <div className="min-h-screen bg-[#0b0f17] text-gray-100 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md bg-[#111827] border border-gray-800 rounded-2xl px-7 sm:px-8 py-8 sm:py-9 text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-          <img
-            src="/flickd-brand.png"
-            alt="Flickd"
-            className="h-7 sm:h-8 w-auto mx-auto mb-6 object-contain"
-          />
-          <div className="mb-8 w-full flex items-start justify-center">
-            <div className="rounded-2xl border border-gray-700/70 bg-[#0b1220]/45 p-2.5 shadow-[0_18px_36px_rgba(0,0,0,0.28)]">
-              <img
-                src="/login-posters-strip.png"
-                alt="Featured film posters"
-                className="w-[300px] sm:w-[420px] h-auto rounded-xl object-contain"
-                loading="eager"
-              />
-            </div>
-          </div>
-          <h1 className="text-3xl md:text-4xl leading-tight font-bold tracking-tight text-white">Welcome</h1>
-          <p className="mt-3 text-sm md:text-base leading-relaxed text-gray-400 max-w-[330px] mx-auto">
-            A living editorial portrait of your cinema taste, shaped through what you watch and rate.
-          </p>
-          <p className="text-sm text-gray-400 mt-6">Sign in with Google to continue.</p>
-          <button
-            onClick={handleSignIn}
-            className="mt-7 w-full px-4 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            Continue with Google
-          </button>
-        </div>
+        {renderLoginPanel()}
       </div>
     );
   }
 
-  if (!hasDashboardData) {
+  if (!hasDashboardData && !publicCommunityMode) {
     return (
       <div className="min-h-screen bg-[#0b0f17] text-gray-100 px-4 py-8">
         <div className="max-w-3xl mx-auto">
@@ -7311,6 +7349,33 @@ const [user, setUser] = useState(null);
         }
       `}</style>
       {selectedMovie && !traceSelectedDirector && !timelineFullscreen && renderMovieDetailsModal('z-[100]')}
+      {showCreateProfileModal && !user && (() => {
+        const createProfileModal = (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
+            <button
+              type="button"
+              className="absolute inset-0"
+              aria-label="Close create profile"
+              onClick={() => setShowCreateProfileModal(false)}
+            />
+            <div className="relative w-full max-w-md">
+              <button
+                type="button"
+                onClick={() => setShowCreateProfileModal(false)}
+                className="absolute -right-2 -top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-700 bg-[#0b1220] text-gray-300 hover:bg-[#1f2937]"
+                aria-label="Close"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+              {renderLoginPanel({ showExplore: false, compact: true })}
+            </div>
+          </div>
+        );
+        const modalHost = typeof document !== 'undefined' ? document.body : null;
+        return modalHost ? createPortal(createProfileModal, modalHost) : createProfileModal;
+      })()}
 
       {showTasteResonance && (
         <div className="fixed inset-0 z-[110] bg-[#050912]/95 backdrop-blur-sm overflow-y-auto">
@@ -7560,6 +7625,32 @@ const [user, setUser] = useState(null);
                   </svg>
                 </button>
                 <div className="flickd-primary-nav hidden md:flex md:ml-auto">
+                  {publicCommunityMode && !user ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (memberViewUserId) exitMemberDashboard();
+                          setActiveTab('members');
+                        }}
+                        className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                          isMembersTopActive
+                            ? 'bg-blue-600 text-white border-blue-500'
+                            : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
+                        }`}
+                      >
+                        Cinephiles
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateProfileModal(true)}
+                        className="px-3 py-1.5 text-sm rounded-lg border border-blue-500/40 text-blue-100 bg-blue-600/15 hover:bg-blue-600/25 transition-colors"
+                      >
+                        Create Profile
+                      </button>
+                    </>
+                  ) : (
+                    <>
                   <button
                     type="button"
                     onClick={() => { if (memberViewUserId) exitMemberDashboard(); handleTabChange('overview'); }}
@@ -7632,6 +7723,8 @@ const [user, setUser] = useState(null);
                       {signingOut ? 'Signing Out...' : 'Sign Out'}
                     </button>
                   )}
+                    </>
+                  )}
                 </div>
               </div>
               {mobileTopNavOpen && (() => {
@@ -7658,6 +7751,36 @@ const [user, setUser] = useState(null);
                     </button>
                   </div>
                   <div className="flickd-mobile-menu-list">
+                  {publicCommunityMode && !user ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (memberViewUserId) exitMemberDashboard();
+                          setActiveTab('members');
+                          setMobileTopNavOpen(false);
+                        }}
+                        className={`flickd-mobile-menu-item flickd-mobile-menu-item--members ${
+                          isMembersTopActive
+                            ? 'bg-blue-600 text-white border-blue-500'
+                            : 'bg-[#111827] text-gray-200 border-gray-700 hover:bg-[#1f2937]'
+                        }`}
+                      >
+                        Cinephiles
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateProfileModal(true);
+                          setMobileTopNavOpen(false);
+                        }}
+                        className="flickd-mobile-menu-item bg-blue-600/15 text-blue-100 border-blue-500/40 hover:bg-blue-600/25"
+                      >
+                        Create Profile
+                      </button>
+                    </>
+                  ) : (
+                    <>
                   <button
                     type="button"
                     onClick={() => {
@@ -7727,6 +7850,8 @@ const [user, setUser] = useState(null);
                       {signingOut ? 'Signing Out...' : 'Sign Out'}
                     </button>
                   )}
+                    </>
+                  )}
                 </div>
                 </div>
                 </div>
@@ -7737,7 +7862,7 @@ const [user, setUser] = useState(null);
             </div>
         </header>
 
-        {(hasDashboardData && stats) ? (
+        {((hasDashboardData && stats) || (publicCommunityMode && activeTab === 'members' && !memberViewUserId)) ? (
 
           <>
             {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
@@ -9166,14 +9291,13 @@ const [user, setUser] = useState(null);
                       {membersLoading && (
                         <div className="space-y-3">
                           <p className="text-xs text-blue-300">Loading members...</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                             {[0, 1, 2].map((s) => (
                               <div key={`members_skeleton_${s}`} className="bg-[#0b1220] border border-gray-700 rounded-xl p-3 animate-pulse">
                                 <div className="flex items-center gap-3 mb-3">
                                   <div className="w-10 h-10 rounded-full bg-gray-700/70" />
                                   <div className="flex-1 space-y-2">
                                     <div className="h-3 w-28 bg-gray-700/70 rounded" />
-                                    <div className="h-2.5 w-40 bg-gray-800 rounded" />
                                   </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 mb-3">
@@ -9230,12 +9354,12 @@ const [user, setUser] = useState(null);
                       type="text"
                       value={membersSearchQuery}
                       onChange={(e) => setMembersSearchQuery(e.target.value)}
-                      placeholder="Search cinephiles by name or email..."
+                      placeholder="Search cinephiles by name..."
                       className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                     {filteredMembersDirectory
                       .filter((member) => {
                         const selfId = String(user?.id || '');
@@ -9248,7 +9372,7 @@ const [user, setUser] = useState(null);
                         return true;
                       })
                       .map((member) => (
-                      <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-4">
+                      <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-3">
                         {(() => {
                           const cardStats = memberCardStatsByUserId.get(String(member?.userId || '')) || {
                             totalFilms: 0,
@@ -9257,17 +9381,16 @@ const [user, setUser] = useState(null);
                           };
                           return (
                             <>
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-2.5 mb-3">
                           {member.avatarUrl ? (
-                            <img src={member.avatarUrl} alt={member.name} className="w-10 h-10 rounded-full object-cover" />
+                            <img src={member.avatarUrl} alt={member.name} className="w-9 h-9 rounded-full object-cover" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-sm text-blue-200">
+                            <div className="w-9 h-9 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-sm text-blue-200">
                               {String(member.name || 'M').charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-white truncate">{member.name}</div>
-                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Cinephile'}</div>
                           </div>
                         </div>
 
@@ -9286,9 +9409,9 @@ const [user, setUser] = useState(null);
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => openMemberDashboard(member)}
+                          <button
+                            type="button"
+                            onClick={() => openMemberDashboard(member)}
                           className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg"
                         >
                           View Profile
@@ -9314,14 +9437,13 @@ const [user, setUser] = useState(null);
                       {membersLoading && (
                         <div className="space-y-3">
                           <p className="text-xs text-blue-300">Loading members...</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                             {[0, 1, 2].map((s) => (
                               <div key={`following_skeleton_${s}`} className="bg-[#0b1220] border border-gray-700 rounded-xl p-3 animate-pulse">
                                 <div className="flex items-center gap-3 mb-3">
                                   <div className="w-10 h-10 rounded-full bg-gray-700/70" />
                                   <div className="flex-1 space-y-2">
                                     <div className="h-3 w-28 bg-gray-700/70 rounded" />
-                                    <div className="h-2.5 w-40 bg-gray-800 rounded" />
                                   </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 mb-3">
@@ -9346,14 +9468,14 @@ const [user, setUser] = useState(null);
                       type="text"
                       value={followingSearchQuery}
                       onChange={(e) => setFollowingSearchQuery(e.target.value)}
-                      placeholder="Search followed cinephiles by name or email..."
+                      placeholder="Search followed cinephiles by name..."
                       className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                     {filteredFollowedMembersList.map((member) => (
-                      <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-4">
+                      <div key={member.id} className="bg-[#111827] border border-gray-800 rounded-xl p-3">
                         {(() => {
                           const cardStats = memberCardStatsByUserId.get(String(member?.userId || '')) || {
                             totalFilms: 0,
@@ -9362,17 +9484,16 @@ const [user, setUser] = useState(null);
                           };
                           return (
                             <>
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-2.5 mb-3">
                           {member.avatarUrl ? (
-                            <img src={member.avatarUrl} alt={member.name} className="w-10 h-10 rounded-full object-cover" />
+                            <img src={member.avatarUrl} alt={member.name} className="w-9 h-9 rounded-full object-cover" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-sm text-blue-200">
+                            <div className="w-9 h-9 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-sm text-blue-200">
                               {String(member.name || 'M').charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-white truncate">{member.name}</div>
-                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Cinephile'}</div>
                           </div>
                         </div>
 
@@ -9428,14 +9549,13 @@ const [user, setUser] = useState(null);
                       {membersLoading && (
                         <div className="space-y-3">
                           <p className="text-xs text-blue-300">Loading members...</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                             {[0, 1, 2].map((s) => (
                               <div key={`followers_skeleton_${s}`} className="bg-[#0b1220] border border-gray-700 rounded-xl p-3 animate-pulse">
                                 <div className="flex items-center gap-3 mb-3">
                                   <div className="w-10 h-10 rounded-full bg-gray-700/70" />
                                   <div className="flex-1 space-y-2">
                                     <div className="h-3 w-28 bg-gray-700/70 rounded" />
-                                    <div className="h-2.5 w-40 bg-gray-800 rounded" />
                                   </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 mb-3">
@@ -9460,12 +9580,12 @@ const [user, setUser] = useState(null);
                       type="text"
                       value={followersSearchQuery}
                       onChange={(e) => setFollowersSearchQuery(e.target.value)}
-                      placeholder="Search your audience by name or email..."
+                      placeholder="Search your audience by name..."
                       className="w-full bg-[#0b1220] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                     {filteredFollowersMembersList.map((member) => {
                       const isNewFollower = newFollowersList.some((item) => String(item.userId) === String(member.userId));
                       const cardStats = memberCardStatsByUserId.get(String(member?.userId || '')) || {
@@ -9476,7 +9596,7 @@ const [user, setUser] = useState(null);
                       return (
                       <div
                         key={member.id}
-                        className={`relative bg-[#111827] border rounded-xl p-4 overflow-hidden ${isNewFollower ? 'border-emerald-500/50 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]' : 'border-gray-800'}`}
+                        className={`relative bg-[#111827] border rounded-xl p-3 overflow-hidden ${isNewFollower ? 'border-emerald-500/50 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]' : 'border-gray-800'}`}
                       >
                         {isNewFollower && (
                           <>
@@ -9488,17 +9608,16 @@ const [user, setUser] = useState(null);
                             </div>
                           </>
                         )}
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-2.5 mb-3">
                           {member.avatarUrl ? (
-                            <img src={member.avatarUrl} alt={member.name} className="w-10 h-10 rounded-full object-cover" />
+                            <img src={member.avatarUrl} alt={member.name} className="w-9 h-9 rounded-full object-cover" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-sm text-blue-200">
+                            <div className="w-9 h-9 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-sm text-blue-200">
                               {String(member.name || 'M').charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-white truncate">{member.name}</div>
-                            <div className="text-[11px] text-gray-400 truncate">{member.email || 'Cinephile'}</div>
                           </div>
                         </div>
 
@@ -11775,7 +11894,7 @@ const [user, setUser] = useState(null);
         </>
         ) : null}
         
-        {(!fetchingCountries && !hasDashboardData) && (
+        {(!fetchingCountries && !hasDashboardData && !publicCommunityMode) && (
           <div className="text-center py-24">
             <div className="text-8xl mb-8"></div>
             <h3 className="text-3xl font-semibold mb-6 text-gray-100">Import Your Cinema History</h3>
