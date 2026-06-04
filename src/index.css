@@ -1262,6 +1262,27 @@ body {
   padding: clamp(22px, 3vw, 44px) !important;
 }
 
+.flickd-immersive-shell--guest-public {
+  --flickd-guest-banner-space: 142px;
+}
+
+.flickd-guest-join-banner {
+  position: relative;
+  z-index: 45;
+}
+
+.flickd-immersive-shell--guest-public .flickd-shell-body-desktop {
+  top: calc(64px + var(--flickd-guest-banner-space)) !important;
+}
+
+.flickd-immersive-shell--guest-public .flickd-main-scroll {
+  height: calc(100vh - 64px - var(--flickd-guest-banner-space)) !important;
+}
+
+.flickd-immersive-shell--guest-public .flickd-main-scroll--directory {
+  height: calc(100vh - 64px - var(--flickd-guest-banner-space)) !important;
+}
+
 .flickd-secondary-nav {
   border-bottom: 0 !important;
   background:

@@ -7652,7 +7652,7 @@ const [user, setUser] = useState(null);
         const portalHost = typeof document !== 'undefined' ? document.body : null;
         return portalHost ? createPortal(shareModal, portalHost) : shareModal;
       })()}
-<div className={`flickd-immersive-shell ${mobileTopNavOpen ? 'flickd-mobile-menu-open' : ''}`}>
+<div className={`flickd-immersive-shell ${publicCommunityMode && !user ? 'flickd-immersive-shell--guest-public' : ''} ${mobileTopNavOpen ? 'flickd-mobile-menu-open' : ''}`}>
         <header className="flickd-shell-header">
             <div className="flickd-shell-header__inner">
               <div className="flex h-full w-full items-center justify-between md:justify-start gap-3 md:gap-4">
@@ -7913,7 +7913,7 @@ const [user, setUser] = useState(null);
         </header>
 
         {publicCommunityMode && !user && (
-          <section className="mx-3 sm:mx-5 mt-4 rounded-2xl border border-blue-500/20 bg-[#111827] px-5 py-5 sm:px-6 shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+          <section className="flickd-guest-join-banner mx-3 sm:mx-5 mt-4 rounded-2xl border border-blue-500/20 bg-[#111827] px-5 py-5 sm:px-6 shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="max-w-3xl">
                 <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-white">Become part of the Flickd community</h2>
