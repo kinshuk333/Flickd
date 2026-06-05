@@ -6010,6 +6010,9 @@ const [user, setUser] = useState(null);
   const resetMainScroll = React.useCallback(() => {
     requestAnimationFrame(() => {
       mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      requestAnimationFrame(() => {
+        mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      });
     });
   }, []);
 
@@ -8218,7 +8221,7 @@ const [user, setUser] = useState(null);
               </>
             )}
 
-            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[92px]' : ''}`}>
+            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[132px]' : ''}`}>
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
                   <div className="flickd-mobile-tab-spacer lg:hidden" />
