@@ -1182,6 +1182,10 @@ const [user, setUser] = useState(null);
     setSavingPublicIdentity(true);
     setPublicIdentityError('');
     const identity = getPublicIdentityPayload({ nickname, useNickname });
+    setPublicNickname(nickname);
+    setPublicNicknameDraft(nickname);
+    setUseNicknamePublicly(useNickname);
+    setUseNicknamePubliclyDraft(useNickname);
 
     try {
       localStorage.setItem(`imdb-public-identity-${user.id}`, JSON.stringify({ nickname, useNickname }));
@@ -1202,9 +1206,6 @@ const [user, setUser] = useState(null);
           setSupabaseDataEnabled(false);
         }
       }
-
-      setPublicNickname(nickname);
-      setUseNicknamePublicly(useNickname);
 
       if (membersEnabled) {
         const updatedAt = new Date().toISOString();
