@@ -10626,6 +10626,22 @@ const [user, setUser] = useState(null);
                         </button>
                       </div>
 
+                      <label className="mb-4 flex items-start gap-3 rounded-xl border border-gray-700 bg-[#0b1220] p-4 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={useNicknamePubliclyDraft}
+                          onChange={(e) => {
+                            setUseNicknamePubliclyDraft(e.target.checked);
+                            setPublicIdentityError('');
+                          }}
+                          className="mt-1 h-4 w-4 rounded border-gray-600 bg-[#111827] text-blue-600 focus:ring-blue-500/40"
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-gray-100">Use nickname instead of real name</span>
+                          <span className="mt-1 block text-xs leading-relaxed text-gray-500">Hide my real name and show my nickname across the app.</span>
+                        </span>
+                      </label>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
                           <label className="text-sm text-gray-400 font-medium">Real name</label>
@@ -10654,21 +10670,6 @@ const [user, setUser] = useState(null);
                         </div>
                       </div>
 
-                      <label className="mt-4 flex items-start gap-3 rounded-xl border border-gray-700 bg-[#0b1220] p-4 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={useNicknamePubliclyDraft}
-                          onChange={(e) => {
-                            setUseNicknamePubliclyDraft(e.target.checked);
-                            setPublicIdentityError('');
-                          }}
-                          className="mt-1 h-4 w-4 rounded border-gray-600 bg-[#111827] text-blue-600 focus:ring-blue-500/40"
-                        />
-                        <span>
-                          <span className="block text-sm font-medium text-gray-100">Use nickname instead of real name</span>
-                          <span className="mt-1 block text-xs leading-relaxed text-gray-500">Hide my real name and show my nickname across the app.</span>
-                        </span>
-                      </label>
                       {publicIdentityError && (
                         <p className="mt-3 text-xs text-red-300">{publicIdentityError}</p>
                       )}
