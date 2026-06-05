@@ -626,6 +626,15 @@ const [user, setUser] = useState(null);
         if (!identity || typeof identity !== 'object') return;
         const nickname = String(identity?.nickname || '').slice(0, 60).trim();
         const useNickname = Boolean(identity?.useNickname);
+        let cached = null;
+        try {
+          cached = JSON.parse(localStorage.getItem(`imdb-public-identity-${user.id}`) || 'null');
+        } catch {
+          cached = null;
+        }
+        if (cached && (String(cached.nickname || '').trim() || Boolean(cached.useNickname))) {
+          return;
+        }
         setPublicNickname(nickname);
         setPublicNicknameDraft(nickname);
         setUseNicknamePublicly(useNickname);
@@ -694,8 +703,10 @@ const [user, setUser] = useState(null);
   }, [user?.id]);
 
   const accountRealName = String(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || '').trim();
-  const resolvedOwnPublicName = (useNicknamePublicly && publicNickname.trim())
-    ? publicNickname.trim()
+  const activePublicNickname = String(publicNicknameDraft || publicNickname || '').trim();
+  const activeUseNicknamePublicly = Boolean(useNicknamePubliclyDraft || useNicknamePublicly);
+  const resolvedOwnPublicName = (activeUseNicknamePublicly && activePublicNickname)
+    ? activePublicNickname
     : (accountRealName || 'Cinephile');
   const getPublicIdentityPayload = React.useCallback((overrides = {}) => {
     const nickname = String((overrides.nickname ?? publicNickname) || '').trim();
