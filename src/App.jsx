@@ -214,6 +214,14 @@ const toPublicMemberSnapshot = (snapshot = {}) => {
     stats: safe?.stats || null,
     followings: Array.isArray(safe?.followings) ? safe.followings : [],
     aboutMe: String(safe?.aboutMe || ''),
+    publicIdentity: safe?.publicIdentity && typeof safe.publicIdentity === 'object'
+      ? {
+          realName: String(safe.publicIdentity.realName || ''),
+          nickname: String(safe.publicIdentity.nickname || ''),
+          useNickname: Boolean(safe.publicIdentity.useNickname),
+          displayName: String(safe.publicIdentity.displayName || ''),
+        }
+      : null,
     profileLinks,
     personality: safe?.personality || null,
     topGenres,
@@ -466,6 +474,12 @@ export default function App() {
   const [aboutMe, setAboutMe] = useState('');
   const [aboutMeDraft, setAboutMeDraft] = useState('');
   const [savingAboutMe, setSavingAboutMe] = useState(false);
+  const [publicNickname, setPublicNickname] = useState('');
+  const [publicNicknameDraft, setPublicNicknameDraft] = useState('');
+  const [useNicknamePublicly, setUseNicknamePublicly] = useState(false);
+  const [useNicknamePubliclyDraft, setUseNicknamePubliclyDraft] = useState(false);
+  const [savingPublicIdentity, setSavingPublicIdentity] = useState(false);
+  const [publicIdentityError, setPublicIdentityError] = useState('');
   const [followToast, setFollowToast] = useState(null);
   const [supabasePinging, setSupabasePinging] = useState(false);
   const [_supabaseHealth, setSupabaseHealth] = useState({
@@ -580,6 +594,56 @@ const [user, setUser] = useState(null);
     setAboutMeDraft(value);
   }, [user?.id]);
 
+  useEffect(() => {
+    const key = user?.id ? `imdb-public-identity-${user.id}` : 'imdb-public-identity-guest';
+    let parsed = null;
+    try {
+      parsed = JSON.parse(localStorage.getItem(key) || 'null');
+    } catch {
+      parsed = null;
+    }
+    const nickname = String(parsed?.nickname || '').slice(0, 60).trim();
+    const useNickname = Boolean(parsed?.useNickname);
+    setPublicNickname(nickname);
+    setPublicNicknameDraft(nickname);
+    setUseNicknamePublicly(useNickname);
+    setUseNicknamePubliclyDraft(useNickname);
+    setPublicIdentityError('');
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user || !membersEnabled) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: row, error } = await supabase
+          .from('member_profiles')
+          .select('snapshot')
+          .eq('user_id', String(user.id))
+          .maybeSingle();
+        if (cancelled || error) return;
+        const identity = row?.snapshot?.publicIdentity || null;
+        if (!identity || typeof identity !== 'object') return;
+        const nickname = String(identity?.nickname || '').slice(0, 60).trim();
+        const useNickname = Boolean(identity?.useNickname);
+        setPublicNickname(nickname);
+        setPublicNicknameDraft(nickname);
+        setUseNicknamePublicly(useNickname);
+        setUseNicknamePubliclyDraft(useNickname);
+        try {
+          localStorage.setItem(`imdb-public-identity-${user.id}`, JSON.stringify({ nickname, useNickname }));
+        } catch {
+          // ignore local cache write failures
+        }
+      } catch {
+        // ignore identity hydration failures
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, membersEnabled]);
+
   const writeMoodboardsLocalCache = React.useCallback((nextMoodboards) => {
     const primaryKey = moodboardsStorageKey(user?.id);
     const backupKey = moodboardsBackupStorageKey(user?.id);
@@ -629,10 +693,25 @@ const [user, setUser] = useState(null);
     setCanSyncUserData(false);
   }, [user?.id]);
 
+  const accountRealName = String(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || '').trim();
+  const resolvedOwnPublicName = (useNicknamePublicly && publicNickname.trim())
+    ? publicNickname.trim()
+    : (accountRealName || 'Cinephile');
+  const getPublicIdentityPayload = React.useCallback((overrides = {}) => {
+    const nickname = String((overrides.nickname ?? publicNickname) || '').trim();
+    const useNickname = Boolean(overrides.useNickname ?? useNicknamePublicly);
+    return {
+      realName: accountRealName || '',
+      nickname,
+      useNickname,
+      displayName: useNickname && nickname ? nickname : (accountRealName || 'Cinephile'),
+    };
+  }, [accountRealName, publicNickname, useNicknamePublicly]);
+
   const currentProfileAvatarUrlRaw = memberViewUserId ? memberViewAvatarUrl : user?.user_metadata?.avatar_url;
   const currentProfileAvatarLabel = memberViewUserId
     ? (memberViewName || 'Cinephile')
-    : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'User');
+    : (resolvedOwnPublicName || 'User');
 
   const withCacheBust = (url, bust) => {
     const value = String(url || '').trim();
@@ -1055,13 +1134,14 @@ const [user, setUser] = useState(null);
           const snapshotBase = currentMemberSnapshot && typeof currentMemberSnapshot === 'object' ? currentMemberSnapshot : {};
           const snapshot = toPublicMemberSnapshot({
             ...snapshotBase,
+            publicIdentity: getPublicIdentityPayload(),
             profileLinks: nextLinks,
             updatedAt,
           });
 
           const memberPayload = {
             user_id: user.id,
-            display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
+            display_name: resolvedOwnPublicName,
             email: user.email || null,
             avatar_url: user.user_metadata?.avatar_url || null,
             snapshot,
@@ -1090,6 +1170,82 @@ const [user, setUser] = useState(null);
     }
   };
 
+  const handleSavePublicIdentity = async () => {
+    if (!user || savingPublicIdentity) return;
+    const nickname = String(publicNicknameDraft || '').slice(0, 60).trim();
+    const useNickname = Boolean(useNicknamePubliclyDraft);
+    if (useNickname && !nickname) {
+      setPublicIdentityError('Add a nickname before hiding your real name.');
+      return;
+    }
+
+    setSavingPublicIdentity(true);
+    setPublicIdentityError('');
+    const identity = getPublicIdentityPayload({ nickname, useNickname });
+
+    try {
+      localStorage.setItem(`imdb-public-identity-${user.id}`, JSON.stringify({ nickname, useNickname }));
+    } catch {
+      // ignore local storage failures
+    }
+
+    try {
+      if (supabaseDataEnabled) {
+        const { error } = await supabase
+          .from('user_data')
+          .upsert({
+            user_id: user.id,
+            public_identity: identity,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+        if (error?.code === 'PGRST205' || error?.status === 404) {
+          setSupabaseDataEnabled(false);
+        }
+      }
+
+      setPublicNickname(nickname);
+      setUseNicknamePublicly(useNickname);
+
+      if (membersEnabled) {
+        const updatedAt = new Date().toISOString();
+        const snapshotBase = currentMemberSnapshot && typeof currentMemberSnapshot === 'object' ? currentMemberSnapshot : {};
+        const snapshot = toPublicMemberSnapshot({
+          ...snapshotBase,
+          publicIdentity: identity,
+          aboutMe: aboutMe || '',
+          profileLinks: {
+            instagram: socialLinks.instagram || '',
+            x: socialLinks.x || '',
+            facebook: socialLinks.facebook || '',
+          },
+          updatedAt,
+        });
+
+        const { error: memberProfileError } = await supabase
+          .from('member_profiles')
+          .upsert({
+            user_id: user.id,
+            display_name: identity.displayName,
+            email: user.email || null,
+            avatar_url: user.user_metadata?.avatar_url || null,
+            snapshot,
+            updated_at: updatedAt,
+          }, { onConflict: 'user_id' });
+        if (memberProfileError) {
+          console.error('member_profiles upsert failed (public identity):', memberProfileError);
+        }
+      }
+    } catch (error) {
+      if (isSupabaseNetworkError(error)) {
+        alert('Network issue while saving identity. Please try again in a moment.');
+      } else {
+        console.error('handleSavePublicIdentity failed:', error);
+      }
+    } finally {
+      setSavingPublicIdentity(false);
+    }
+  };
+
   const handleSaveAboutMe = async () => {
     if (!user || savingAboutMe) return;
     setSavingAboutMe(true);
@@ -1108,6 +1264,7 @@ const [user, setUser] = useState(null);
       const snapshotBase = currentMemberSnapshot && typeof currentMemberSnapshot === 'object' ? currentMemberSnapshot : {};
       const snapshot = toPublicMemberSnapshot({
         ...snapshotBase,
+        publicIdentity: getPublicIdentityPayload(),
         aboutMe: clean,
         profileLinks: {
           instagram: socialLinks.instagram || '',
@@ -1119,7 +1276,7 @@ const [user, setUser] = useState(null);
 
       const payload = {
         user_id: user.id,
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
+        display_name: resolvedOwnPublicName,
         email: user.email || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         snapshot,
@@ -1423,6 +1580,7 @@ const [user, setUser] = useState(null);
       const updatedAt = new Date().toISOString();
       const snapshot = toPublicMemberSnapshot({
         ...baseSnapshot,
+        publicIdentity: getPublicIdentityPayload(),
         stats: {
           totalFilms: safeRows.length,
           avgYourRating: Number(avgYourRating || 0),
@@ -1434,7 +1592,7 @@ const [user, setUser] = useState(null);
 
       const payload = {
         user_id: user.id,
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
+        display_name: resolvedOwnPublicName,
         email: user.email || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         snapshot,
@@ -5018,6 +5176,7 @@ const [user, setUser] = useState(null);
           },
           followings: Array.isArray(followedMemberIds) ? followedMemberIds : [],
           aboutMe: aboutMe || '',
+          publicIdentity: getPublicIdentityPayload(),
           profileLinks: {
             instagram: socialLinks.instagram || '',
             x: socialLinks.x || '',
@@ -5041,7 +5200,7 @@ const [user, setUser] = useState(null);
         dataset: Array.isArray(data) ? toShareableRows(data) : [],
         updatedAt: stableProfileUpdatedAt,
       };
-    }, [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt]);
+    }, [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt, getPublicIdentityPayload]);
 
   const minimalMemberSnapshot = React.useMemo(() => ({
     stats: {
@@ -5051,6 +5210,7 @@ const [user, setUser] = useState(null);
     },
     followings: Array.isArray(followedMemberIds) ? followedMemberIds : [],
     aboutMe: aboutMe || '',
+    publicIdentity: getPublicIdentityPayload(),
     profileLinks: {
       instagram: socialLinks.instagram || '',
       x: socialLinks.x || '',
@@ -5073,7 +5233,7 @@ const [user, setUser] = useState(null);
     moodboards: Array.isArray(moodboards) ? moodboards : [],
     dataset: Array.isArray(data) ? toShareableRows(data) : [],
     updatedAt: stableProfileUpdatedAt,
-  }), [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt]);
+  }), [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt, getPublicIdentityPayload]);
 
   const tasteResonance = React.useMemo(() => {
     if (!memberViewUserId) return null;
@@ -5270,7 +5430,7 @@ const [user, setUser] = useState(null);
     return {
       id: `self_${user.id}`,
       userId: user.id,
-      name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'You',
+      name: resolvedOwnPublicName || 'You',
       email: user.email || '',
       avatarUrl: user.user_metadata?.avatar_url || '',
       joinedAt: user.created_at || null,
@@ -5278,7 +5438,7 @@ const [user, setUser] = useState(null);
       snapshot: currentMemberSnapshot || minimalMemberSnapshot,
       isCurrentUser: true,
     };
-  }, [user, currentMemberSnapshot, minimalMemberSnapshot, stableProfileUpdatedAt]);
+  }, [user, resolvedOwnPublicName, currentMemberSnapshot, minimalMemberSnapshot, stableProfileUpdatedAt]);
 
   const publicMemberSnapshot = React.useMemo(
     () => toPublicMemberSnapshot(currentMemberSnapshot || minimalMemberSnapshot),
@@ -5315,10 +5475,13 @@ const [user, setUser] = useState(null);
 
     let cancelled = false;
     (async () => {
-      const snapshotToSave = publicMemberSnapshot;
+      const snapshotToSave = toPublicMemberSnapshot({
+        ...(publicMemberSnapshot || {}),
+        publicIdentity: getPublicIdentityPayload(),
+      });
       const payload = {
         user_id: user.id,
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Cinephile',
+        display_name: resolvedOwnPublicName,
         email: user.email || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         snapshot: snapshotToSave,
@@ -8054,7 +8217,7 @@ const [user, setUser] = useState(null);
                   </button>
                 )}
                 <h2 className="flickd-profile-name">
-                  {memberViewUserId ? (memberViewName || 'Cinephile') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
+                  {memberViewUserId ? (memberViewName || 'Cinephile') : (resolvedOwnPublicName || 'Flickd')}
                 </h2>
                   <p className="flickd-profile-subtitle">
                     {memberViewUserId ? 'Shared cinematic dashboard' : 'Your cinematic dashboard'}
@@ -8206,7 +8369,7 @@ const [user, setUser] = useState(null);
                       </button>
                     )}
                     <h2 className="flickd-profile-name">
-                      {memberViewUserId ? (memberViewName || 'Cinephile') : (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Flickd')}
+                      {memberViewUserId ? (memberViewName || 'Cinephile') : (resolvedOwnPublicName || 'Flickd')}
                     </h2>
                       <p className="flickd-profile-subtitle">
                         {memberViewUserId ? 'Shared cinematic dashboard' : 'Your cinematic dashboard'}
@@ -10432,6 +10595,73 @@ const [user, setUser] = useState(null);
                       Manage your social profiles and update your IMDb spreadsheet. Changes save to your profile and refresh the dashboard.
                     </p>
                   </div>
+
+                    <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white leading-tight">Public Identity</h3>
+                          <p className="text-sm text-gray-400 leading-relaxed">Control how others see you in the community.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSavePublicIdentity}
+                          disabled={savingPublicIdentity || (
+                            publicNicknameDraft.trim() === publicNickname.trim()
+                            && useNicknamePubliclyDraft === useNicknamePublicly
+                          )}
+                          className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          {savingPublicIdentity ? 'Saving...' : 'Save Identity'}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
+                          <label className="text-sm text-gray-400 font-medium">Real name</label>
+                          <input
+                            type="text"
+                            value={accountRealName || ''}
+                            readOnly
+                            placeholder="Kinshuk Kujur"
+                            className="mt-2.5 w-full bg-[#0b1220] border border-gray-700 text-gray-300 text-sm rounded-lg px-3 py-2.5 focus:outline-none"
+                          />
+                          <p className="mt-2 text-xs leading-relaxed text-gray-500">Your account name. You can keep this private.</p>
+                        </div>
+                        <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
+                          <label className="text-sm text-gray-400 font-medium">Nickname / Username</label>
+                          <input
+                            type="text"
+                            value={publicNicknameDraft}
+                            onChange={(e) => {
+                              setPublicNicknameDraft(e.target.value.slice(0, 60));
+                              setPublicIdentityError('');
+                            }}
+                            placeholder="Choose a public name"
+                            className="mt-2.5 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                          />
+                          <p className="mt-2 text-xs leading-relaxed text-gray-500">Shown on your profile, community pages, comments, and shared activity.</p>
+                        </div>
+                      </div>
+
+                      <label className="mt-4 flex items-start gap-3 rounded-xl border border-gray-700 bg-[#0b1220] p-4 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={useNicknamePubliclyDraft}
+                          onChange={(e) => {
+                            setUseNicknamePubliclyDraft(e.target.checked);
+                            setPublicIdentityError('');
+                          }}
+                          className="mt-1 h-4 w-4 rounded border-gray-600 bg-[#111827] text-blue-600 focus:ring-blue-500/40"
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-gray-100">Use nickname instead of real name</span>
+                          <span className="mt-1 block text-xs leading-relaxed text-gray-500">Hide my real name and show my nickname across the app.</span>
+                        </span>
+                      </label>
+                      {publicIdentityError && (
+                        <p className="mt-3 text-xs text-red-300">{publicIdentityError}</p>
+                      )}
+                    </div>
 
                     <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
