@@ -704,8 +704,7 @@ const [user, setUser] = useState(null);
 
   const accountRealName = String(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || '').trim();
   const activePublicNickname = String(publicNicknameDraft || publicNickname || '').trim();
-  const activeUseNicknamePublicly = Boolean(useNicknamePubliclyDraft || useNicknamePublicly);
-  const resolvedOwnPublicName = (activeUseNicknamePublicly && activePublicNickname)
+  const resolvedOwnPublicName = activePublicNickname
     ? activePublicNickname
     : (accountRealName || 'Cinephile');
   const getPublicIdentityPayload = React.useCallback((overrides = {}) => {
