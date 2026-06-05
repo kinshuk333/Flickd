@@ -222,6 +222,12 @@ const toPublicMemberSnapshot = (snapshot = {}) => {
           displayName: String(safe.publicIdentity.displayName || ''),
         }
       : null,
+    profilePicture: safe?.profilePicture && typeof safe.profilePicture === 'object'
+      ? {
+          removed: Boolean(safe.profilePicture.removed),
+          hasCustomPhoto: Boolean(safe.profilePicture.hasCustomPhoto),
+        }
+      : null,
     profileLinks,
     personality: safe?.personality || null,
     topGenres,
@@ -468,6 +474,9 @@ export default function App() {
   const [lastSeenFollowerIds, setLastSeenFollowerIds] = useState([]);
   const [profileAvatarFailed, setProfileAvatarFailed] = useState(false);
   const [profileAvatarBust, setProfileAvatarBust] = useState(0);
+  const [customProfilePhoto, setCustomProfilePhoto] = useState('');
+  const [profilePhotoRemoved, setProfilePhotoRemoved] = useState(false);
+  const [savingProfilePhoto, setSavingProfilePhoto] = useState(false);
   const [socialLinks, setSocialLinks] = useState({ instagram: '', x: '', facebook: '' });
   const [socialLinksDraft, setSocialLinksDraft] = useState({ instagram: '', x: '', facebook: '' });
   const [savingSocialLinks, setSavingSocialLinks] = useState(false);
@@ -499,6 +508,7 @@ export default function App() {
   const mapWheelSurfaceRef = React.useRef(null);
   const timelineWheelSurfaceRef = React.useRef(null);
   const traceFullscreenRef = React.useRef(null);
+  const profilePhotoInputRef = React.useRef(null);
   const tasteTimelineRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
   const tasteTimelineDragStartRef = React.useRef({ x: 0, left: 0 });
@@ -612,40 +622,70 @@ const [user, setUser] = useState(null);
   }, [user?.id]);
 
   useEffect(() => {
+    const key = user?.id ? `imdb-profile-photo-${user.id}` : 'imdb-profile-photo-guest';
+    let parsed = null;
+    try {
+      parsed = JSON.parse(localStorage.getItem(key) || 'null');
+    } catch {
+      parsed = null;
+    }
+    setCustomProfilePhoto(String(parsed?.url || ''));
+    setProfilePhotoRemoved(Boolean(parsed?.removed));
+    setProfileAvatarFailed(false);
+    setProfileAvatarBust(0);
+  }, [user?.id]);
+
+  useEffect(() => {
     if (!user || !membersEnabled) return;
     let cancelled = false;
     (async () => {
       try {
         const { data: row, error } = await supabase
           .from('member_profiles')
-          .select('snapshot')
+          .select('snapshot, avatar_url')
           .eq('user_id', String(user.id))
           .maybeSingle();
         if (cancelled || error) return;
         const identity = row?.snapshot?.publicIdentity || null;
-        if (!identity || typeof identity !== 'object') return;
-        const nickname = String(identity?.nickname || '').slice(0, 60).trim();
-        const useNickname = Boolean(identity?.useNickname);
-        let cached = null;
+        const profilePicture = row?.snapshot?.profilePicture || null;
+        let cachedIdentity = null;
+        let cachedPhoto = null;
         try {
-          cached = JSON.parse(localStorage.getItem(`imdb-public-identity-${user.id}`) || 'null');
+          cachedIdentity = JSON.parse(localStorage.getItem(`imdb-public-identity-${user.id}`) || 'null');
         } catch {
-          cached = null;
+          cachedIdentity = null;
         }
-        if (cached && (String(cached.nickname || '').trim() || Boolean(cached.useNickname))) {
-          return;
-        }
-        setPublicNickname(nickname);
-        setPublicNicknameDraft(nickname);
-        setUseNicknamePublicly(useNickname);
-        setUseNicknamePubliclyDraft(useNickname);
         try {
-          localStorage.setItem(`imdb-public-identity-${user.id}`, JSON.stringify({ nickname, useNickname }));
+          cachedPhoto = JSON.parse(localStorage.getItem(`imdb-profile-photo-${user.id}`) || 'null');
         } catch {
-          // ignore local cache write failures
+          cachedPhoto = null;
+        }
+        if (identity && typeof identity === 'object' && !(cachedIdentity && (String(cachedIdentity.nickname || '').trim() || Boolean(cachedIdentity.useNickname)))) {
+          const nickname = String(identity?.nickname || '').slice(0, 60).trim();
+          const useNickname = Boolean(identity?.useNickname);
+          setPublicNickname(nickname);
+          setPublicNicknameDraft(nickname);
+          setUseNicknamePublicly(useNickname);
+          setUseNicknamePubliclyDraft(useNickname);
+          try {
+            localStorage.setItem(`imdb-public-identity-${user.id}`, JSON.stringify({ nickname, useNickname }));
+          } catch {
+            // ignore local cache write failures
+          }
+        }
+        if (!cachedPhoto && profilePicture && typeof profilePicture === 'object') {
+          const removed = Boolean(profilePicture.removed);
+          const url = removed ? '' : String(row?.avatar_url || '');
+          setCustomProfilePhoto(url);
+          setProfilePhotoRemoved(removed);
+          try {
+            localStorage.setItem(`imdb-profile-photo-${user.id}`, JSON.stringify({ url, removed }));
+          } catch {
+            // ignore local cache write failures
+          }
         }
       } catch {
-        // ignore identity hydration failures
+        // ignore profile hydration failures
       }
     })();
     return () => {
@@ -707,6 +747,8 @@ const [user, setUser] = useState(null);
   const resolvedOwnPublicName = activePublicNickname
     ? activePublicNickname
     : (accountRealName || 'Cinephile');
+  const accountProfilePhoto = String(user?.user_metadata?.avatar_url || '').trim();
+  const resolvedOwnAvatarUrl = profilePhotoRemoved ? '' : (customProfilePhoto || accountProfilePhoto);
   const getPublicIdentityPayload = React.useCallback((overrides = {}) => {
     const nickname = String((overrides.nickname ?? publicNickname) || '').trim();
     const useNickname = Boolean(overrides.useNickname ?? useNicknamePublicly);
@@ -718,7 +760,7 @@ const [user, setUser] = useState(null);
     };
   }, [accountRealName, publicNickname, useNicknamePublicly]);
 
-  const currentProfileAvatarUrlRaw = memberViewUserId ? memberViewAvatarUrl : user?.user_metadata?.avatar_url;
+  const currentProfileAvatarUrlRaw = memberViewUserId ? memberViewAvatarUrl : resolvedOwnAvatarUrl;
   const currentProfileAvatarLabel = memberViewUserId
     ? (memberViewName || 'Cinephile')
     : (resolvedOwnPublicName || 'User');
@@ -734,7 +776,7 @@ const [user, setUser] = useState(null);
   useEffect(() => {
     setProfileAvatarFailed(false);
     setProfileAvatarBust(0);
-  }, [memberViewUserId, memberViewAvatarUrl, user?.user_metadata?.avatar_url]);
+  }, [memberViewUserId, memberViewAvatarUrl, resolvedOwnAvatarUrl]);
 
   const currentProfileAvatarUrl = currentProfileAvatarUrlRaw
     ? withCacheBust(currentProfileAvatarUrlRaw, profileAvatarBust)
@@ -1118,6 +1160,125 @@ const [user, setUser] = useState(null);
     };
   }, [followedMemberIds, moodboards, user, supabaseDataEnabled, hasHydratedUserData, canSyncUserData]);
 
+  const fileToProfilePhotoDataUrl = (file) => new Promise((resolve, reject) => {
+    if (!file || !String(file.type || '').startsWith('image/')) {
+      reject(new Error('Please choose an image file.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read that image.'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('Could not load that image.'));
+      image.onload = () => {
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const sourceSize = Math.min(image.width, image.height);
+        const sx = Math.max(0, (image.width - sourceSize) / 2);
+        const sy = Math.max(0, (image.height - sourceSize) / 2);
+        ctx.drawImage(image, sx, sy, sourceSize, sourceSize, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      image.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  const saveProfilePhotoPreference = async ({ url, removed }) => {
+    if (!user) return;
+    const photoUrl = String(url || '');
+    const isRemoved = Boolean(removed);
+    setCustomProfilePhoto(photoUrl);
+    setProfilePhotoRemoved(isRemoved);
+    setProfileAvatarFailed(false);
+    setProfileAvatarBust(Date.now());
+    try {
+      localStorage.setItem(`imdb-profile-photo-${user.id}`, JSON.stringify({ url: photoUrl, removed: isRemoved }));
+    } catch {
+      // ignore local cache failures
+    }
+
+    if (supabaseDataEnabled) {
+      try {
+        const { error } = await supabase
+          .from('user_data')
+          .upsert({
+            user_id: user.id,
+            profile_picture: { url: photoUrl, removed: isRemoved },
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+        if (error?.code === 'PGRST205' || error?.status === 404) {
+          setSupabaseDataEnabled(false);
+        }
+      } catch (error) {
+        if (isSupabaseNetworkError(error)) {
+          console.warn('Network issue while saving profile picture preference.');
+        }
+      }
+    }
+
+    if (membersEnabled) {
+      const updatedAt = new Date().toISOString();
+      const snapshotBase = currentMemberSnapshot && typeof currentMemberSnapshot === 'object' ? currentMemberSnapshot : {};
+      const snapshot = toPublicMemberSnapshot({
+        ...snapshotBase,
+        publicIdentity: getPublicIdentityPayload(),
+        profilePicture: {
+          removed: isRemoved,
+          hasCustomPhoto: Boolean(photoUrl),
+        },
+        aboutMe: aboutMe || '',
+        profileLinks: {
+          instagram: socialLinks.instagram || '',
+          x: socialLinks.x || '',
+          facebook: socialLinks.facebook || '',
+        },
+        updatedAt,
+      });
+      const { error } = await supabase
+        .from('member_profiles')
+        .upsert({
+          user_id: user.id,
+          display_name: resolvedOwnPublicName,
+          email: user.email || null,
+          avatar_url: isRemoved ? null : (photoUrl || accountProfilePhoto || null),
+          snapshot,
+          updated_at: updatedAt,
+        }, { onConflict: 'user_id' });
+      if (error) {
+        console.error('member_profiles upsert failed (profile photo):', error);
+      }
+    }
+  };
+
+  const handleProfilePhotoSelected = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || savingProfilePhoto) return;
+    setSavingProfilePhoto(true);
+    try {
+      const dataUrl = await fileToProfilePhotoDataUrl(file);
+      await saveProfilePhotoPreference({ url: dataUrl, removed: false });
+    } catch (error) {
+      alert(error?.message || 'Could not update profile picture.');
+    } finally {
+      setSavingProfilePhoto(false);
+    }
+  };
+
+  const handleRemoveProfilePhoto = async () => {
+    if (!user || savingProfilePhoto) return;
+    setSavingProfilePhoto(true);
+    try {
+      await saveProfilePhotoPreference({ url: '', removed: true });
+    } finally {
+      setSavingProfilePhoto(false);
+    }
+  };
+
   const handleSaveSocialLinks = async () => {
     if (!user || !supabaseDataEnabled || savingSocialLinks) return;
     setSavingSocialLinks(true);
@@ -1153,7 +1314,7 @@ const [user, setUser] = useState(null);
             user_id: user.id,
             display_name: resolvedOwnPublicName,
             email: user.email || null,
-            avatar_url: user.user_metadata?.avatar_url || null,
+            avatar_url: resolvedOwnAvatarUrl || null,
             snapshot,
             updated_at: updatedAt,
           };
@@ -1238,7 +1399,7 @@ const [user, setUser] = useState(null);
             user_id: user.id,
             display_name: identity.displayName,
             email: user.email || null,
-            avatar_url: user.user_metadata?.avatar_url || null,
+            avatar_url: resolvedOwnAvatarUrl || null,
             snapshot,
             updated_at: updatedAt,
           }, { onConflict: 'user_id' });
@@ -1289,7 +1450,7 @@ const [user, setUser] = useState(null);
         user_id: user.id,
         display_name: resolvedOwnPublicName,
         email: user.email || null,
-        avatar_url: user.user_metadata?.avatar_url || null,
+        avatar_url: resolvedOwnAvatarUrl || null,
         snapshot,
         updated_at: updatedAt,
       };
@@ -1605,7 +1766,7 @@ const [user, setUser] = useState(null);
         user_id: user.id,
         display_name: resolvedOwnPublicName,
         email: user.email || null,
-        avatar_url: user.user_metadata?.avatar_url || null,
+        avatar_url: resolvedOwnAvatarUrl || null,
         snapshot,
         updated_at: updatedAt,
       };
@@ -5188,6 +5349,10 @@ const [user, setUser] = useState(null);
           followings: Array.isArray(followedMemberIds) ? followedMemberIds : [],
           aboutMe: aboutMe || '',
           publicIdentity: getPublicIdentityPayload(),
+          profilePicture: {
+            removed: profilePhotoRemoved,
+            hasCustomPhoto: Boolean(customProfilePhoto),
+          },
           profileLinks: {
             instagram: socialLinks.instagram || '',
             x: socialLinks.x || '',
@@ -5211,7 +5376,7 @@ const [user, setUser] = useState(null);
         dataset: Array.isArray(data) ? toShareableRows(data) : [],
         updatedAt: stableProfileUpdatedAt,
       };
-    }, [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt, getPublicIdentityPayload]);
+    }, [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt, getPublicIdentityPayload, profilePhotoRemoved, customProfilePhoto]);
 
   const minimalMemberSnapshot = React.useMemo(() => ({
     stats: {
@@ -5222,6 +5387,10 @@ const [user, setUser] = useState(null);
     followings: Array.isArray(followedMemberIds) ? followedMemberIds : [],
     aboutMe: aboutMe || '',
     publicIdentity: getPublicIdentityPayload(),
+    profilePicture: {
+      removed: profilePhotoRemoved,
+      hasCustomPhoto: Boolean(customProfilePhoto),
+    },
     profileLinks: {
       instagram: socialLinks.instagram || '',
       x: socialLinks.x || '',
@@ -5244,7 +5413,7 @@ const [user, setUser] = useState(null);
     moodboards: Array.isArray(moodboards) ? moodboards : [],
     dataset: Array.isArray(data) ? toShareableRows(data) : [],
     updatedAt: stableProfileUpdatedAt,
-  }), [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt, getPublicIdentityPayload]);
+  }), [data, stats, personality, ratingDist, mostWatchedGenres, eraPreference, countryPreference, cinemaMindProfile, patterns, socialLinks, followedMemberIds, aboutMe, moodboards, stableProfileUpdatedAt, getPublicIdentityPayload, profilePhotoRemoved, customProfilePhoto]);
 
   const tasteResonance = React.useMemo(() => {
     if (!memberViewUserId) return null;
@@ -5443,13 +5612,13 @@ const [user, setUser] = useState(null);
       userId: user.id,
       name: resolvedOwnPublicName || 'You',
       email: user.email || '',
-      avatarUrl: user.user_metadata?.avatar_url || '',
+      avatarUrl: resolvedOwnAvatarUrl || '',
       joinedAt: user.created_at || null,
       updatedAt: currentMemberSnapshot?.updatedAt || minimalMemberSnapshot?.updatedAt || stableProfileUpdatedAt || null,
       snapshot: currentMemberSnapshot || minimalMemberSnapshot,
       isCurrentUser: true,
     };
-  }, [user, resolvedOwnPublicName, currentMemberSnapshot, minimalMemberSnapshot, stableProfileUpdatedAt]);
+  }, [user, resolvedOwnPublicName, resolvedOwnAvatarUrl, currentMemberSnapshot, minimalMemberSnapshot, stableProfileUpdatedAt]);
 
   const publicMemberSnapshot = React.useMemo(
     () => toPublicMemberSnapshot(currentMemberSnapshot || minimalMemberSnapshot),
@@ -5494,7 +5663,7 @@ const [user, setUser] = useState(null);
         user_id: user.id,
         display_name: resolvedOwnPublicName,
         email: user.email || null,
-        avatar_url: user.user_metadata?.avatar_url || null,
+        avatar_url: resolvedOwnAvatarUrl || null,
         snapshot: snapshotToSave,
         updated_at: new Date().toISOString(),
       };
@@ -5518,7 +5687,7 @@ const [user, setUser] = useState(null);
     return () => {
       cancelled = true;
     };
-  }, [user?.id, membersEnabled, memberViewUserId, publicMemberSnapshotKey, hasHydratedCurrentUserData]);
+  }, [user?.id, membersEnabled, memberViewUserId, publicMemberSnapshotKey, hasHydratedCurrentUserData, resolvedOwnPublicName, resolvedOwnAvatarUrl, getPublicIdentityPayload]);
 
   const fetchMemberList = async ({ page = 0, pageSize = 30, publicOnly = false } = {}) => {
     const from = Math.max(0, Number(page) || 0) * (Number(pageSize) || 30);
@@ -10608,6 +10777,61 @@ const [user, setUser] = useState(null);
                   </div>
 
                     <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="shrink-0">
+                          {resolvedOwnAvatarUrl ? (
+                            <img
+                              src={withCacheBust(resolvedOwnAvatarUrl, profileAvatarBust)}
+                              alt="Profile"
+                              className="h-24 w-24 rounded-full border border-gray-700 object-cover bg-[#0b1220]"
+                            />
+                          ) : (
+                            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-gray-700 bg-[#0b1220] text-3xl font-semibold text-gray-200">
+                              {String(resolvedOwnPublicName || 'U')
+                                .split(/\s+/)
+                                .filter(Boolean)
+                                .slice(0, 2)
+                                .map((part) => part.charAt(0))
+                                .join('')
+                                .toUpperCase() || 'U'}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg font-semibold text-white leading-tight">Profile Picture</h3>
+                          <p className="mt-1 text-sm text-gray-400 leading-relaxed">Add a photo so people can recognize you across the community.</p>
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <input
+                              ref={profilePhotoInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleProfilePhotoSelected}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => profilePhotoInputRef.current?.click()}
+                              disabled={savingProfilePhoto}
+                              className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              {savingProfilePhoto ? 'Saving...' : 'Change Photo'}
+                            </button>
+                            {resolvedOwnAvatarUrl && (
+                              <button
+                                type="button"
+                                onClick={handleRemoveProfilePhoto}
+                                disabled={savingProfilePhoto}
+                                className="px-3 py-2 text-sm rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937] disabled:opacity-60"
+                              >
+                                Remove Photo
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flickd-settings-card bg-[#111827] border border-gray-800 rounded-xl p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                         <div>
                           <h3 className="text-lg font-semibold text-white leading-tight">Public Identity</h3>
@@ -10655,7 +10879,7 @@ const [user, setUser] = useState(null);
                           <p className="mt-2 text-xs leading-relaxed text-gray-500">Your account name. You can keep this private.</p>
                         </div>
                         <div className="bg-[#0b1220] border border-gray-700 rounded-xl p-4">
-                          <label className="text-sm text-gray-400 font-medium">Nickname / Username</label>
+                          <label className="text-sm text-gray-400 font-medium">Nickname</label>
                           <input
                             type="text"
                             value={publicNicknameDraft}
@@ -10666,7 +10890,7 @@ const [user, setUser] = useState(null);
                             placeholder="Choose a public name"
                             className="mt-2.5 w-full bg-[#0b1220] border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                           />
-                          <p className="mt-2 text-xs leading-relaxed text-gray-500">Shown on your profile, community pages, comments, and shared activity.</p>
+                          <p className="mt-2 text-xs leading-relaxed text-gray-500">Use a nickname instead of your real name to stay anonymous.</p>
                         </div>
                       </div>
 
