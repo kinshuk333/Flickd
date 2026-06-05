@@ -5929,8 +5929,34 @@ const [user, setUser] = useState(null);
     });
   }, []);
 
+  const hasSyncedMemberData = React.useCallback((member) => {
+    if (!member) return false;
+    const statsTotal = Number(member?.snapshot?.stats?.totalFilms || member?.stats?.totalFilms || 0);
+    if (statsTotal > 0) return true;
+
+    const snapshotRows = Array.isArray(member?.snapshot?.dataset)
+      ? member.snapshot.dataset
+      : Array.isArray(member?.snapshot?.rows)
+      ? member.snapshot.rows
+      : Array.isArray(member?.snapshot?.data)
+      ? member.snapshot.data
+      : null;
+    if (Array.isArray(snapshotRows) && snapshotRows.length > 0) return true;
+
+    const userId = String(member?.userId || '');
+    if (!userId) return false;
+    try {
+      const cachedRaw = localStorage.getItem(memberDatasetKey(userId));
+      const cachedRows = cachedRaw ? JSON.parse(cachedRaw) : null;
+      return Array.isArray(cachedRows) && cachedRows.length > 0;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const filteredMembersDirectory = React.useMemo(() => {
-    const base = filterMembersByQuery(membersDirectory, membersSearchQuery);
+    const base = filterMembersByQuery(membersDirectory, membersSearchQuery)
+      .filter(hasSyncedMemberData);
     const selfId = String(user?.id || '');
     const selfEmail = String(user?.email || '').trim().toLowerCase();
     if (!selfId && !selfEmail) return base;
@@ -5942,14 +5968,14 @@ const [user, setUser] = useState(null);
       if (selfEmail && memberEmail && memberEmail === selfEmail) return false;
       return true;
     });
-  }, [membersDirectory, membersSearchQuery, filterMembersByQuery, user?.id, user?.email]);
+  }, [membersDirectory, membersSearchQuery, filterMembersByQuery, hasSyncedMemberData, user?.id, user?.email]);
   const filteredFollowedMembersList = React.useMemo(
-    () => filterMembersByQuery(followedMembersList, followingSearchQuery),
-    [followedMembersList, followingSearchQuery, filterMembersByQuery]
+    () => filterMembersByQuery(followedMembersList, followingSearchQuery).filter(hasSyncedMemberData),
+    [followedMembersList, followingSearchQuery, filterMembersByQuery, hasSyncedMemberData]
   );
   const filteredFollowersMembersList = React.useMemo(
-    () => filterMembersByQuery(followersMembersList, followersSearchQuery),
-    [followersMembersList, followersSearchQuery, filterMembersByQuery]
+    () => filterMembersByQuery(followersMembersList, followersSearchQuery).filter(hasSyncedMemberData),
+    [followersMembersList, followersSearchQuery, filterMembersByQuery, hasSyncedMemberData]
   );
 
   const memberCardStatsByUserId = React.useMemo(() => {
@@ -7393,6 +7419,18 @@ const [user, setUser] = useState(null);
                 <li>For Letterboxd, export your data and upload either the zip or <span className="text-gray-100 font-medium">ratings.csv</span>.</li>
               </ol>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPublicCommunityMode(true);
+                setActiveTab('members');
+                setMembersPage(0);
+              }}
+              className="mt-4 w-full rounded-xl border border-blue-500/40 bg-blue-600/15 px-4 py-3 text-sm font-semibold text-blue-100 transition-colors hover:bg-blue-600/25"
+            >
+              Explore the community
+            </button>
 
             {fileName && (
               <div className="mt-4 p-3 bg-[#0f172a] border border-gray-700 rounded-xl">
