@@ -479,6 +479,7 @@ export default function App() {
   const ownDashboardMetaRef = React.useRef(null);
   const traceSvgRef = React.useRef(null);
   const mainContentRef = React.useRef(null);
+  const mainScrollRef = React.useRef(null);
   const tasteTimelineFullscreenRef = React.useRef(null);
   const mapFullscreenRef = React.useRef(null);
   const mapWheelSurfaceRef = React.useRef(null);
@@ -6006,6 +6007,12 @@ const [user, setUser] = useState(null);
   }, [followersMembersList, lastSeenFollowerIds, followerFollowKeyByUserId]);
 
   const previousTopTabRef = React.useRef(activeTab);
+  const resetMainScroll = React.useCallback(() => {
+    requestAnimationFrame(() => {
+      mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     const prevTab = previousTopTabRef.current;
@@ -6244,6 +6251,7 @@ const [user, setUser] = useState(null);
       setLoadedFromCache(false);
       setLastDataSyncAt(member.updatedAt || null);
       setActiveTab('overview');
+      resetMainScroll();
     };
 
   const exitMemberDashboard = () => {
@@ -6265,6 +6273,7 @@ const [user, setUser] = useState(null);
         setFileName('');
         setLoadedFromCache(false);
         setLastDataSyncAt(null);
+        resetMainScroll();
         return;
       }
       if (originalData) {
@@ -6273,6 +6282,7 @@ const [user, setUser] = useState(null);
       setFileName(originalMeta.fileName || '');
       setLoadedFromCache(Boolean(originalMeta.loadedFromCache));
     setLastDataSyncAt(originalMeta.lastDataSyncAt || null);
+    resetMainScroll();
   };
 
   const navItems = [
@@ -7728,7 +7738,7 @@ const [user, setUser] = useState(null);
                         onClick={() => setShowCreateProfileModal(true)}
                         className="px-3 py-1.5 text-sm rounded-lg border border-blue-500/40 text-blue-100 bg-blue-600/15 hover:bg-blue-600/25 transition-colors"
                       >
-                        Create Profile
+                        Join Now
                       </button>
                     </>
                   ) : (
@@ -7858,7 +7868,7 @@ const [user, setUser] = useState(null);
                         }}
                         className="flickd-mobile-menu-item bg-blue-600/15 text-blue-100 border-blue-500/40 hover:bg-blue-600/25"
                       >
-                        Create Profile
+                        Join Now
                       </button>
                     </>
                   ) : (
@@ -8117,6 +8127,7 @@ const [user, setUser] = useState(null);
             )}
 
           <div
+            ref={mainScrollRef}
             className={`flickd-main-scroll flickd-tab-${activeTab} h-[calc(100vh-64px)] overflow-y-auto ${(activeTab === 'members' || activeTab === 'settings' || activeTab === 'following' || activeTab === 'followers') ? 'flickd-main-scroll--directory px-3 sm:px-5 py-4' : 'px-3 sm:px-5 py-4 lg:py-0 lg:pr-4 lg:pl-[300px]'}`}
             onWheelCapture={handleMainScrollWheelCapture}
           >
@@ -8207,7 +8218,7 @@ const [user, setUser] = useState(null);
               </>
             )}
 
-            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[76px]' : ''}`}>
+            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[92px]' : ''}`}>
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
                   <div className="flickd-mobile-tab-spacer lg:hidden" />
