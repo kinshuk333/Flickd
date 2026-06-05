@@ -1283,6 +1283,12 @@ body {
   height: calc(100vh - 64px - var(--flickd-guest-banner-space)) !important;
 }
 
+@media (min-width: 1024px) {
+  .flickd-immersive-shell--own-profile .flickd-profile-content-shell {
+    padding-top: 74px !important;
+  }
+}
+
 .flickd-secondary-nav {
   border-bottom: 0 !important;
   background:

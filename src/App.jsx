@@ -7735,7 +7735,7 @@ const [user, setUser] = useState(null);
         const portalHost = typeof document !== 'undefined' ? document.body : null;
         return portalHost ? createPortal(shareModal, portalHost) : shareModal;
       })()}
-<div className={`flickd-immersive-shell ${publicCommunityMode && !user ? 'flickd-immersive-shell--guest-public' : ''} ${mobileTopNavOpen ? 'flickd-mobile-menu-open' : ''}`}>
+<div className={`flickd-immersive-shell ${user && !memberViewUserId ? 'flickd-immersive-shell--own-profile' : ''} ${publicCommunityMode && !user ? 'flickd-immersive-shell--guest-public' : ''} ${mobileTopNavOpen ? 'flickd-mobile-menu-open' : ''}`}>
         <header className="flickd-shell-header">
             <div className="flickd-shell-header__inner">
               <div className="flex h-full w-full items-center justify-between md:justify-start gap-3 md:gap-4">
@@ -8259,7 +8259,7 @@ const [user, setUser] = useState(null);
               </>
             )}
 
-            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[132px]' : ''}`}>
+            <div ref={mainContentRef} className={`min-w-0 flex flex-col ${activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' ? 'lg:pt-[132px] flickd-profile-content-shell' : ''}`}>
               {activeTab !== 'members' && activeTab !== 'settings' && activeTab !== 'following' && activeTab !== 'followers' && (
                 <>
                   <div className="flickd-mobile-tab-spacer lg:hidden" />
