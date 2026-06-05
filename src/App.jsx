@@ -5364,7 +5364,7 @@ const [user, setUser] = useState(null);
       const viewResult = await runSupabaseResilient('member_profiles:list_public_view', () =>
         supabase
           .from('public_member_profiles')
-          .select(publicColumns)
+          .select('*')
           .order('updated_at', { ascending: false })
           .range(from, to)
       , { timeoutMs: 18000, retries: 2, baseDelayMs: 450 });
@@ -5407,17 +5407,7 @@ const [user, setUser] = useState(null);
       const viewResult = await runSupabaseResilient('member_profiles:profile_public_view', () =>
         supabase
           .from('public_member_profiles')
-          .select(`
-            id,
-            user_id,
-            display_name,
-            avatar_url,
-            created_at,
-            updated_at,
-            stats,
-            aboutMe,
-            profileLinks
-          `)
+          .select('*')
           .eq('user_id', String(memberUserId))
           .maybeSingle()
       , { timeoutMs: 12000, retries: 2, baseDelayMs: 350 });
