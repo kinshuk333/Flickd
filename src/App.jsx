@@ -4461,6 +4461,7 @@ const [user, setUser] = useState(null);
   );
 
   const openShareCard = async (config) => {
+    if (!canShareOwnProfile) return;
     const safeFilms = (Array.isArray(config?.films) ? config.films : []).filter(Boolean);
     if (!safeFilms.length) return;
     // If browser fullscreen is active, global fixed overlays rendered outside that element
@@ -6755,6 +6756,7 @@ const [user, setUser] = useState(null);
     { id: 'deepdive', label: 'Deep Dive' },
   ];
   const isViewingOtherMember = Boolean(user) && Boolean(memberViewUserId) && String(memberViewUserId) !== String(user?.id || '');
+  const canShareOwnProfile = Boolean(user) && !memberViewUserId;
   const isHomeActive = !memberViewUserId && navItems.some((item) => item.id === activeTab);
   const isMembersTopActive =
     activeTab === 'members' ||
@@ -9679,22 +9681,24 @@ const [user, setUser] = useState(null);
                                       <>
                                         <div className="flex items-center gap-2">
                                           <div className="text-white font-semibold text-lg">{traceSelectedDirector.name}</div>
-                                          <button
-                                            type="button"
-                                            onClick={() => openShareCard({
-                                              title: `Top ${Math.min(10, traceSelectedDirector.films?.length || 0)} of ${traceSelectedDirector.name}`,
-                                              subtitle: 'Director Signature Card',
-                                              filenameBase: `flickd-director-${String(traceSelectedDirector.name || 'director').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-                                              films: (traceSelectedDirector.films || []).map((film) => ({
-                                                title: film.title,
-                                                year: film.year,
-                                                yourRating: Number(film.rating || 0),
-                                              })),
-                                            })}
-                                            className="px-2.5 py-1 text-[11px] rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-gray-800"
-                                          >
-                                            Share
-                                          </button>
+                                          {canShareOwnProfile && (
+                                            <button
+                                              type="button"
+                                              onClick={() => openShareCard({
+                                                title: `Top ${Math.min(10, traceSelectedDirector.films?.length || 0)} of ${traceSelectedDirector.name}`,
+                                                subtitle: 'Director Signature Card',
+                                                filenameBase: `flickd-director-${String(traceSelectedDirector.name || 'director').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                                                films: (traceSelectedDirector.films || []).map((film) => ({
+                                                  title: film.title,
+                                                  year: film.year,
+                                                  yourRating: Number(film.rating || 0),
+                                                })),
+                                              })}
+                                              className="px-2.5 py-1 text-[11px] rounded-lg border border-gray-700 bg-[#111827] text-gray-200 hover:bg-gray-800"
+                                            >
+                                              Share
+                                            </button>
+                                          )}
                                         </div>
                                         <div className="text-xs text-gray-400 mt-1">
                                           {traceSelectedDirector.count} films watched - Avg rating {Number(traceSelectedDirector.avgRating || 0).toFixed(2)}
@@ -11670,13 +11674,15 @@ const [user, setUser] = useState(null);
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <h2 className="text-lg font-semibold">Hidden Gems</h2>
-                          <button
-                            type="button"
-                            onClick={() => openShareCard({ title: 'Hidden Gems', subtitle: 'Personal Discovery Card', filenameBase: 'flickd-hidden-gems', films: hiddenGems.allFilms })}
-                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                          >
-                            Share
-                          </button>
+                          {canShareOwnProfile && (
+                            <button
+                              type="button"
+                              onClick={() => openShareCard({ title: 'Hidden Gems', subtitle: 'Personal Discovery Card', filenameBase: 'flickd-hidden-gems', films: hiddenGems.allFilms })}
+                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            >
+                              Share
+                            </button>
+                          )}
                         </div>
                         <p className="text-xs text-gray-400 mb-4">Films you valued far more deeply than the wider audience.</p>
                         <div className="mb-4 flex items-center justify-between gap-3">
@@ -11848,13 +11854,15 @@ const [user, setUser] = useState(null);
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <h2 className="text-lg font-semibold">Hidden Treasures</h2>
-                          <button
-                            type="button"
-                            onClick={() => openShareCard({ title: 'Hidden Treasures', subtitle: 'Undiscovered Favorites', filenameBase: 'flickd-hidden-treasures', films: hiddenTreasures.allFilms })}
-                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                          >
-                            Share
-                          </button>
+                          {canShareOwnProfile && (
+                            <button
+                              type="button"
+                              onClick={() => openShareCard({ title: 'Hidden Treasures', subtitle: 'Undiscovered Favorites', filenameBase: 'flickd-hidden-treasures', films: hiddenTreasures.allFilms })}
+                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            >
+                              Share
+                            </button>
+                          )}
                         </div>
                         <p className="text-xs text-gray-400 mb-4">Rare films buried beneath the algorithm that still left a lasting imprint on you.</p>
 
@@ -12039,18 +12047,20 @@ const [user, setUser] = useState(null);
                       <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <h2 className="text-lg font-semibold"> Favorites by Year</h2>
-                          <button
-                            type="button"
-                            onClick={() => openShareCard({
-                              title: `My Top 10 of ${selected.year}`,
-                              subtitle: 'Personal Year Card',
-                              filenameBase: `flickd-favorites-${selected.year}`,
-                              films: selected.films,
-                            })}
-                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                          >
-                            Share
-                          </button>
+                          {canShareOwnProfile && (
+                            <button
+                              type="button"
+                              onClick={() => openShareCard({
+                                title: `My Top 10 of ${selected.year}`,
+                                subtitle: 'Personal Year Card',
+                                filenameBase: `flickd-favorites-${selected.year}`,
+                                films: selected.films,
+                              })}
+                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                            >
+                              Share
+                            </button>
+                          )}
                         </div>
                         <p className="text-xs text-gray-400 mb-4">Top-rated films grouped by release year from your watched history.</p>
                         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -12245,13 +12255,15 @@ const [user, setUser] = useState(null);
                         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                           <div className="flex items-center justify-between gap-2 mb-1">
                             <h2 className="text-lg font-semibold">Personal Canon</h2>
-                            <button
-                              type="button"
-                              onClick={() => openShareCard({ title: `${selected.decade} Personal Canon`, subtitle: 'Films That Define Your Taste', filenameBase: `flickd-personal-canon-${selected.decade}`, films: selected.films })}
-                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                            >
-                              Share
-                            </button>
+                            {canShareOwnProfile && (
+                              <button
+                                type="button"
+                                onClick={() => openShareCard({ title: `${selected.decade} Personal Canon`, subtitle: 'Films That Define Your Taste', filenameBase: `flickd-personal-canon-${selected.decade}`, films: selected.films })}
+                                className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                              >
+                                Share
+                              </button>
+                            )}
                           </div>
                           <p className="text-xs text-gray-400 mb-4">The films that define your taste, organized decade by decade.</p>
                           <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -12450,13 +12462,15 @@ const [user, setUser] = useState(null);
                         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <h2 className="text-lg font-semibold">Top Films by Genre</h2>
-                            <button
-                              type="button"
-                              onClick={() => openShareCard({ title: `Top 10 ${selectedGenreGroup.genre} Films`, subtitle: 'Genre Signature Card', filenameBase: `flickd-top-genre-${selectedGenreGroup.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, films: selectedGenreGroup.films })}
-                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
-                            >
-                              Share
-                            </button>
+                            {canShareOwnProfile && (
+                              <button
+                                type="button"
+                                onClick={() => openShareCard({ title: `Top 10 ${selectedGenreGroup.genre} Films`, subtitle: 'Genre Signature Card', filenameBase: `flickd-top-genre-${selectedGenreGroup.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, films: selectedGenreGroup.films })}
+                                className="px-3 py-1.5 text-xs rounded-lg border border-gray-700 bg-[#0b1220] text-gray-200 hover:bg-[#1f2937]"
+                              >
+                                Share
+                              </button>
+                            )}
                           </div>
                           <p className="text-xs text-gray-400 mb-4">
                             The defining films across the genres that shape your cinematic identity. Avg {selectedGenreGroup.avgGenreRating.toFixed(2)}
