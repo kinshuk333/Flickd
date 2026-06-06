@@ -51,6 +51,8 @@ import {
   Gauge,
   Layers,
   Palette,
+  RefreshCw,
+  Trash2,
 } from 'lucide-react';
 
 const ACCENT_COLOR = '#3b82f6';
@@ -405,6 +407,8 @@ export default function App() {
   const [letterboxdImporting, setLetterboxdImporting] = useState(false);
   const [letterboxdProgress, setLetterboxdProgress] = useState({ current: 0, total: 0, phase: '' });
   const [letterboxdError, setLetterboxdError] = useState('');
+  const [datasetUpdateSummary, setDatasetUpdateSummary] = useState(null);
+  const [datasetUpdateNotice, setDatasetUpdateNotice] = useState(null);
   const [loadedFromCache, setLoadedFromCache] = useState(false);
   const [lastDataSyncAt, setLastDataSyncAt] = useState(null);
   const [moodboards, setMoodboards] = useState([]);
@@ -509,6 +513,7 @@ export default function App() {
   const timelineWheelSurfaceRef = React.useRef(null);
   const traceFullscreenRef = React.useRef(null);
   const profilePhotoInputRef = React.useRef(null);
+  const updateDatasetInputRef = React.useRef(null);
   const tasteTimelineRef = React.useRef(null);
   const tasteTimelineDraggingRef = React.useRef(false);
   const tasteTimelineDragStartRef = React.useRef({ x: 0, left: 0 });
@@ -1031,6 +1036,12 @@ const [user, setUser] = useState(null);
     return () => clearTimeout(timer);
   }, [followToast]);
 
+  useEffect(() => {
+    if (!datasetUpdateNotice) return;
+    const timer = setTimeout(() => setDatasetUpdateNotice(null), 6500);
+    return () => clearTimeout(timer);
+  }, [datasetUpdateNotice]);
+
   const openTasteResonance = async () => {
     if (!memberViewUserId) return;
     setTasteResonanceLoading(true);
@@ -1186,7 +1197,6 @@ const [user, setUser] = useState(null);
     };
     reader.readAsDataURL(file);
   });
-
   const saveProfilePhotoPreference = async ({ url, removed }) => {
     if (!user) return;
     const photoUrl = String(url || '');
@@ -1682,6 +1692,7 @@ const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (!data?.length || fetchingCountries) return;
+    if (loadedFromCache) return;
 
     const hasMissingCountry = data.some((movie) => !hasUsableCountryName(movie?.country) && !hasUsableCountryName(countryOverrides[movieCountryKey(movie)]));
     if (!hasMissingCountry) return;
@@ -1698,7 +1709,7 @@ const [user, setUser] = useState(null);
     return () => {
       cancelled = true;
     };
-  }, [data, fetchingCountries, fileName, countryOverrides]);
+  }, [data, fetchingCountries, fileName, countryOverrides, loadedFromCache]);
 
   const cleanTitleForOmdb = (title) => {
     if (!title || typeof title !== 'string') return '';
@@ -2407,10 +2418,11 @@ const [user, setUser] = useState(null);
     return Number.isFinite(numeric) ? numeric : 0;
   };
 
-  const applyImportedDataset = (rows, sourceName, fromCache = false) => {
+  const applyImportedDataset = (rows, sourceName, fromCache = false, updateSummary = null) => {
     setData(rows);
     setFileName(sourceName);
     setLoadedFromCache(fromCache);
+    setDatasetUpdateSummary(updateSummary);
     persistDataset(rows, sourceName);
     syncDatasetToMemberProfile(rows);
     setHiddenGemsPage(1);
@@ -2421,6 +2433,67 @@ const [user, setUser] = useState(null);
     setFavoriteYearPage(1);
     setSelectedMovie(null);
     setMovieDetails(null);
+  };
+
+  const getDatasetFilmKeys = (film = {}) => {
+    const keys = [];
+    const imdbId = String(film?.imdbId || film?.imdbID || film?.const || '').trim().toLowerCase();
+    const letterboxdUrl = String(film?.letterboxdUrl || film?.letterboxdURI || '').trim().toLowerCase();
+    const title = cleanTitleForOmdb(String(film?.title || '')).toLowerCase();
+    const year = Number(film?.year) || 0;
+
+    if (imdbId) keys.push(`imdb:${imdbId}`);
+    if (letterboxdUrl) keys.push(`letterboxd:${letterboxdUrl}`);
+    if (title) keys.push(`title:${title}|${year}`);
+    return [...new Set(keys)];
+  };
+
+  const buildDatasetFilmLookup = (rows = []) => {
+    const lookup = new Map();
+    rows.forEach((row) => {
+      getDatasetFilmKeys(row).forEach((key) => {
+        if (!lookup.has(key)) lookup.set(key, row);
+      });
+    });
+    return lookup;
+  };
+
+  const findDatasetMatch = (row, lookup) => {
+    for (const key of getDatasetFilmKeys(row)) {
+      const match = lookup.get(key);
+      if (match) return match;
+    }
+    return null;
+  };
+
+  const mergeUpdatedDataset = (existingRows = [], incomingRows = []) => {
+    const oldLookup = buildDatasetFilmLookup(existingRows);
+    const incomingLookup = buildDatasetFilmLookup(incomingRows);
+    let added = 0;
+    let kept = 0;
+
+    const rows = incomingRows.map((incoming) => {
+      const existing = findDatasetMatch(incoming, oldLookup);
+      if (!existing) {
+        added += 1;
+        return incoming;
+      }
+
+      kept += 1;
+      return {
+        ...incoming,
+        ...existing,
+        yourRating: Number(incoming?.yourRating) || Number(existing?.yourRating) || 0,
+        dateRated: incoming?.dateRated || existing?.dateRated || null,
+        letterboxdUrl: incoming?.letterboxdUrl || existing?.letterboxdUrl || '',
+        imdbId: existing?.imdbId || existing?.imdbID || incoming?.imdbId || incoming?.imdbID || '',
+        numVotes: Number(existing?.numVotes ?? existing?.imdbVotes ?? incoming?.numVotes ?? incoming?.imdbVotes) || 0,
+        imdbVotes: Number(existing?.imdbVotes ?? existing?.numVotes ?? incoming?.imdbVotes ?? incoming?.numVotes) || 0,
+      };
+    });
+
+    const removed = existingRows.filter((row) => !findDatasetMatch(row, incomingLookup)).length;
+    return { rows, summary: { added, removed, kept, total: rows.length } };
   };
 
   const normalizeOmdbPayloadToRow = (film, payload) => {
@@ -2589,35 +2662,31 @@ const [user, setUser] = useState(null);
     }
   };
   
-  const handleFileUpload = async (event) => {
-    const file = event?.target?.files?.[0];
-    if (!file) return;
+  const parseUploadedDataset = async (file) => {
+    const workbook = await getWorkbookFromUploadedFile(file);
+    const firstSheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[firstSheetName];
+    if (!sheet) return null;
 
-    try {
-      const workbook = await getWorkbookFromUploadedFile(file);
-      const firstSheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[firstSheetName];
-      if (!sheet) return;
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    const normalizeKey = (key) =>
+      String(key || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
 
-      const normalizeKey = (key) =>
-        String(key || '')
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, '');
+    const getByAliases = (row, aliases) => {
+      const keyMap = {};
+      Object.keys(row || {}).forEach((k) => {
+        keyMap[normalizeKey(k)] = row[k];
+      });
 
-      const getByAliases = (row, aliases) => {
-        const keyMap = {};
-        Object.keys(row || {}).forEach((k) => {
-          keyMap[normalizeKey(k)] = row[k];
-        });
-
-        for (const alias of aliases) {
-          const value = keyMap[normalizeKey(alias)];
-          if (value !== undefined) return value;
-        }
-        return '';
-      };
+      for (const alias of aliases) {
+        const value = keyMap[normalizeKey(alias)];
+        if (value !== undefined) return value;
+      }
+      return '';
+    };
 
       const isLetterboxdExport = rawRows.some((row) => {
         const name = String(getByAliases(row, ['Name'])).trim();
@@ -2664,9 +2733,8 @@ const [user, setUser] = useState(null);
           return;
         }
 
-        applyImportedDataset(rows, sourceName);
         setLetterboxdProgress({ current: rows.length, total: rows.length, phase: 'Import complete' });
-        return;
+        return { rows, sourceName, sourceType: 'letterboxd' };
       }
 
       const parsed = rawRows
@@ -2712,12 +2780,33 @@ const [user, setUser] = useState(null);
         return;
       }
 
-      applyImportedDataset(parsed, file.name);
+      return { rows: parsed, sourceName: file.name || 'IMDb Ratings', sourceType: 'imdb' };
+  };
+
+  const handleDatasetFileUpload = async (event, mode = 'replace') => {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    try {
+      const parsedDataset = await parseUploadedDataset(file);
+      if (!parsedDataset?.rows?.length) return;
+
+      if (mode === 'update' && Array.isArray(data) && data.length) {
+        const { rows, summary } = mergeUpdatedDataset(data, parsedDataset.rows);
+        applyImportedDataset(rows, parsedDataset.sourceName, false, summary);
+        setDatasetUpdateNotice(summary);
+      } else {
+        applyImportedDataset(parsedDataset.rows, parsedDataset.sourceName);
+        setDatasetUpdateNotice(null);
+      }
     } catch (error) {
       console.error('File upload failed:', error);
       alert(error?.message || 'Could not parse this file. Please upload a valid IMDb export, Letterboxd ratings.csv, or Letterboxd zip export.');
     }
   };
+
+  const handleFileUpload = (event) => handleDatasetFileUpload(event, 'replace');
+  const handleUpdateDatasetUpload = (event) => handleDatasetFileUpload(event, 'update');
   const handleRemoveUploadedFile = () => {
     const shouldRemove = window.confirm('Remove current IMDb file and clear all dashboard data?');
     if (!shouldRemove) return;
@@ -2735,6 +2824,8 @@ const [user, setUser] = useState(null);
     setFileName('');
     setLoadedFromCache(false);
     setLastDataSyncAt(null);
+    setDatasetUpdateSummary(null);
+    setDatasetUpdateNotice(null);
     setLetterboxdError('');
     setLetterboxdProgress({ current: 0, total: 0, phase: '' });
     setPosters({});
@@ -7782,6 +7873,11 @@ const [user, setUser] = useState(null);
                   {loadedFromCache ? 'Restored from local cache' : 'Updated from latest upload'}
                   {lastDataSyncAt ? `  Synced ${new Date(lastDataSyncAt).toLocaleString()}` : ''}
                 </p>
+                {datasetUpdateSummary && (
+                  <p className="text-xs text-emerald-300 mt-1">
+                    Update scanned: +{datasetUpdateSummary.added} new, -{datasetUpdateSummary.removed} removed, {datasetUpdateSummary.kept} kept.
+                  </p>
+                )}
               </div>
             )}
 
@@ -8000,6 +8096,28 @@ const [user, setUser] = useState(null);
               Their cinematic world has been added to your orbit.
               Explore their taste profile, filmboards, and cinematic trace.
             </p>
+          </div>
+        </div>
+      )}
+
+      {datasetUpdateNotice && (
+        <div className="fixed top-4 left-1/2 z-[130] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2" role="status" aria-live="polite">
+          <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-400/30 bg-[#071a14]/95 px-4 py-3 text-emerald-50 shadow-[0_18px_45px_rgba(16,185,129,0.22)] backdrop-blur">
+            <div>
+              <p className="text-sm font-semibold">
+                Update complete: {datasetUpdateNotice.added} new {datasetUpdateNotice.added === 1 ? 'film' : 'films'} added.
+              </p>
+              <p className="mt-1 text-xs text-emerald-100/80">
+                {datasetUpdateNotice.removed} removed, {datasetUpdateNotice.kept} unchanged, {datasetUpdateNotice.total} total in your library.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDatasetUpdateNotice(null)}
+              className="rounded-lg border border-emerald-300/20 px-2 py-1 text-xs font-medium text-emerald-100 transition-colors hover:bg-emerald-400/10"
+            >
+              Dismiss
+            </button>
           </div>
         </div>
       )}
@@ -11025,6 +11143,11 @@ const [user, setUser] = useState(null);
                             {loadedFromCache ? 'Restored from local cache' : 'Updated from latest upload'}
                             {lastDataSyncAt ? `  Synced ${new Date(lastDataSyncAt).toLocaleString()}` : ''}
                           </p>
+                          {datasetUpdateSummary && (
+                            <p className="text-xs text-emerald-300 mt-1">
+                              Update scanned: +{datasetUpdateSummary.added} new, -{datasetUpdateSummary.removed} removed, {datasetUpdateSummary.kept} kept.
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -11042,12 +11165,30 @@ const [user, setUser] = useState(null);
                       )}
 
                       {(data?.length > 0 || fileName) && (
-                        <div className="flex justify-end">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <input
+                            ref={updateDatasetInputRef}
+                            type="file"
+                            className="hidden"
+                            accept=".csv,.xlsx,.xls,.zip"
+                            onChange={handleUpdateDatasetUpload}
+                            onClick={(e) => { e.target.value = null; }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateDatasetInputRef.current?.click()}
+                            disabled={letterboxdImporting}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-200 hover:bg-blue-500/20 transition-colors disabled:opacity-60"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Update file
+                          </button>
                           <button
                             type="button"
                             onClick={handleRemoveUploadedFile}
-                            className="px-3 py-1.5 text-xs rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-colors"
                           >
+                            <Trash2 className="h-3.5 w-3.5" />
                             Remove file
                           </button>
                         </div>
