@@ -141,6 +141,8 @@ const memberDatasetKey = (userId) => `imdb-member-dataset-${userId}`;
 const moodboardsStorageKey = (userId) => `imdb-moodboards-${String(userId || 'guest')}`;
 const moodboardsBackupStorageKey = (userId) => `imdb-moodboards-backup-${String(userId || 'guest')}`;
 const moodboardsBackupMetaKey = (userId) => `imdb-moodboards-backup-meta-${String(userId || 'guest')}`;
+const POPULARITY_MAINSTREAM_VOTES = 100000;
+const POPULARITY_MIDTIER_VOTES = 20000;
 
 const toShareableRows = (rows = []) => rows.map((row) => ({
   t: row?.title || '',
@@ -3235,16 +3237,13 @@ const [user, setUser] = useState(null);
     });
     const paceValue = films.length ? Math.min(100, Math.max(0, 50 + ((fastScore - slowScore) / films.length) * 50)) : 50;
 
-    // Mainstream  Niche (vote count)
-    const MAINSTREAM = 100000;
-    const NICHE = 5000;
-    let mainstream = 0, niche = 0;
+    // Niche  Mainstream (vote count)
+    let mainstream = 0;
     films.forEach(f => {
       const votes = f.numVotes || 0;
-      if (votes >= MAINSTREAM) mainstream++;
-      else if (votes <= NICHE) niche++;
+      if (votes >= POPULARITY_MAINSTREAM_VOTES) mainstream++;
     });
-    const nicheValue = films.length ? Math.min(100, Math.max(0, ((niche - mainstream) / films.length + 0.5) * 100)) : 50;
+    const mainstreamValue = films.length ? Math.round(mainstream / films.length * 100) : 50;
 
     // Realistic  Surreal
     const realisticGenres = ['documentary', 'drama', 'biography', 'history', 'war', 'sport'];
@@ -3295,7 +3294,7 @@ const [user, setUser] = useState(null);
     return [
       { left: 'Light', right: 'Dark', value: lightDarkValue },
       { left: 'Slow Burn', right: 'Fast Paced', value: paceValue },
-      { left: 'Mainstream', right: 'Niche', value: nicheValue },
+      { left: 'Niche', right: 'Mainstream', value: mainstreamValue },
       { left: 'Realistic', right: 'Surreal', value: surrealValue },
       { left: 'Indie', right: 'Big Budget', value: bigBudgetValue },
       { left: 'Dialogue', right: 'Visual', value: visualValue },
@@ -3305,13 +3304,11 @@ const [user, setUser] = useState(null);
 
   const calculatePopularityBuckets = (films) => {
     if (!films || films.length === 0) return [];
-    const MAINSTREAM = 100000;
-    const MIDTIER = 20000;
     let mainstream = 0, midtier = 0, niche = 0;
     films.forEach(f => {
       const votes = f.numVotes || 0;
-      if (votes >= MAINSTREAM) mainstream++;
-      else if (votes >= MIDTIER) midtier++;
+      if (votes >= POPULARITY_MAINSTREAM_VOTES) mainstream++;
+      else if (votes >= POPULARITY_MIDTIER_VOTES) midtier++;
       else niche++;
     });
     return [
@@ -5553,7 +5550,7 @@ const [user, setUser] = useState(null);
     const targetAxes = [
       'Light|Dark',
       'Slow Burn|Fast Paced',
-      'Mainstream|Niche',
+      'Niche|Mainstream',
       'Dialogue|Visual',
       'Indie|Big Budget',
       'Realistic|Surreal',
