@@ -1,0 +1,21 @@
+export const cannesPalmeDor = {
+  id: 'cannes-palme-dor',
+  name: "Cannes Palme d'Or Winners",
+  category: 'Festival Canon',
+  description: "How much of Cannes' top festival lineage you have seen.",
+  insightHigh: "You are strongly connected to Cannes' festival canon.",
+  insightMedium: 'You have a meaningful foothold in Palme d Or history.',
+  insightLow: "Cannes' most celebrated winners still leave plenty to discover.",
+  films: [
+    { title: 'The Third Man', year: 1949, imdbId: 'tt0041959' },
+    { title: 'The Wages of Fear', year: 1953, imdbId: 'tt0046268' },
+    { title: 'The Umbrellas of Cherbourg', year: 1964, imdbId: 'tt0058450' },
+    { title: 'Taxi Driver', year: 1976, imdbId: 'tt0075314' },
+    { title: 'Apocalypse Now', year: 1979, imdbId: 'tt0078788' },
+    { title: 'Paris, Texas', year: 1984, imdbId: 'tt0087884' },
+    { title: 'Pulp Fiction', year: 1994, imdbId: 'tt0110912' },
+    { title: 'The Pianist', year: 2002, imdbId: 'tt0253474' },
+    { title: 'The Tree of Life', year: 2011, imdbId: 'tt0478304' },
+    { title: 'Parasite', year: 2019, imdbId: 'tt6751668' },
+  ],
+};

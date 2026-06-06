@@ -1,0 +1,21 @@
+export const sightAndSound = {
+  id: 'sight-and-sound',
+  name: 'Sight & Sound Greatest Films',
+  category: 'Critical Canon',
+  description: 'How much of the critical and historical film canon you have explored.',
+  insightHigh: 'You are deeply aligned with critical canon cinema.',
+  insightMedium: 'You have a strong starting map of critical film history.',
+  insightLow: 'The critical canon still has many essential landmarks ahead.',
+  films: [
+    { title: 'Jeanne Dielman, 23 quai du Commerce, 1080 Bruxelles', year: 1975, imdbId: 'tt0073198' },
+    { title: 'Vertigo', year: 1958, imdbId: 'tt0052357' },
+    { title: 'Citizen Kane', year: 1941, imdbId: 'tt0033467' },
+    { title: 'Tokyo Story', year: 1953, imdbId: 'tt0046438' },
+    { title: 'In the Mood for Love', year: 2000, imdbId: 'tt0118694' },
+    { title: '2001: A Space Odyssey', year: 1968, imdbId: 'tt0062622' },
+    { title: 'Beau Travail', year: 1999, imdbId: 'tt0209933' },
+    { title: 'Mulholland Drive', year: 2001, imdbId: 'tt0166924' },
+    { title: 'Man with a Movie Camera', year: 1929, imdbId: 'tt0019760' },
+    { title: "Singin' in the Rain", year: 1952, imdbId: 'tt0045152' },
+  ],
+};

@@ -1,0 +1,21 @@
+export const oscarBestPicture = {
+  id: 'oscar-best-picture',
+  name: 'Oscar Best Picture Winners',
+  category: 'Awards Canon',
+  description: 'How deeply your history overlaps with Academy Best Picture winners.',
+  insightHigh: 'You have travelled deeply through Academy canon cinema.',
+  insightMedium: 'You have a steady foundation in Oscar-winning film history.',
+  insightLow: 'The Academy canon still has many landmark winners waiting for you.',
+  films: [
+    { title: 'Wings', year: 1927, imdbId: 'tt0018578' },
+    { title: 'Gone with the Wind', year: 1939, imdbId: 'tt0031381' },
+    { title: 'Casablanca', year: 1942, imdbId: 'tt0034583' },
+    { title: 'The Godfather', year: 1972, imdbId: 'tt0068646' },
+    { title: 'The Deer Hunter', year: 1978, imdbId: 'tt0077416' },
+    { title: 'Amadeus', year: 1984, imdbId: 'tt0086879' },
+    { title: 'The Silence of the Lambs', year: 1991, imdbId: 'tt0102926' },
+    { title: "Schindler's List", year: 1993, imdbId: 'tt0108052' },
+    { title: 'Parasite', year: 2019, imdbId: 'tt6751668' },
+    { title: 'Oppenheimer', year: 2023, imdbId: 'tt15398776' },
+  ],
+};

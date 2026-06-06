@@ -54,6 +54,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react';
+import TasteAtlasSection from './components/TasteAtlasSection';
 
 const ACCENT_COLOR = '#3b82f6';
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
@@ -9159,6 +9160,8 @@ const [user, setUser] = useState(null);
                         </div>
                     </div>
                   </div>
+
+                  <TasteAtlasSection userMovies={data || []} />
                 </div>
               )}
 {activeTab === 'allwatched' && (

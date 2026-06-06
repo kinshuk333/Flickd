@@ -1,0 +1,21 @@
+export const imdbTop250 = {
+  id: 'imdb-top-250',
+  name: 'IMDb Top 250',
+  category: 'Popular Canon',
+  description: 'How much of the popular movie canon you have explored.',
+  insightHigh: 'You are strongly aligned with popular canon cinema.',
+  insightMedium: 'You have a solid base in popular canon cinema.',
+  insightLow: 'You still have many widely loved classics left to explore.',
+  films: [
+    { title: 'The Shawshank Redemption', year: 1994, imdbId: 'tt0111161' },
+    { title: 'The Godfather', year: 1972, imdbId: 'tt0068646' },
+    { title: 'The Dark Knight', year: 2008, imdbId: 'tt0468569' },
+    { title: 'The Godfather Part II', year: 1974, imdbId: 'tt0071562' },
+    { title: '12 Angry Men', year: 1957, imdbId: 'tt0050083' },
+    { title: "Schindler's List", year: 1993, imdbId: 'tt0108052' },
+    { title: 'The Lord of the Rings: The Return of the King', year: 2003, imdbId: 'tt0167260' },
+    { title: 'Pulp Fiction', year: 1994, imdbId: 'tt0110912' },
+    { title: 'The Lord of the Rings: The Fellowship of the Ring', year: 2001, imdbId: 'tt0120737' },
+    { title: 'The Good, the Bad and the Ugly', year: 1966, imdbId: 'tt0060196' },
+  ],
+};
