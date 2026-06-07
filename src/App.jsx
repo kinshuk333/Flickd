@@ -55,6 +55,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import TasteAtlasSection from './components/TasteAtlasSection';
+import RecallFromMyFilms from './components/RecallFromMyFilms';
 
 const ACCENT_COLOR = '#3b82f6';
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
@@ -6751,6 +6752,7 @@ const [user, setUser] = useState(null);
     { id: 'overview', label: 'Overview' },
     { id: 'personality', label: 'Identity' },
     { id: 'allwatched', label: 'Film Archive' },
+    { id: 'memory', label: 'Memory' },
     { id: 'tastetimeline', label: 'Timeline Map' },
     { id: 'mytrace', label: "Director's Fingerprint" },
     { id: 'moodboard', label: 'Filmboards' },
@@ -9347,6 +9349,13 @@ const [user, setUser] = useState(null);
                     )}
                   </div>
                 </div>
+              )}
+{activeTab === 'memory' && (
+                <RecallFromMyFilms
+                  userMovies={data || []}
+                  posters={posters}
+                  onMovieClick={handleMovieClick}
+                />
               )}
 {activeTab === 'mytrace' && (
                 <div className="space-y-4">
