@@ -6036,7 +6036,7 @@ const [user, setUser] = useState(null);
         const maxRetries = 2;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
-          const publicDirectoryPageSize = publicCommunityMode && !user ? 200 : 30;
+          const publicDirectoryPageSize = publicCommunityMode && !user ? 1000 : 30;
           const queryPromise = fetchMemberList({
             page: membersPage,
             pageSize: publicDirectoryPageSize,
@@ -6461,7 +6461,7 @@ const [user, setUser] = useState(null);
 
   const filteredMembersDirectory = React.useMemo(() => {
     const base = filterMembersByQuery(membersDirectory, membersSearchQuery)
-      .filter(hasSyncedMemberData);
+      .filter((member) => (publicCommunityMode && !user) || hasSyncedMemberData(member));
     const selfId = String(user?.id || '');
     const selfEmail = String(user?.email || '').trim().toLowerCase();
     if (!selfId && !selfEmail) return base;
@@ -6473,7 +6473,7 @@ const [user, setUser] = useState(null);
       if (selfEmail && memberEmail && memberEmail === selfEmail) return false;
       return true;
     });
-  }, [membersDirectory, membersSearchQuery, filterMembersByQuery, hasSyncedMemberData, user?.id, user?.email]);
+  }, [membersDirectory, membersSearchQuery, filterMembersByQuery, hasSyncedMemberData, publicCommunityMode, user, user?.id, user?.email]);
   const filteredFollowedMembersList = React.useMemo(
     () => filterMembersByQuery(followedMembersList, followingSearchQuery).filter(hasSyncedMemberData),
     [followedMembersList, followingSearchQuery, filterMembersByQuery, hasSyncedMemberData]
