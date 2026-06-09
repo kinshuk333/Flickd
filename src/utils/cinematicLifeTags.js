@@ -368,7 +368,7 @@ const sentenceForTags = (items = [], fallback) => {
 };
 
 export const getCinematicLifeTagReading = (movies = []) => {
-  const taggedMovies = ensureCinematicLifeTagsForMovies(movies);
+  const taggedMovies = Array.isArray(movies) ? movies : [];
   const affinities = getUserTagAffinity(taggedMovies);
   const byTypes = (types) => affinities.filter((item) => types.includes(item.tag_type)).slice(0, 5);
   const recurring = affinities.slice(0, 8);
