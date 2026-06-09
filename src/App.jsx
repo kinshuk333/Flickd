@@ -1059,18 +1059,29 @@ const getTagConstellations = (highRatedFilms = [], userAverageRating = 0) => {
 
 const buildTastePersonalityReport = (movies = [], personalReading = null, cinematicLifeReading = null) => {
   const ratedMovies = Array.isArray(movies) ? movies.filter((movie) => safeNumber(movie?.yourRating || movie?.rating) > 0) : [];
+  const taggedRatedMovies = ensureCinematicLifeTagsForMovies(ratedMovies);
   const ratedFilms = ratedMovies.length;
   const userAverageRating = ratedFilms
-    ? ratedMovies.reduce((sum, movie) => sum + safeNumber(movie?.yourRating || movie?.rating), 0) / ratedFilms
+    ? taggedRatedMovies.reduce((sum, movie) => sum + safeNumber(movie?.yourRating || movie?.rating), 0) / ratedFilms
     : 0;
   const genreSet = new Set();
   const directorSet = new Set();
-  ratedMovies.forEach((movie) => {
+  taggedRatedMovies.forEach((movie) => {
     String(movie?.genres || '').split(',').map((item) => item.trim()).filter(Boolean).forEach((genre) => genreSet.add(genre.toLowerCase()));
     String(movie?.directors || movie?.director || '').split(',').map((item) => item.trim()).filter(Boolean).forEach((director) => directorSet.add(director.toLowerCase()));
   });
-  const taggedFilms = ratedMovies.filter((movie) => Array.isArray(movie?.cinematicLifeTags) && movie.cinematicLifeTags.length).length;
-  const rawAffinities = cinematicLifeReading?.affinities?.length ? cinematicLifeReading.affinities : getUserTagAffinity(ratedMovies);
+  const taggedFilms = taggedRatedMovies.filter((movie) => Array.isArray(movie?.cinematicLifeTags) && movie.cinematicLifeTags.length).length;
+  let tagMentions = 0;
+  const distinctTagKeys = new Set();
+  taggedRatedMovies.forEach((movie) => {
+    const tags = Array.isArray(movie?.cinematicLifeTags) ? movie.cinematicLifeTags : [];
+    tags.forEach((tag) => {
+      if (!tag?.tag || !tag?.tag_type) return;
+      tagMentions += 1;
+      distinctTagKeys.add(`${tag.tag_type}:${tag.tag}`);
+    });
+  });
+  const rawAffinities = getUserTagAffinity(taggedRatedMovies);
   const rewardedTags = getRewardedTags(rawAffinities);
   const rewardedKeys = new Set(rewardedTags.map((tag) => `${tag.tag_type}:${tag.tag}`));
   const negativeLiftTags = getNegativeLiftTags(rawAffinities, rewardedKeys);
@@ -1080,6 +1091,8 @@ const buildTastePersonalityReport = (movies = [], personalReading = null, cinema
     genres: genreSet.size,
     directors: directorSet.size,
     taggedFilms,
+    tagMentions,
+    distinctTags: distinctTagKeys.size,
     tagsAnalyzed: rawAffinities.length,
   };
   const archetype = getTasteArchetype(topSignals, rewardedTags, stats);
@@ -1093,7 +1106,7 @@ const buildTastePersonalityReport = (movies = [], personalReading = null, cinema
   const storyWorlds = getTagsByCategory(rewardedTags, 'setting').slice(0, 4);
   const emotionalTextures = getTagsByCategory(rewardedTags, ['tone_texture', 'emotional_moral_theme']).slice(0, 4);
   const characterPatterns = getTagsByCategory(rewardedTags, ['story_situation', 'social_context', 'social_world', 'emotional_moral_theme']).slice(0, 6);
-  const constellations = getTagConstellations(ratedMovies, userAverageRating);
+  const constellations = getTagConstellations(taggedRatedMovies, userAverageRating);
 
   return {
     stats,
@@ -1201,7 +1214,7 @@ const TastePersonalityReportView = ({ report }) => {
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Reading Confidence / Data Basis</p>
               <h3 className="mt-1 text-xl font-bold text-white">{report.readingConfidence}</h3>
               <p className="mt-1 text-sm text-slate-400">
-                Based on {report.stats.ratedFilms.toLocaleString()} rated films, {report.stats.genres} genres, and plot-derived tags from your movie history.
+                Based on {report.stats.ratedFilms.toLocaleString()} rated films, {report.stats.genres} genres, {report.stats.tagMentions.toLocaleString()} plot-tag mentions, and {report.stats.tagsAnalyzed} recurring tag signals.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:min-w-[560px]">
@@ -1210,7 +1223,7 @@ const TastePersonalityReportView = ({ report }) => {
                 ['Genres', report.stats.genres],
                 ['Directors', report.stats.directors],
                 ['Tagged films', report.stats.taggedFilms],
-                ['Tags analyzed', report.stats.tagsAnalyzed],
+                ['Tag mentions', report.stats.tagMentions],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
                   <p className="text-lg font-black text-white">{Number(value).toLocaleString()}</p>
