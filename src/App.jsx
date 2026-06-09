@@ -178,6 +178,91 @@ const fromShareableRows = (rows = []) => rows
     country: row?.country ?? row?.c ?? '',
   }))
   .filter((row) => row?.title);
+
+const parseJsonValue = (value) => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed || (!trimmed.startsWith('{') && !trimmed.startsWith('['))) return value;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+};
+
+const normalizeObjectValue = (value) => {
+  const parsed = parseJsonValue(value);
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+};
+
+const normalizeArrayValue = (value) => {
+  const parsed = parseJsonValue(value);
+  return Array.isArray(parsed) ? parsed : [];
+};
+
+const memberDatasetCandidates = [
+  'dataset',
+  'rows',
+  'data',
+  'ratings',
+  'films',
+  'shareableRows',
+  'shareable_rows',
+  'dashboardData',
+  'dashboard_data',
+  'dashboardRows',
+  'dashboard_rows',
+  'fullDashboardData',
+  'full_dashboard_data',
+  'memberDataset',
+  'member_dataset',
+  'imdbRows',
+  'imdb_rows',
+];
+
+const extractMemberDataset = (...sources) => {
+  const queue = [...sources];
+  const seen = new Set();
+
+  while (queue.length) {
+    const source = normalizeObjectValue(queue.shift());
+    if (!Object.keys(source).length || seen.has(source)) continue;
+    seen.add(source);
+
+    for (const key of memberDatasetCandidates) {
+      const rows = normalizeArrayValue(source?.[key]);
+      if (rows.length) return rows;
+    }
+
+    if (source?.snapshot) queue.push(source.snapshot);
+  }
+
+  return [];
+};
+
+const getMemberAboutMe = (...sources) => {
+  for (const source of sources) {
+    const safe = normalizeObjectValue(source);
+    const value = safe?.aboutMe ?? safe?.about_me;
+    if (value) return String(value);
+  }
+  return '';
+};
+
+const getMemberProfileLinks = (...sources) => {
+  for (const source of sources) {
+    const safe = normalizeObjectValue(source);
+    const links = normalizeObjectValue(safe?.profileLinks ?? safe?.profile_links);
+    if (Object.keys(links).length) {
+      return {
+        instagram: links.instagram || '',
+        x: links.x || links.twitter || '',
+        facebook: links.facebook || '',
+      };
+    }
+  }
+  return { instagram: '', x: '', facebook: '' };
+};
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase =
@@ -202,7 +287,7 @@ const isSupabaseNetworkError = (error) => {
   );
 };
 const toPublicMemberSnapshot = (snapshot = {}) => {
-  const safe = (snapshot && typeof snapshot === 'object') ? snapshot : {};
+  const safe = normalizeObjectValue(snapshot);
   const topGenres = Array.isArray(safe?.topGenres) ? safe.topGenres.slice(0, 8) : [];
   const eraPreference = Array.isArray(safe?.eraPreference) ? safe.eraPreference.slice(0, 8) : [];
   const cinemaMind = Array.isArray(safe?.cinemaMind) ? safe.cinemaMind.slice(0, 10) : [];
@@ -252,13 +337,7 @@ const toPublicMemberSnapshot = (snapshot = {}) => {
       : [],
     // Keep per-user dataset in snapshot so the same account can restore on another browser/device.
     // Member directory list queries project only lightweight fields, so this won't bloat list payloads.
-    dataset: Array.isArray(safe?.dataset)
-      ? safe.dataset
-      : Array.isArray(safe?.rows)
-        ? safe.rows
-        : Array.isArray(safe?.data)
-          ? safe.data
-          : [],
+    dataset: extractMemberDataset(safe),
     updatedAt: safe?.updatedAt || new Date().toISOString(),
   };
 };
@@ -1638,13 +1717,7 @@ const [user, setUser] = useState(null);
           .maybeSingle();
 
         if (!cancelled && !error && row?.snapshot) {
-          const remoteRows = Array.isArray(row.snapshot?.dataset)
-            ? row.snapshot.dataset
-            : Array.isArray(row.snapshot?.rows)
-              ? row.snapshot.rows
-              : Array.isArray(row.snapshot?.data)
-                ? row.snapshot.data
-                : [];
+          const remoteRows = extractMemberDataset(row.snapshot);
 
           if (remoteRows.length) {
             const normalized = fromShareableRows(remoteRows);
@@ -5893,8 +5966,8 @@ const [user, setUser] = useState(null);
           return cached
             .map((row, idx) => {
               const userId = row?.userId || row?.user_id || `local_${idx}`;
-              let snapshot = row?.snapshot || null;
-              if (!snapshot || (!Array.isArray(snapshot?.dataset) && !Array.isArray(snapshot?.rows) && !Array.isArray(snapshot?.data))) {
+              let snapshot = normalizeObjectValue(row?.snapshot);
+              if (!Object.keys(snapshot).length || !extractMemberDataset(snapshot).length) {
                 try {
                   const perUserRaw = localStorage.getItem(memberDatasetKey(userId));
                   const perUserParsed = perUserRaw ? JSON.parse(perUserRaw) : null;
@@ -6028,11 +6101,16 @@ const [user, setUser] = useState(null);
         }
 
         const normalized = (rows || []).map((row, idx) => {
+          const rowSnapshot = normalizeObjectValue(row?.snapshot);
+          const rowStats = normalizeObjectValue(row?.stats);
+          const rowDataset = extractMemberDataset(row, rowSnapshot);
           const lightweightSnapshot = {
-            stats: row?.stats || null,
-            followings: Array.isArray(row?.followings) ? row.followings : [],
-            aboutMe: row?.aboutMe || '',
-            profileLinks: row?.profileLinks || { instagram: '', x: '', facebook: '' },
+            ...rowSnapshot,
+            stats: Object.keys(rowStats).length ? rowStats : rowSnapshot?.stats || null,
+            followings: Array.isArray(row?.followings) ? row.followings : (Array.isArray(rowSnapshot?.followings) ? rowSnapshot.followings : []),
+            aboutMe: getMemberAboutMe(row, rowSnapshot),
+            profileLinks: getMemberProfileLinks(row, rowSnapshot),
+            dataset: rowDataset,
           };
 
           const userId = row?.user_id || row?.id || `member_${idx}`;
@@ -6315,7 +6393,7 @@ const [user, setUser] = useState(null);
               avatarUrl: row?.avatar_url || '',
               joinedAt: row?.created_at || null,
               updatedAt: row?.updated_at || null,
-              snapshot: row?.snapshot || null,
+              snapshot: normalizeObjectValue(row?.snapshot),
               isCurrentUser: String(userId) === String(user?.id || ''),
             };
           })
@@ -6368,14 +6446,7 @@ const [user, setUser] = useState(null);
     const statsTotal = Number(member?.snapshot?.stats?.totalFilms || member?.stats?.totalFilms || 0);
     if (statsTotal > 0) return true;
 
-    const snapshotRows = Array.isArray(member?.snapshot?.dataset)
-      ? member.snapshot.dataset
-      : Array.isArray(member?.snapshot?.rows)
-      ? member.snapshot.rows
-      : Array.isArray(member?.snapshot?.data)
-      ? member.snapshot.data
-      : null;
-    if (Array.isArray(snapshotRows) && snapshotRows.length > 0) return true;
+    if (extractMemberDataset(member, member?.snapshot).length > 0) return true;
 
     const userId = String(member?.userId || '');
     if (!userId) return false;
@@ -6422,15 +6493,9 @@ const [user, setUser] = useState(null);
 
       let resolvedStats = member?.snapshot?.stats || null;
 
-      const snapshotRows = Array.isArray(member?.snapshot?.dataset)
-        ? member.snapshot.dataset
-        : Array.isArray(member?.snapshot?.rows)
-        ? member.snapshot.rows
-        : Array.isArray(member?.snapshot?.data)
-        ? member.snapshot.data
-        : null;
+      const snapshotRows = extractMemberDataset(member, member?.snapshot);
 
-      if (Array.isArray(snapshotRows) && snapshotRows.length) {
+      if (snapshotRows.length) {
         resolvedStats = deriveMemberStatsFromRows(fromShareableRows(snapshotRows));
       } else {
         try {
@@ -6506,11 +6571,13 @@ const [user, setUser] = useState(null);
         const { data: profileResult, error } = await fetchMemberProfile(memberUserId, { publicOnly: true });
         if (error) return { snapshot: null, updatedAt: null, error };
         const profileRow = Array.isArray(profileResult) ? profileResult[0] : profileResult;
+        const profileSnapshot = normalizeObjectValue(profileRow?.snapshot);
         const snapshot = {
-          stats: profileRow?.stats || null,
-          aboutMe: profileRow?.aboutMe || '',
-          profileLinks: profileRow?.profileLinks || { instagram: '', x: '', facebook: '' },
-          dataset: Array.isArray(profileRow?.dataset) ? profileRow.dataset : [],
+          ...profileSnapshot,
+          stats: profileRow?.stats || profileSnapshot?.stats || null,
+          aboutMe: getMemberAboutMe(profileRow, profileSnapshot),
+          profileLinks: getMemberProfileLinks(profileRow, profileSnapshot),
+          dataset: extractMemberDataset(profileRow, profileSnapshot),
         };
         return { snapshot, updatedAt: profileRow?.updated_at || null, error: null };
       }
@@ -6527,14 +6594,7 @@ const [user, setUser] = useState(null);
       if (error) {
         return { snapshot: null, updatedAt: null, error };
       }
-      let snapshot = remoteRow?.snapshot || null;
-      if (typeof snapshot === 'string') {
-        try {
-          snapshot = JSON.parse(snapshot);
-        } catch {
-          snapshot = null;
-        }
-      }
+      const snapshot = normalizeObjectValue(remoteRow?.snapshot);
       return { snapshot, updatedAt: remoteRow?.updated_at || null, error: null };
     } finally {
       console.timeEnd('member_profiles:snapshot');
@@ -6550,6 +6610,7 @@ const [user, setUser] = useState(null);
         const { data: profileResult } = await fetchMemberProfile(member.userId, { publicOnly: publicCommunityMode && !user });
         const profileRow = Array.isArray(profileResult) ? profileResult[0] : profileResult;
         if (profileRow) {
+          const profileSnapshot = normalizeObjectValue(profileRow?.snapshot);
           memberRecord = {
             ...memberRecord,
             name: profileRow?.display_name || memberRecord?.name,
@@ -6558,10 +6619,11 @@ const [user, setUser] = useState(null);
             updatedAt: profileRow?.updated_at || memberRecord?.updatedAt,
             snapshot: {
               ...(memberRecord?.snapshot || {}),
-              stats: profileRow?.stats || memberRecord?.snapshot?.stats || null,
-              aboutMe: profileRow?.aboutMe || memberRecord?.snapshot?.aboutMe || '',
-              profileLinks: profileRow?.profileLinks || memberRecord?.snapshot?.profileLinks || { instagram: '', x: '', facebook: '' },
-              dataset: profileRow?.dataset || memberRecord?.snapshot?.dataset || [],
+              ...profileSnapshot,
+              stats: profileRow?.stats || profileSnapshot?.stats || memberRecord?.snapshot?.stats || null,
+              aboutMe: getMemberAboutMe(profileRow, profileSnapshot, memberRecord?.snapshot),
+              profileLinks: getMemberProfileLinks(profileRow, profileSnapshot, memberRecord?.snapshot),
+              dataset: extractMemberDataset(profileRow, profileSnapshot, memberRecord?.snapshot),
             },
           };
         }
@@ -6570,7 +6632,7 @@ const [user, setUser] = useState(null);
       }
     }
 
-    const snapshot = memberRecord?.snapshot || {};
+    const snapshot = normalizeObjectValue(memberRecord?.snapshot);
     let resolvedSnapshot = snapshot;
     let sharedDatasetRaw = [];
 
@@ -6589,13 +6651,7 @@ const [user, setUser] = useState(null);
         }
 
         if (!sharedDatasetRaw.length) {
-          sharedDatasetRaw = Array.isArray(snapshot?.dataset)
-            ? snapshot.dataset
-            : Array.isArray(snapshot?.rows)
-            ? snapshot.rows
-            : Array.isArray(snapshot?.data)
-            ? snapshot.data
-            : [];
+          sharedDatasetRaw = extractMemberDataset(snapshot);
         }
 
         if (!sharedDatasetRaw.length) {
@@ -6603,10 +6659,7 @@ const [user, setUser] = useState(null);
           const cachedMember = Array.isArray(cachedMembers)
             ? cachedMembers.find((m) => String(m?.userId || m?.user_id || '') === String(memberRecord?.userId || ''))
             : null;
-          const cachedSnapshot = cachedMember?.snapshot || {};
-          if (Array.isArray(cachedSnapshot?.dataset)) sharedDatasetRaw = cachedSnapshot.dataset;
-          else if (Array.isArray(cachedSnapshot?.rows)) sharedDatasetRaw = cachedSnapshot.rows;
-          else if (Array.isArray(cachedSnapshot?.data)) sharedDatasetRaw = cachedSnapshot.data;
+          sharedDatasetRaw = extractMemberDataset(cachedMember, cachedMember?.snapshot);
         }
       } catch {
         // ignore local cache parse errors
@@ -6619,13 +6672,7 @@ const [user, setUser] = useState(null);
 
         if (!error && remoteSnapshot) {
 
-          const remoteDataset = Array.isArray(remoteSnapshot?.dataset)
-            ? remoteSnapshot.dataset
-            : Array.isArray(remoteSnapshot?.rows)
-            ? remoteSnapshot.rows
-            : Array.isArray(remoteSnapshot?.data)
-            ? remoteSnapshot.data
-            : [];
+          const remoteDataset = extractMemberDataset(remoteSnapshot);
 
           if (remoteDataset.length) {
             sharedDatasetRaw = remoteDataset;
