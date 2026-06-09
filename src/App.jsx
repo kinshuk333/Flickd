@@ -411,6 +411,439 @@ const ratingToWeight = (rating) => {
   if (numeric >= 6) return 1;
   return 0.5;
 };
+
+const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, Number(value) || 0));
+const safeNumber = (value, fallback = 0) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+const normalize = (value, min, max) => {
+  const numeric = safeNumber(value, min);
+  if (max === min) return 0;
+  return clamp(((numeric - min) / (max - min)) * 100);
+};
+const inverseScore = (value) => clamp(100 - safeNumber(value));
+const weightedAverage = (items = []) => {
+  let total = 0;
+  let weight = 0;
+  items.forEach((item) => {
+    const value = Number(item?.value);
+    const itemWeight = Number(item?.weight);
+    if (!Number.isFinite(value) || !Number.isFinite(itemWeight) || itemWeight <= 0) return;
+    total += clamp(value) * itemWeight;
+    weight += itemWeight;
+  });
+  return weight ? Math.round(clamp(total / weight)) : 0;
+};
+const scoreToStrength = (score) => {
+  const value = safeNumber(score);
+  if (value >= 80) return 'Very Strong';
+  if (value >= 65) return 'Strong';
+  if (value >= 45) return 'Moderate';
+  if (value >= 25) return 'Emerging';
+  return 'Low Signal';
+};
+
+const PERSONAL_SIGNAL_COPY = {
+  emotionalDepth: 'You seem comfortable with experiences that stay with difficult feelings instead of resolving them too quickly.',
+  ambiguityTolerance: 'You may enjoy meaning that has to be interpreted rather than explained.',
+  noveltySeeking: 'Your pattern suggests curiosity toward unfamiliar worlds, perspectives, and emotional tones.',
+  humanComplexity: 'You appear interested in why people make flawed choices, rather than judging them too quickly.',
+  meaningOrientation: 'You may look for experiences that leave behind a question, mood, wound, truth, or unresolved feeling.',
+  aestheticSensitivity: 'You seem responsive to things that are not always verbal: silence, rhythm, light, distance, and atmosphere.',
+  comfortWithDarkness: 'You may not need stories to protect you from discomfort when the discomfort feels honest.',
+  socialObservation: 'You may notice how people behave under pressure, especially when power, desire, fear, or status is involved.',
+};
+
+const PERSONAL_SIGNAL_META = {
+  emotionalDepth: {
+    label: 'Emotional Depth',
+    compass: 'Emotional honesty over comfort',
+    strength: ['Emotional patience', 'You give experiences time to reveal what people are really carrying.'],
+    blindSpot: ['Overvaluing seriousness', 'You may sometimes read seriousness as depth, which can make lighter experiences feel less meaningful than they are.'],
+  },
+  ambiguityTolerance: {
+    label: 'Ambiguity Tolerance',
+    compass: 'Interpretation over certainty',
+    strength: ['Interpretive thinking', 'You may enjoy reading between the lines rather than being given a single clear answer.'],
+    blindSpot: ['Resistance to simplicity', 'Clear emotions or direct resolutions may feel less powerful to you, even when they are emotionally honest.'],
+  },
+  noveltySeeking: {
+    label: 'Novelty Seeking',
+    compass: 'Unfamiliarity over repetition',
+    strength: ['Curiosity across difference', 'You appear open to unfamiliar perspectives, cultures, moods, and ways of seeing.'],
+    blindSpot: ['Restless searching', 'Your curiosity may make it harder for familiar or simple pleasures to hold your attention for long.'],
+  },
+  humanComplexity: {
+    label: 'Human Complexity',
+    compass: 'Contradiction over simple judgment',
+    strength: ['Moral sensitivity', 'You may be attentive to consequence, responsibility, power, and the grey areas in human choices.'],
+    blindSpot: ['Distance through analysis', 'You may sometimes observe complexity so closely that simple emotional participation feels less interesting.'],
+  },
+  meaningOrientation: {
+    label: 'Meaning Orientation',
+    compass: 'Meaning over distraction',
+    strength: ['Reflective seriousness', 'You may naturally look for depth, residue, and emotional weight in what you spend time with.'],
+    blindSpot: ['Expecting residue', 'You may expect experiences to leave a deep after-effect, which can make lighter moments feel disposable.'],
+  },
+  aestheticSensitivity: {
+    label: 'Aesthetic Sensitivity',
+    compass: 'Atmosphere over explanation',
+    strength: ['Atmospheric intelligence', 'You seem sensitive to mood, silence, pacing, visual emotion, and the feeling of a space.'],
+    blindSpot: ['Style over immediacy', 'You may sometimes reward mood and form more than direct emotional accessibility.'],
+  },
+  comfortWithDarkness: {
+    label: 'Comfort With Darkness',
+    compass: 'Truth over emotional safety',
+    strength: ['Openness to discomfort', 'You are willing to sit with difficult material when it feels truthful.'],
+    blindSpot: ['Melancholy pull', 'You may be drawn toward sadness, ambiguity, or moral heaviness because those textures feel more truthful.'],
+  },
+  socialObservation: {
+    label: 'Social Observation',
+    compass: 'Behaviour over surface impressions',
+    strength: ['Pattern sensitivity', 'You seem to notice recurring emotional and behavioural patterns across different kinds of stories.'],
+    blindSpot: ['Over-reading behaviour', 'You may sometimes read small behaviours as meaningful before the full context has arrived.'],
+  },
+};
+
+const getPersonalitySignalsFromTaste = (movies = [], identityStats = {}) => {
+  const ratedMovies = Array.isArray(movies)
+    ? movies.filter((movie) => safeNumber(movie?.yourRating || movie?.rating) > 0)
+    : [];
+  const totalRated = ratedMovies.length;
+
+  const genreStats = {};
+  const directorSet = new Set();
+  const countrySet = new Set();
+  const decadeSet = new Set();
+  let totalRating = 0;
+  let metadataRows = 0;
+  let mainstreamCount = 0;
+  const spectrumCounts = {
+    dark: 0, light: 0, slow: 0, fast: 0, surreal: 0, realistic: 0, visual: 0, dialogue: 0, bleak: 0, optimistic: 0,
+  };
+
+  const genreList = (movie) => String(movie?.genres || '')
+    .split(',')
+    .map((genre) => genre.trim())
+    .filter(Boolean);
+
+  ratedMovies.forEach((movie) => {
+    const rating = safeNumber(movie?.yourRating || movie?.rating);
+    totalRating += rating;
+    const genres = genreList(movie);
+    if (genres.length || String(movie?.directors || movie?.director || '').trim() || String(movie?.country || '').trim()) {
+      metadataRows += 1;
+    }
+    genres.forEach((genre) => {
+      const key = genre.toLowerCase();
+      if (!genreStats[key]) genreStats[key] = { label: genre, count: 0, ratingSum: 0 };
+      genreStats[key].count += 1;
+      genreStats[key].ratingSum += rating;
+    });
+    String(movie?.directors || movie?.director || '')
+      .split(',')
+      .map((director) => director.trim())
+      .filter(Boolean)
+      .forEach((director) => directorSet.add(director.toLowerCase()));
+    String(movie?.country || '')
+      .split(',')
+      .map((country) => country.trim())
+      .filter(Boolean)
+      .forEach((country) => countrySet.add(country.toLowerCase()));
+    const year = safeNumber(movie?.year);
+    if (year >= 1900) decadeSet.add(Math.floor(year / 10) * 10);
+    const votes = safeNumber(movie?.numVotes || String(movie?.imdbVotes || '').replace(/,/g, ''));
+    if (votes >= 50000) mainstreamCount += 1;
+
+    const lowerGenres = genres.map((genre) => genre.toLowerCase()).join(' ');
+    ['horror', 'thriller', 'crime', 'drama', 'war', 'mystery'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.dark += 1; });
+    ['comedy', 'animation', 'family', 'musical', 'romance', 'adventure'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.light += 1; });
+    ['drama', 'biography', 'history', 'documentary'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.slow += 1; });
+    ['action', 'thriller', 'horror', 'comedy'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.fast += 1; });
+    ['fantasy', 'sci-fi', 'animation', 'horror', 'mystery'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.surreal += 1; });
+    ['documentary', 'drama', 'biography', 'history', 'war', 'sport'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.realistic += 1; });
+    ['animation', 'action', 'sci-fi', 'fantasy', 'music'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.visual += 1; });
+    ['drama', 'romance', 'comedy', 'biography'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.dialogue += 1; });
+    ['horror', 'thriller', 'drama', 'war', 'crime'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.bleak += 1; });
+    ['comedy', 'romance', 'animation', 'adventure', 'family'].forEach((g) => { if (lowerGenres.includes(g)) spectrumCounts.optimistic += 1; });
+    const runtime = safeNumber(movie?.runtime);
+    if (runtime > 150) spectrumCounts.slow += 0.5;
+    if (runtime < 90 && runtime > 0) spectrumCounts.fast += 0.5;
+  });
+
+  const avgRating = totalRated ? totalRating / totalRated : 0;
+  const spectrum = (positive, negative) => totalRated ? clamp(50 + ((positive - negative) / totalRated) * 50) : 50;
+  const tasteSpectrum = {
+    dark: spectrum(spectrumCounts.dark, spectrumCounts.light),
+    slowBurn: spectrum(spectrumCounts.slow, spectrumCounts.fast),
+    mainstream: totalRated ? Math.round((mainstreamCount / totalRated) * 100) : 50,
+    surreal: spectrum(spectrumCounts.surreal, spectrumCounts.realistic),
+    realistic: spectrum(spectrumCounts.realistic, spectrumCounts.surreal),
+    visual: spectrum(spectrumCounts.visual, spectrumCounts.dialogue),
+    optimistic: spectrum(spectrumCounts.optimistic, spectrumCounts.bleak),
+    bleak: spectrum(spectrumCounts.bleak, spectrumCounts.optimistic),
+  };
+
+  const genreAffinity = (genreNames = []) => {
+    const matches = genreNames
+      .map((name) => genreStats[String(name).toLowerCase()])
+      .filter(Boolean);
+    if (!matches.length) return null;
+    const frequency = matches.reduce((sum, item) => sum + item.count, 0) / Math.max(totalRated, 1);
+    const weightedLift = matches.reduce((sum, item) => sum + (((item.ratingSum / item.count) - avgRating) * item.count), 0)
+      / Math.max(matches.reduce((sum, item) => sum + item.count, 0), 1);
+    return clamp(45 + (weightedLift / 1.5) * 45 + Math.min(25, frequency * 100));
+  };
+  const mindValue = (name) => {
+    const found = (identityStats?.cinemaMindProfile?.archetypes || []).find((item) => item?.name === name);
+    return found ? safeNumber(found.value) : null;
+  };
+  const personaTagScore = (tag) => (identityStats?.personality?.traits || []).some((trait) =>
+    String(trait).toLowerCase() === String(tag).toLowerCase()
+  ) ? 85 : null;
+  const addEvidence = (items) => items.filter(Boolean).slice(0, 4);
+  const high = (value, text, threshold = 58) => (Number.isFinite(Number(value)) && safeNumber(value) >= threshold ? text : null);
+
+  const patterns = identityStats?.patterns || {};
+  const ratingConsistency = safeNumber(patterns.ratingConsistency, null);
+  const obscurityIndex = safeNumber(patterns.nicheScore ?? identityStats?.personality?.nichePercentage, null);
+  const genreBreadth = normalize(patterns.genreBreadth || Object.keys(genreStats).length, 4, 30);
+  const eraSpreadScore = normalize(decadeSet.size, 1, 9);
+
+  const emotionalDepthScore = weightedAverage([
+    { value: genreAffinity(['Drama', 'Romance', 'Biography', 'Family']), weight: 0.25 },
+    { value: mindValue('Emotional Viewers'), weight: 0.20 },
+    { value: mindValue('Character Explorers'), weight: 0.15 },
+    { value: tasteSpectrum.slowBurn, weight: 0.15 },
+    { value: tasteSpectrum.dark, weight: 0.10 },
+    { value: genreAffinity(['Coming-of-age', 'Slice of Life']), weight: 0.10 },
+    { value: tasteSpectrum.slowBurn, weight: 0.05 },
+  ]);
+  const noveltySeekingScore = weightedAverage([
+    { value: patterns.explorationScore, weight: 0.30 },
+    { value: genreBreadth, weight: 0.20 },
+    { value: normalize(directorSet.size, 5, 100), weight: 0.15 },
+    { value: normalize(countrySet.size, 1, 25), weight: 0.10 },
+    { value: eraSpreadScore, weight: 0.10 },
+    { value: inverseScore(patterns.loyaltyScore), weight: 0.10 },
+    { value: obscurityIndex, weight: 0.05 },
+  ]);
+  const aestheticSensitivityScore = weightedAverage([
+    { value: mindValue('Visual Stylists'), weight: 0.25 },
+    { value: tasteSpectrum.visual, weight: 0.20 },
+    { value: personaTagScore('Visual Obsessive'), weight: 0.15 },
+    { value: personaTagScore('Auteur Driven'), weight: 0.10 },
+    { value: tasteSpectrum.slowBurn, weight: 0.10 },
+    { value: genreAffinity(['Animation', 'Fantasy', 'Sci-Fi', 'Musical']), weight: 0.10 },
+    { value: obscurityIndex, weight: 0.10 },
+  ]);
+  const humanComplexityScore = weightedAverage([
+    { value: genreAffinity(['Drama', 'Crime', 'Biography', 'Thriller', 'War', 'Political']), weight: 0.30 },
+    { value: mindValue('Character Explorers'), weight: 0.20 },
+    { value: mindValue('Reality Explorers'), weight: 0.15 },
+    { value: tasteSpectrum.realistic, weight: 0.10 },
+    { value: tasteSpectrum.dark, weight: 0.10 },
+    { value: genreAffinity(['Psychological', 'Mystery', 'Noir']), weight: 0.10 },
+    { value: ratingConsistency, weight: 0.05 },
+  ]);
+  const ambiguityToleranceScore = weightedAverage([
+    { value: tasteSpectrum.slowBurn, weight: 0.20 },
+    { value: inverseScore(tasteSpectrum.mainstream), weight: 0.15 },
+    { value: tasteSpectrum.surreal, weight: 0.15 },
+    { value: mindValue('Meaning Seekers'), weight: 0.20 },
+    { value: personaTagScore('Auteur Driven'), weight: 0.10 },
+    { value: genreAffinity(['Mystery', 'Psychological', 'Experimental', 'Noir']), weight: 0.15 },
+    { value: obscurityIndex, weight: 0.05 },
+  ]);
+  const meaningOrientationScore = weightedAverage([
+    { value: mindValue('Meaning Seekers'), weight: 0.25 },
+    { value: tasteSpectrum.slowBurn, weight: 0.15 },
+    { value: personaTagScore('Auteur Driven'), weight: 0.10 },
+    { value: eraSpreadScore, weight: 0.10 },
+    { value: genreAffinity(['Drama', 'Biography', 'History', 'War']), weight: 0.20 },
+    { value: inverseScore(genreAffinity(['Action', 'Comedy']) ?? 50), weight: 0.05 },
+    { value: ambiguityToleranceScore, weight: 0.15 },
+  ]);
+  const comfortWithDarknessScore = weightedAverage([
+    { value: tasteSpectrum.dark, weight: 0.20 },
+    { value: tasteSpectrum.bleak, weight: 0.20 },
+    { value: genreAffinity(['Crime', 'Thriller', 'War', 'Horror']), weight: 0.25 },
+    { value: genreAffinity(['Drama', 'Psychological', 'Noir']), weight: 0.10 },
+    { value: inverseScore(tasteSpectrum.optimistic), weight: 0.10 },
+    { value: ambiguityToleranceScore, weight: 0.10 },
+    { value: mindValue('Thrill Seekers'), weight: 0.05 },
+  ]);
+  const socialObservationScore = weightedAverage([
+    { value: genreAffinity(['Drama', 'Crime', 'Political', 'Biography', 'Thriller']), weight: 0.25 },
+    { value: mindValue('Reality Explorers'), weight: 0.20 },
+    { value: mindValue('Character Explorers'), weight: 0.15 },
+    { value: humanComplexityScore, weight: 0.15 },
+    { value: tasteSpectrum.realistic, weight: 0.10 },
+    { value: genreAffinity(['History', 'War', 'Family']), weight: 0.10 },
+    { value: ratingConsistency, weight: 0.05 },
+  ]);
+
+  const scores = {
+    emotionalDepth: emotionalDepthScore,
+    ambiguityTolerance: ambiguityToleranceScore,
+    noveltySeeking: noveltySeekingScore,
+    humanComplexity: humanComplexityScore,
+    meaningOrientation: meaningOrientationScore,
+    aestheticSensitivity: aestheticSensitivityScore,
+    comfortWithDarkness: comfortWithDarknessScore,
+    socialObservation: socialObservationScore,
+  };
+  const evidenceMap = {
+    emotionalDepth: addEvidence([high(genreAffinity(['Drama']), 'Drama affinity'), high(tasteSpectrum.slowBurn, 'Slow-burn leaning'), high(tasteSpectrum.dark, 'Darker emotional tone'), high(mindValue('Character Explorers'), 'Character-focused ratings')]),
+    ambiguityTolerance: addEvidence([high(tasteSpectrum.slowBurn, 'Slow-burn leaning'), high(inverseScore(tasteSpectrum.mainstream), 'Niche preference'), high(mindValue('Meaning Seekers'), 'Meaning Seeker score'), high(personaTagScore('Auteur Driven'), 'Auteur-driven tag')]),
+    noveltySeeking: addEvidence([high(patterns.explorationScore, 'High exploration'), high(genreBreadth, `${Object.keys(genreStats).length} genres explored`, 45), high(directorSet.size, `${directorSet.size} directors`, 20), high(countrySet.size, `${countrySet.size} countries`, 5)]),
+    humanComplexity: addEvidence([high(genreAffinity(['Drama', 'Crime', 'Thriller']), 'Moral tension genres'), high(mindValue('Character Explorers'), 'Character Explorer score'), high(mindValue('Reality Explorers'), 'Reality Explorer score'), high(tasteSpectrum.realistic, 'Realistic storytelling preference')]),
+    meaningOrientation: addEvidence([high(mindValue('Meaning Seekers'), 'High Meaning Seeker score'), high(tasteSpectrum.slowBurn, 'Slow-burn leaning'), high(eraSpreadScore, 'Era spread'), high(genreAffinity(['Drama', 'Biography', 'History']), 'Reflective genres')]),
+    aestheticSensitivity: addEvidence([high(mindValue('Visual Stylists'), 'Visual Stylists score'), high(tasteSpectrum.visual, 'Visual preference'), high(personaTagScore('Visual Obsessive'), 'Visual Obsessive tag'), high(tasteSpectrum.slowBurn, 'Atmospheric pacing')]),
+    comfortWithDarkness: addEvidence([high(tasteSpectrum.dark, 'Dark leaning'), high(tasteSpectrum.bleak, 'Bleak tone'), high(genreAffinity(['Crime', 'Thriller', 'War', 'Horror']), 'Difficult genre affinity'), high(inverseScore(tasteSpectrum.optimistic), 'Low optimism signal')]),
+    socialObservation: addEvidence([high(genreAffinity(['Drama', 'Crime', 'Biography', 'Thriller']), 'Behaviour-focused genres'), high(mindValue('Reality Explorers'), 'Reality Explorer score'), high(tasteSpectrum.realistic, 'Realistic preference'), high(humanComplexityScore, 'Human Complexity signal')]),
+  };
+  const signals = Object.keys(PERSONAL_SIGNAL_META).map((key) => ({
+    key,
+    label: PERSONAL_SIGNAL_META[key].label,
+    score: scores[key],
+    strength: scoreToStrength(scores[key]),
+    copy: PERSONAL_SIGNAL_COPY[key],
+    evidence: evidenceMap[key],
+  }));
+  const topSignals = [...signals].sort((a, b) => b.score - a.score).slice(0, 4);
+  const topKeys = topSignals.map((signal) => signal.key);
+  const has = (key) => topKeys.includes(key);
+  const topNames = topSignals.map((signal) => signal.label);
+
+  let openingReading = 'Your pattern suggests a balanced viewer with several overlapping tendencies. Rather than being defined by one strong instinct, your taste appears to move between emotion, curiosity, meaning, and atmosphere.\n\nYour movie history looks less like a fixed personality type and more like a set of viewing instincts that reveal what kinds of experience you tend to reward.';
+  if (has('emotionalDepth') && has('humanComplexity') && has('ambiguityTolerance')) {
+    openingReading = 'Your ratings suggest someone who may be emotionally observant and comfortable with complexity. You seem drawn to people and situations that cannot be understood too quickly, especially when emotion, pressure, memory, or contradiction is involved.\n\nYour taste does not seem built around escape alone. It appears to be a way of studying people, silence, conflict, beauty, and the emotional logic behind human choices.';
+  } else if (has('noveltySeeking') && has('aestheticSensitivity') && has('meaningOrientation')) {
+    openingReading = 'Your pattern suggests curiosity, sensitivity, and a search for meaning. You may be drawn to unfamiliar worlds not just for novelty, but because they give you new ways to feel, notice, and interpret experience.\n\nThe films you reward seem to offer texture as much as plot: a mood, a rhythm, a visual temperature, or a question that keeps working after the story ends.';
+  } else if (has('comfortWithDarkness') && has('meaningOrientation') && has('socialObservation')) {
+    openingReading = 'Your taste suggests that you may not need experiences to protect you from discomfort. You seem interested in what difficult situations reveal about people, power, fear, longing, and consequence.\n\nThe pattern points toward a viewer who may value honesty over reassurance, especially when darkness creates emotional or moral clarity.';
+  }
+
+  const innerPattern = `Your strongest signals are ${topNames.slice(0, 3).join(', ')}${topNames[3] ? `, and ${topNames[3]}` : ''}.\n\nThis suggests a viewer who may process experience through ${has('aestheticSensitivity') ? 'atmosphere, ' : ''}${has('socialObservation') ? 'observation, ' : ''}${has('emotionalDepth') ? 'emotional texture, ' : ''}${has('noveltySeeking') ? 'curiosity, ' : ''}and meaning. You seem drawn to patterns that unfold gradually rather than announcing themselves immediately. Your taste appears less interested in quick certainty and more interested in what remains after a story, image, choice, or silence has had time to settle.`;
+
+  const processCards = [
+    {
+      title: 'When something works for you',
+      copy: has('aestheticSensitivity')
+        ? 'It gives you atmosphere, emotional texture, rhythm, and enough silence for meaning to emerge.'
+        : 'It gives you complex people, emotional weight, and a sense that something deeper is moving underneath the plot.',
+    },
+    {
+      title: 'When something loses you',
+      copy: has('ambiguityTolerance')
+        ? 'It may feel too obvious, too clean, too emotionally thin, or too eager to explain itself.'
+        : 'It may feel careless with emotion, overly familiar, or disconnected from the human stakes underneath the story.',
+    },
+    {
+      title: 'What you notice first',
+      copy: has('socialObservation')
+        ? 'Behaviour, moral pressure, status shifts, hidden motives, and what people reveal when they are under stress.'
+        : 'Mood, visual atmosphere, emotional temperature, and the feeling behind people\'s choices.',
+    },
+    {
+      title: 'What stays with you after',
+      copy: has('meaningOrientation')
+        ? 'Not just the event, but a residue - a question, mood, unresolved choice, or hidden wound.'
+        : 'A feeling, image, scene, silence, or contradiction that keeps returning after the credits.',
+    },
+  ];
+
+  const strengths = topSignals.map((signal) => {
+    const [title, copy] = PERSONAL_SIGNAL_META[signal.key].strength;
+    return { title, copy };
+  }).slice(0, 5);
+  const blindSpots = topSignals.map((signal) => {
+    const [title, copy] = PERSONAL_SIGNAL_META[signal.key].blindSpot;
+    return { title, copy };
+  }).slice(0, 5);
+  const highestKey = topSignals[0]?.key;
+  const outsideCinema = [
+    {
+      title: 'In conversations',
+      copy: highestKey === 'noveltySeeking'
+        ? 'You may enjoy conversations that open unfamiliar perspectives, strange connections, or unexpected ways of seeing.'
+        : highestKey === 'socialObservation'
+          ? 'You may notice what people avoid saying, how power shifts, and how emotion moves beneath the surface.'
+          : 'You may prefer conversations that move beyond surface updates and into motives, memories, contradictions, and emotional truth.',
+    },
+    {
+      title: 'In people',
+      copy: highestKey === 'noveltySeeking'
+        ? 'You may be drawn to people who expand your world rather than simply mirror it.'
+        : highestKey === 'aestheticSensitivity'
+          ? 'You may notice subtlety in people - tone, restraint, timing, pauses, and atmosphere.'
+          : 'You may be interested in people who feel layered, self-aware, difficult to fully read, or shaped by strong inner histories.',
+    },
+    {
+      title: 'In art and music',
+      copy: highestKey === 'comfortWithDarkness'
+        ? 'You may respond to work that does not hide discomfort, especially when it transforms heaviness into honesty.'
+        : highestKey === 'meaningOrientation'
+          ? 'You may look for work that leaves a residue - a question, mood, or idea that follows you afterward.'
+          : 'You may be drawn to atmosphere, texture, melancholy, restraint, and work that leaves space for interpretation.',
+    },
+    {
+      title: 'In places',
+      copy: highestKey === 'noveltySeeking'
+        ? 'You may be energized by places that feel unfamiliar, layered, culturally dense, or slightly outside your routine.'
+        : highestKey === 'aestheticSensitivity'
+          ? 'You may notice light, texture, sound, silence, weather, and the emotional temperature of a space.'
+          : 'You may respond to places with mood - old streets, quiet rooms, night spaces, rain, ruins, archives, cities with memory.',
+    },
+    {
+      title: 'In ideas',
+      copy: highestKey === 'humanComplexity'
+        ? 'You may be drawn to ideas that explain why people contradict themselves, repeat patterns, or act against their own interests.'
+        : highestKey === 'ambiguityTolerance'
+          ? 'You may be comfortable with ideas that do not close neatly, as long as they open deeper interpretation.'
+          : 'You may be drawn to questions about identity, morality, time, loneliness, desire, power, and meaning.',
+    },
+  ];
+  const personalCompass = [...new Set(topSignals.map((signal) => PERSONAL_SIGNAL_META[signal.key].compass)
+    .concat(['Observation over quick judgment', 'Residue over instant payoff']))].slice(0, 7);
+
+  let confidenceLabel = 'Not enough data';
+  if (totalRated >= 150) confidenceLabel = 'Strong';
+  else if (totalRated >= 50) confidenceLabel = 'Moderate';
+  else if (totalRated >= 25) confidenceLabel = 'Early';
+  const missingMetadata = totalRated ? metadataRows / totalRated < 0.7 : true;
+  if (missingMetadata && confidenceLabel === 'Strong') confidenceLabel = 'Moderate';
+  else if (missingMetadata && confidenceLabel === 'Moderate') confidenceLabel = 'Early';
+  const confidenceReasons = [
+    `${totalRated} rated films`,
+    Object.keys(genreStats).length ? `${Object.keys(genreStats).length} genres explored` : null,
+    high(patterns.explorationScore, 'High exploration'),
+    identityStats?.personality?.topGenres?.[0] ? `${identityStats.personality.topGenres[0]} dominance` : null,
+    high(tasteSpectrum.slowBurn, 'Slow-burn leaning'),
+    high(tasteSpectrum.visual, 'Visual preference'),
+    high(tasteSpectrum.realistic, 'Realistic storytelling preference'),
+    high(inverseScore(patterns.loyaltyScore), 'Low director repetition'),
+    high(mindValue('Meaning Seekers'), 'High Meaning Seeker score'),
+    missingMetadata ? 'Some metadata is incomplete' : null,
+  ].filter(Boolean).slice(0, 9);
+
+  return {
+    signals,
+    topSignals,
+    openingReading,
+    innerPattern,
+    processCards,
+    strengths,
+    blindSpots,
+    outsideCinema,
+    personalCompass,
+    confidence: { label: confidenceLabel, reasons: confidenceReasons },
+    totalRated,
+    hasEnoughData: totalRated >= 25,
+  };
+};
 const stableStringify = (value) => {
   try {
     return JSON.stringify(value ?? null);
@@ -445,6 +878,7 @@ export default function App() {
   const [data, setData] = useState(null);
   const [fileName, setFileName] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [identityView, setIdentityView] = useState('profile');
   const [hiddenTreasuresPage, setHiddenTreasuresPage] = useState(1);
   const [hiddenGemsPage, setHiddenGemsPage] = useState(1);
   const [watchedPage, setWatchedPage] = useState(1);
@@ -4518,6 +4952,10 @@ const [user, setUser] = useState(null);
   const patterns = getCinematicPatterns();
 
   const personality = getCinematicPersonality();
+  const personalReading = React.useMemo(
+    () => getPersonalitySignalsFromTaste(data || [], { personality, patterns, cinemaMindProfile }),
+    [data, personality, patterns, cinemaMindProfile]
+  );
 
   const stats = getSummaryStats();
   const hasDashboardData = Array.isArray(data) && data.length > 0;
@@ -10565,7 +11003,211 @@ const [user, setUser] = useState(null);
                     </div>
                   </div>
                 )}
-                {activeTab === 'personality' && personality && (
+                {activeTab === 'personality' && (
+                  <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-2 sm:inline-flex sm:flex-row">
+                    {[
+                      { id: 'profile', label: 'Cinema Profile' },
+                      { id: 'reading', label: 'Personal Reading' },
+                    ].map((view) => (
+                      <button
+                        key={view.id}
+                        type="button"
+                        onClick={() => setIdentityView(view.id)}
+                        className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                          identityView === view.id
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30'
+                            : 'text-slate-300 hover:bg-white/[0.04] hover:text-white'
+                        }`}
+                      >
+                        {view.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {activeTab === 'personality' && identityView === 'reading' && personalReading && (
+                  <Motion.div
+                    className="space-y-6"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                  >
+                    {!personalReading.hasEnoughData ? (
+                      <Card className="border-slate-700/70 bg-slate-950/70">
+                        <CardContent className="p-8 text-center">
+                          <Brain className="mx-auto h-8 w-8 text-blue-300" />
+                          <h2 className="mt-4 text-2xl font-black tracking-tight text-white">Rate more films to unlock personality signals from your taste.</h2>
+                          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-400">
+                            We need at least 25 rated films to make the reading feel meaningful.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <>
+                        <Card className="relative overflow-hidden border-blue-500/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(8,13,26,0.98))]">
+                          <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                              <Sparkles className="h-5 w-5 text-blue-300" />
+                              What Your Taste May Reveal
+                            </CardTitle>
+                            <CardDescription>
+                              Soft inferences about how you may respond to emotion, ambiguity, beauty, conflict, and meaning - based on your movie-watching patterns.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-5">
+                            <div className="space-y-4 text-base leading-relaxed text-slate-300">
+                              {personalReading.openingReading.split('\n\n').map((paragraph) => (
+                                <p key={paragraph}>{paragraph}</p>
+                              ))}
+                            </div>
+                            <div className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+                              These are soft inferences from viewing patterns, not psychological claims.
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <section className="space-y-3">
+                          <div>
+                            <h3 className="text-xl font-bold text-white">Personality Signals</h3>
+                            <p className="mt-1 text-sm text-slate-400">Eight soft signals inferred from your ratings, genres, metadata, and viewing patterns.</p>
+                          </div>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {personalReading.signals.map((signal) => (
+                              <Card key={signal.key} className="border-slate-700/70 bg-slate-950/60">
+                                <CardContent className="p-5">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                      <h4 className="font-semibold text-white">{signal.label}</h4>
+                                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-blue-200">{signal.strength}</p>
+                                    </div>
+                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-slate-300">
+                                      {signal.score}/100
+                                    </span>
+                                  </div>
+                                  <p className="mt-4 text-sm leading-relaxed text-slate-300">{signal.copy}</p>
+                                  {signal.evidence.length > 0 && (
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                      {signal.evidence.map((item) => (
+                                        <span key={item} className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">
+                                          {item}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </section>
+
+                        <Card className="border-slate-700/70 bg-slate-950/60">
+                          <CardHeader>
+                            <CardTitle>Your Inner Pattern</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4 text-sm leading-relaxed text-slate-300">
+                            {personalReading.innerPattern.split('\n\n').map((paragraph) => (
+                              <p key={paragraph}>{paragraph}</p>
+                            ))}
+                          </CardContent>
+                        </Card>
+
+                        <section className="space-y-3">
+                          <h3 className="text-xl font-bold text-white">How You May Process Experience</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                            {personalReading.processCards.map((card) => (
+                              <Card key={card.title} className="border-slate-700/70 bg-slate-950/60">
+                                <CardContent className="p-5">
+                                  <h4 className="font-semibold text-white">{card.title}</h4>
+                                  <p className="mt-3 text-sm leading-relaxed text-slate-400">{card.copy}</p>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </section>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                          <Card className="border-slate-700/70 bg-slate-950/60">
+                            <CardHeader>
+                              <CardTitle>Strengths Your Taste Suggests</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {personalReading.strengths.map((item) => (
+                                <div key={item.title} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                  <h4 className="font-semibold text-white">{item.title}</h4>
+                                  <p className="mt-2 text-sm leading-relaxed text-slate-400">{item.copy}</p>
+                                </div>
+                              ))}
+                            </CardContent>
+                          </Card>
+
+                          <Card className="border-slate-700/70 bg-slate-950/60">
+                            <CardHeader>
+                              <CardTitle>Possible Blind Spots</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {personalReading.blindSpots.map((item) => (
+                                <div key={item.title} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                  <h4 className="font-semibold text-white">{item.title}</h4>
+                                  <p className="mt-2 text-sm leading-relaxed text-slate-400">{item.copy}</p>
+                                </div>
+                              ))}
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        <section className="space-y-3">
+                          <h3 className="text-xl font-bold text-white">What You Might Seek Outside Cinema</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                            {personalReading.outsideCinema.map((item) => (
+                              <Card key={item.title} className="border-slate-700/70 bg-slate-950/60">
+                                <CardContent className="p-5">
+                                  <h4 className="font-semibold text-white">{item.title}</h4>
+                                  <p className="mt-3 text-sm leading-relaxed text-slate-400">{item.copy}</p>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </section>
+
+                        <Card className="border-slate-700/70 bg-slate-950/60">
+                          <CardHeader>
+                            <CardTitle>Your Personal Compass</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                              {personalReading.personalCompass.map((item) => (
+                                <span key={item} className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-100">
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-slate-700/70 bg-slate-950/60">
+                          <CardHeader>
+                            <CardTitle>Reading Confidence</CardTitle>
+                            <CardDescription>
+                              {personalReading.confidence.label}
+                              {personalReading.confidence.label === 'Early' ? ' - this reading may shift as you rate more films.' : ''}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                              {personalReading.confidence.reasons.map((reason) => (
+                                <span key={reason} className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">
+                                  {reason}
+                                </span>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
+                  </Motion.div>
+                )}
+
+                {activeTab === 'personality' && identityView === 'profile' && personality && (
                   <Motion.div
                     className="space-y-6"
                     initial={{ opacity: 0, y: 14 }}
@@ -10616,7 +11258,7 @@ const [user, setUser] = useState(null);
                   </Motion.div>
               )}
 
-              {activeTab === 'personality' && patterns && (() => {
+              {activeTab === 'personality' && identityView === 'profile' && patterns && (() => {
                 const patternCards = [
                   {
                     title: 'Exploration',
@@ -10727,7 +11369,7 @@ const [user, setUser] = useState(null);
 
               {/* CINEMATIC TASTE CARD */}
               {/* CINEMATIC TASTE CARD */}
-              {activeTab === 'personality' && data && data.length > 0 && (() => {
+              {activeTab === 'personality' && identityView === 'profile' && data && data.length > 0 && (() => {
                 const spectrums = calculateSpectrums(data);
                 const popularity = calculatePopularityBuckets(data);
                 const decades = calculateDecadeDistribution(data);
@@ -10871,7 +11513,7 @@ const [user, setUser] = useState(null);
                   </Motion.div>
                 );
               })()}
-              {activeTab === 'personality' && cinemaMindProfile && (
+              {activeTab === 'personality' && identityView === 'profile' && cinemaMindProfile && (
                 <Motion.div
                   className="space-y-6 mt-8"
                   initial={{ opacity: 0, y: 14 }}
