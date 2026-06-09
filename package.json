@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "backfill:theme-tags": "node scripts/backfillMovieThemeTags.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

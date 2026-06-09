@@ -42,8 +42,16 @@ create index if not exists movie_theme_tags_imdb_id_idx
 create index if not exists movie_theme_tags_cache_key_idx
   on public.movie_theme_tags(cache_key);
 
+create index if not exists movie_theme_tags_user_cache_key_idx
+  on public.movie_theme_tags(user_id, cache_key);
+
 create index if not exists movie_theme_tags_tag_idx
   on public.movie_theme_tags(tag);
 
 create index if not exists movie_theme_tags_tag_type_idx
   on public.movie_theme_tags(tag_type);
+
+-- Backfill global film tags from cached metadata with:
+--   npm.cmd run backfill:theme-tags
+-- The script reads movie_cache and omdb_cache, generates rule-based tags,
+-- and inserts shared rows with user_id = null.

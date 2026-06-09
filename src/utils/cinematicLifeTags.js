@@ -162,13 +162,55 @@ const RULES = [
 const GENRE_FALLBACKS = [
   ['Drama', 'realist', 'tone_texture', 'fallback', 0.56, 'Drama genre suggests grounded human conflict.'],
   ['Drama', 'quiet', 'tone_texture', 'fallback', 0.52, 'Drama genre can support an intimate understated tone when plot data is thin.'],
+  ['Drama', 'vulnerability', 'emotional_moral_theme', 'fallback', 0.48, 'Drama genre often centers emotional exposure or difficult human stakes.'],
+  ['Drama', 'moral_ambiguity', 'emotional_moral_theme', 'fallback', 0.45, 'Drama genre can support morally complex choices when plot detail is limited.'],
   ['Comedy', 'playful', 'tone_texture', 'fallback', 0.6, 'Comedy genre suggests playfulness.'],
+  ['Comedy', 'warm', 'tone_texture', 'fallback', 0.5, 'Comedy genre can support warmth or social ease.'],
   ['Horror', 'bleak', 'tone_texture', 'fallback', 0.64, 'Horror genre suggests bleakness or fear.'],
+  ['Horror', 'mysterious', 'tone_texture', 'fallback', 0.56, 'Horror genre often relies on mystery or uncertainty.'],
+  ['Horror', 'claustrophobic', 'tone_texture', 'fallback', 0.5, 'Horror genre can create a trapped or pressured texture.'],
   ['Thriller', 'intense', 'tone_texture', 'fallback', 0.64, 'Thriller genre suggests intensity.'],
+  ['Thriller', 'mysterious', 'tone_texture', 'fallback', 0.58, 'Thriller genre often depends on hidden information.'],
+  ['Thriller', 'moral_ambiguity', 'emotional_moral_theme', 'fallback', 0.48, 'Thriller genre can involve compromised choices or unclear motives.'],
   ['Crime', 'murder_investigation', 'story_situation', 'fallback', 0.54, 'Crime genre suggests investigation or criminal conflict.'],
+  ['Crime', 'police_station', 'setting', 'fallback', 0.48, 'Crime genre can involve police or investigative spaces.'],
+  ['Crime', 'justice', 'emotional_moral_theme', 'fallback', 0.52, 'Crime genre often turns on justice, law, or consequence.'],
+  ['Crime', 'criminal_underworld', 'setting', 'fallback', 0.5, 'Crime genre can point to criminal networks or hidden social worlds.'],
   ['Romance', 'romantic', 'tone_texture', 'fallback', 0.62, 'Romance genre suggests romantic texture.'],
+  ['Romance', 'romantic_couple', 'social_world', 'fallback', 0.54, 'Romance genre suggests a central romantic bond.'],
+  ['Romance', 'longing', 'emotional_moral_theme', 'fallback', 0.5, 'Romance genre often carries longing or desire.'],
   ['War', 'war_zone', 'setting', 'fallback', 0.58, 'War genre suggests wartime setting.'],
+  ['War', 'war_survival', 'story_situation', 'fallback', 0.56, 'War genre suggests survival under conflict.'],
+  ['War', 'sacrifice', 'emotional_moral_theme', 'fallback', 0.5, 'War genre often involves sacrifice or consequence.'],
   ['Animation', 'dreamlike', 'tone_texture', 'fallback', 0.52, 'Animation genre can suggest stylized or dreamlike texture.'],
+  ['Animation', 'playful', 'tone_texture', 'fallback', 0.48, 'Animation genre can support playful visual energy.'],
+  ['Family', 'nuclear_family', 'social_world', 'fallback', 0.56, 'Family genre suggests household or family bonds.'],
+  ['Family', 'parenthood', 'life_stage', 'fallback', 0.5, 'Family genre can involve parenting or caregiving roles.'],
+  ['Family', 'warm', 'tone_texture', 'fallback', 0.5, 'Family genre can support warmth.'],
+  ['Action', 'intense', 'tone_texture', 'fallback', 0.62, 'Action genre suggests intensity and urgency.'],
+  ['Action', 'violent', 'tone_texture', 'fallback', 0.52, 'Action genre can involve physical conflict.'],
+  ['Action', 'survival_situation', 'story_situation', 'fallback', 0.48, 'Action genre often turns on danger or survival.'],
+  ['Adventure', 'road_journey', 'setting', 'fallback', 0.5, 'Adventure genre often involves movement through places.'],
+  ['Adventure', 'journey_with_strangers', 'story_situation', 'fallback', 0.46, 'Adventure genre can involve unlikely travel companions.'],
+  ['Adventure', 'hope', 'emotional_moral_theme', 'fallback', 0.44, 'Adventure genre can carry aspiration or hope.'],
+  ['Mystery', 'mysterious', 'tone_texture', 'fallback', 0.64, 'Mystery genre suggests hidden information.'],
+  ['Mystery', 'trial_or_investigation', 'story_situation', 'fallback', 0.58, 'Mystery genre suggests investigation.'],
+  ['Mystery', 'justice', 'emotional_moral_theme', 'fallback', 0.48, 'Mystery genre often involves truth or justice.'],
+  ['Documentary', 'realist', 'tone_texture', 'fallback', 0.66, 'Documentary genre suggests realist texture.'],
+  ['Documentary', 'institutional_life', 'social_context', 'fallback', 0.42, 'Documentary genre can examine systems, communities, or institutions.'],
+  ['Biography', 'early_adulthood', 'life_stage', 'fallback', 0.42, 'Biography genre often traces formative life phases.'],
+  ['Biography', 'artist_struggle', 'story_situation', 'fallback', 0.44, 'Biography genre can involve a life project or personal struggle.'],
+  ['Biography', 'identity_confusion', 'emotional_moral_theme', 'fallback', 0.42, 'Biography genre can involve identity formation or self-definition.'],
+  ['History', 'traditional_society', 'social_context', 'fallback', 0.44, 'History genre can involve older social orders or inherited worlds.'],
+  ['History', 'political_world', 'setting', 'fallback', 0.42, 'History genre can involve public power or political change.'],
+  ['Sci-Fi', 'dreamlike', 'tone_texture', 'fallback', 0.46, 'Sci-fi genre can create speculative or dreamlike texture.'],
+  ['Sci-Fi', 'moral_ambiguity', 'emotional_moral_theme', 'fallback', 0.44, 'Sci-fi genre often tests ethical boundaries.'],
+  ['Fantasy', 'dreamlike', 'tone_texture', 'fallback', 0.58, 'Fantasy genre suggests a dreamlike or mythic texture.'],
+  ['Fantasy', 'spiritual', 'tone_texture', 'fallback', 0.42, 'Fantasy genre can carry spiritual or symbolic stakes.'],
+  ['Music', 'music_world', 'setting', 'fallback', 0.7, 'Music genre suggests a music-world setting.'],
+  ['Musical', 'music_world', 'setting', 'fallback', 0.7, 'Musical genre suggests a music-world setting.'],
+  ['Sport', 'sports_world', 'setting', 'fallback', 0.7, 'Sport genre suggests a sports-world setting.'],
+  ['Sport', 'sports_competition', 'story_situation', 'fallback', 0.68, 'Sport genre suggests competition.'],
 ];
 
 const makeTag = ({ tag, tag_type, importance = 'secondary', confidence = 0.7, source = 'plot_rules', reason = '' }) => ({
@@ -231,6 +273,26 @@ export const inferCinematicLifeTags = (movie = {}) => {
   }
   if (hasAny(text, ['ordinary life', 'everyday', 'rural', 'working class', 'medical help', 'family conflict'])) {
     add({ tag: 'realist', tag_type: 'tone_texture', importance: 'secondary', confidence: 0.68, reason: 'Plot describes a grounded real-world situation.' });
+  }
+  if (byTag.has('setting:high_school')) {
+    add({ tag: 'adolescence', tag_type: 'life_stage', importance: 'secondary', confidence: 0.7, reason: 'High-school setting supports adolescence as a life-stage context.' });
+    add({ tag: 'teenage_life', tag_type: 'life_stage', importance: 'secondary', confidence: 0.68, reason: 'High-school setting supports teenage-life context.' });
+  }
+  if (byTag.has('setting:college_campus')) {
+    add({ tag: 'early_adulthood', tag_type: 'life_stage', importance: 'secondary', confidence: 0.58, reason: 'College setting supports early-adulthood context.' });
+  }
+  if (byTag.has('setting:countryside') || byTag.has('setting:village')) {
+    add({ tag: 'traditional_society', tag_type: 'social_context', importance: 'fallback', confidence: 0.46, source: 'context_fallback', reason: 'Rural or village setting can support traditional social-world context.' });
+  }
+  if (byTag.has('setting:courtroom') || byTag.has('setting:police_station') || byTag.has('story_situation:murder_investigation')) {
+    add({ tag: 'trial_or_investigation', tag_type: 'story_situation', importance: 'secondary', confidence: 0.62, reason: 'Legal or police context supports an investigation pattern.' });
+    add({ tag: 'justice', tag_type: 'emotional_moral_theme', importance: 'secondary', confidence: 0.58, reason: 'Legal or investigative context supports justice as a moral theme.' });
+  }
+  if (byTag.has('social_world:marriage') || byTag.has('social_world:mother_child') || byTag.has('social_world:father_child') || byTag.has('social_world:siblings')) {
+    add({ tag: 'domestic_life', tag_type: 'social_world', importance: 'secondary', confidence: 0.56, reason: 'Family relationship tags support domestic-life context.' });
+  }
+  if (byTag.has('social_context:poverty') && (byTag.has('setting:countryside') || byTag.has('setting:village'))) {
+    add({ tag: 'rural_poverty', tag_type: 'social_context', importance: 'secondary', confidence: 0.62, reason: 'Poverty in a rural or village context supports rural poverty.' });
   }
   if (byTag.has('setting:new_york_city')) {
     byTag.delete('setting:big_city');

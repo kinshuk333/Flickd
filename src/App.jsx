@@ -59,6 +59,7 @@ import RecallFromMyFilms from './components/RecallFromMyFilms';
 import {
   ensureCinematicLifeTagsForMovies,
   getCinematicLifeTagReading,
+  getUserTagAffinity,
   inferCinematicLifeTags,
 } from './utils/cinematicLifeTags';
 
@@ -448,11 +449,9 @@ const weightedAverage = (items = []) => {
 };
 const scoreToStrength = (score) => {
   const value = safeNumber(score);
-  if (value >= 80) return 'Very Strong';
-  if (value >= 65) return 'Strong';
+  if (value >= 70) return 'Strong';
   if (value >= 45) return 'Moderate';
-  if (value >= 25) return 'Emerging';
-  return 'Low Signal';
+  return 'Light';
 };
 
 const PERSONAL_SIGNAL_COPY = {
@@ -854,6 +853,537 @@ const getPersonalitySignalsFromTaste = (movies = [], identityStats = {}) => {
     totalRated,
     hasEnoughData: totalRated >= 25,
   };
+};
+
+const TAG_CATEGORY_LABELS = {
+  setting: 'Story world',
+  life_stage: 'Life stage',
+  social_world: 'Social world',
+  social_context: 'Social context',
+  story_situation: 'Story situation',
+  tone_texture: 'Emotional texture',
+  emotional_moral_theme: 'Character and conflict',
+};
+
+const getTagLift = (tag) => safeNumber(tag?.lift);
+const getTagConfidenceLabel = (confidence) => {
+  const value = safeNumber(confidence) <= 1 ? safeNumber(confidence) * 100 : safeNumber(confidence);
+  if (value >= 70) return 'High confidence';
+  if (value >= 50) return 'Medium confidence';
+  return 'Low confidence';
+};
+const getTagConfidenceWeight = (confidence) => {
+  const label = getTagConfidenceLabel(confidence);
+  if (label === 'High confidence') return 1;
+  if (label === 'Medium confidence') return 0.75;
+  return 0.45;
+};
+const hasUsableTagConfidence = (tag) => {
+  const confidence = safeNumber(tag?.confidence) <= 1 ? safeNumber(tag?.confidence) * 100 : safeNumber(tag?.confidence);
+  if (confidence >= 50) return true;
+  return safeNumber(tag?.count) >= 10 && getTagLift(tag) >= 0.75;
+};
+const tagDisplayLabel = (tag) => String(tag?.label || tag?.tag || '').replace(/_/g, ' ');
+const getRewardedTags = (tags = []) => (
+  (Array.isArray(tags) ? tags : [])
+    .filter((tag) => getTagLift(tag) > 0 && safeNumber(tag?.count) >= 5 && hasUsableTagConfidence(tag))
+    .map((tag) => ({
+      ...tag,
+      label: tagDisplayLabel(tag),
+      confidenceLabel: getTagConfidenceLabel(tag?.confidence),
+      rewardScore: getTagLift(tag) * Math.log10(safeNumber(tag?.count) + 1) * getTagConfidenceWeight(tag?.confidence),
+    }))
+    .sort((a, b) => b.rewardScore - a.rewardScore || getTagLift(b) - getTagLift(a))
+);
+const getNegativeLiftTags = (tags = [], excludedTags = new Set()) => (
+  (Array.isArray(tags) ? tags : [])
+    .filter((tag) => getTagLift(tag) < 0 && safeNumber(tag?.count) >= 5 && hasUsableTagConfidence(tag))
+    .filter((tag) => !excludedTags.has(`${tag?.tag_type}:${tag?.tag}`))
+    .map((tag) => ({
+      ...tag,
+      label: tagDisplayLabel(tag),
+      confidenceLabel: getTagConfidenceLabel(tag?.confidence),
+    }))
+    .sort((a, b) => getTagLift(a) - getTagLift(b))
+);
+const getTagsByCategory = (tags = [], category) => {
+  const categories = Array.isArray(category) ? category : [category];
+  return (Array.isArray(tags) ? tags : []).filter((tag) => categories.includes(tag?.tag_type));
+};
+const getAnchorFilmsForTag = (tag) => (Array.isArray(tag?.films) ? tag.films.slice(0, 3) : []);
+
+const joinReadable = (items = []) => {
+  const safeItems = items.filter(Boolean);
+  if (safeItems.length <= 1) return safeItems[0] || '';
+  if (safeItems.length === 2) return `${safeItems[0]} and ${safeItems[1]}`;
+  return `${safeItems.slice(0, -1).join(', ')}, and ${safeItems.at(-1)}`;
+};
+
+const getReadingConfidence = (stats = {}) => {
+  const ratedFilms = safeNumber(stats.ratedFilms);
+  const taggedFilms = safeNumber(stats.taggedFilms);
+  const genres = safeNumber(stats.genres);
+  if (ratedFilms >= 300 && taggedFilms >= 150 && genres >= 10) return 'Strong';
+  if (ratedFilms >= 80 && taggedFilms >= 50) return 'Moderate';
+  return 'Light';
+};
+
+const getTasteArchetype = (signals = [], rewardedTags = [], stats = {}) => {
+  const score = (key) => safeNumber(signals.find((signal) => signal.key === key)?.score);
+  const topEvidence = [
+    ...signals.slice(0, 3).map((signal) => `${signal.label} ${signal.score}/100`),
+    ...rewardedTags.slice(0, 3).map((tag) => `${tag.label} ${tag.lift >= 0 ? '+' : ''}${tag.lift.toFixed(1)}`),
+  ].slice(0, 6);
+
+  if (score('humanComplexity') >= 70 && score('socialObservation') >= 70 && score('comfortWithDarkness') >= 65) {
+    return {
+      title: 'The Moral Observer',
+      description: 'Your ratings tend to rise when stories place complicated people inside pressure-filled situations. You seem drawn to behaviour, consequence, and moral tension more than simple heroes, villains, or clean resolutions.',
+      evidence: topEvidence,
+    };
+  }
+  if (score('aestheticSensitivity') >= 70 && score('meaningOrientation') >= 65 && score('ambiguityTolerance') >= 60) {
+    return {
+      title: 'The Atmospheric Interpreter',
+      description: 'Your taste suggests a viewer who rewards mood, silence, visual rhythm, and stories that leave room for interpretation after the plot has ended.',
+      evidence: topEvidence,
+    };
+  }
+  if (score('noveltySeeking') >= 70 && safeNumber(stats.genres) >= 14 && safeNumber(stats.directors) >= safeNumber(stats.ratedFilms) * 0.45) {
+    return {
+      title: 'The Restless Explorer',
+      description: 'Your ratings suggest curiosity across unfamiliar voices, worlds, and emotional climates. You seem to reward films that expand the map rather than repeat a familiar route.',
+      evidence: topEvidence,
+    };
+  }
+  if (score('emotionalDepth') >= 70 && score('meaningOrientation') >= 65) {
+    return {
+      title: 'The Emotional Realist',
+      description: 'Your ratings tend to rise around grounded emotion, human consequence, and stories where feeling is carried through behaviour rather than announced too loudly.',
+      evidence: topEvidence,
+    };
+  }
+  if (score('comfortWithDarkness') >= 70 && score('ambiguityTolerance') >= 60) {
+    return {
+      title: 'The Quiet Intensity Seeker',
+      description: 'Your taste may respond to restraint, pressure, and unresolved emotional weather, especially when darkness feels tied to human truth rather than shock alone.',
+      evidence: topEvidence,
+    };
+  }
+  return {
+    title: 'The Human Contradiction Reader',
+    description: 'Your ratings suggest a viewer drawn to layered behaviour, emotional residue, and stories where people are difficult to reduce to one simple explanation.',
+    evidence: topEvidence,
+  };
+};
+
+const getCompassStatements = (signals = [], rewardedTags = []) => {
+  const topKeys = new Set(signals.slice(0, 5).map((signal) => signal.key));
+  const rewardedLabels = rewardedTags.slice(0, 8).map((tag) => tag.label.toLowerCase());
+  const statements = [];
+  const add = (condition, text) => {
+    if (condition && !statements.includes(text)) statements.push(text);
+  };
+  add(topKeys.has('humanComplexity'), 'Contradiction over simple judgment');
+  add(topKeys.has('socialObservation'), 'Behaviour over surface impressions');
+  add(topKeys.has('emotionalDepth'), 'Emotional truth over comfort');
+  add(topKeys.has('comfortWithDarkness'), 'Pressure over ease');
+  add(topKeys.has('aestheticSensitivity') || rewardedLabels.some((label) => ['quiet', 'atmospheric', 'poetic', 'meditative'].includes(label)), 'Atmosphere over explanation');
+  add(topKeys.has('meaningOrientation') || topKeys.has('ambiguityTolerance'), 'Residue over instant payoff');
+  add(topKeys.has('noveltySeeking'), 'Unfamiliarity over repetition');
+  add(rewardedLabels.some((label) => ['family conflict', 'moral ambiguity', 'survival situation', 'betrayal', 'grief'].includes(label)), 'Human stakes over plot mechanics');
+  return statements.slice(0, 6);
+};
+
+const getTagConstellations = (highRatedFilms = [], userAverageRating = 0) => {
+  const clusters = new Map();
+  const makeCombos = (items, size) => {
+    const combos = [];
+    const walk = (start, combo) => {
+      if (combo.length === size) {
+        combos.push(combo);
+        return;
+      }
+      for (let index = start; index < items.length; index += 1) {
+        walk(index + 1, combo.concat(items[index]));
+      }
+    };
+    walk(0, []);
+    return combos;
+  };
+
+  highRatedFilms
+    .filter((movie) => safeNumber(movie?.yourRating || movie?.rating) >= userAverageRating + 1)
+    .forEach((movie) => {
+      const rating = safeNumber(movie?.yourRating || movie?.rating);
+      const tags = (Array.isArray(movie?.cinematicLifeTags) ? movie.cinematicLifeTags : [])
+        .filter((tag) => tag?.tag && tag?.tag_type && hasUsableTagConfidence({ ...tag, count: 5 }))
+        .filter((tag) => ['setting', 'story_situation', 'tone_texture', 'emotional_moral_theme', 'social_context', 'social_world'].includes(tag.tag_type))
+        .map((tag) => ({ key: `${tag.tag_type}:${tag.tag}`, label: tagDisplayLabel(tag), type: tag.tag_type }))
+        .filter((tag, index, all) => all.findIndex((item) => item.key === tag.key) === index)
+        .slice(0, 8);
+      [...makeCombos(tags, 2), ...makeCombos(tags, 3)].forEach((combo) => {
+        const key = combo.map((tag) => tag.key).sort().join('|');
+        if (!clusters.has(key)) {
+          clusters.set(key, {
+            key,
+            tags: combo.map((tag) => tag.label),
+            count: 0,
+            ratingSum: 0,
+            films: [],
+          });
+        }
+        const cluster = clusters.get(key);
+        cluster.count += 1;
+        cluster.ratingSum += rating;
+        if (cluster.films.length < 3) {
+          cluster.films.push({
+            title: movie?.title || 'Unknown Title',
+            year: movie?.year || '',
+            rating,
+          });
+        }
+      });
+    });
+
+  return Array.from(clusters.values())
+    .filter((cluster) => cluster.count >= 3)
+    .map((cluster) => ({
+      ...cluster,
+      title: cluster.tags.join(' + '),
+      averageRating: cluster.ratingSum / cluster.count,
+    }))
+    .sort((a, b) => b.count - a.count || b.averageRating - a.averageRating)
+    .slice(0, 5);
+};
+
+const buildTastePersonalityReport = (movies = [], personalReading = null, cinematicLifeReading = null) => {
+  const ratedMovies = Array.isArray(movies) ? movies.filter((movie) => safeNumber(movie?.yourRating || movie?.rating) > 0) : [];
+  const ratedFilms = ratedMovies.length;
+  const userAverageRating = ratedFilms
+    ? ratedMovies.reduce((sum, movie) => sum + safeNumber(movie?.yourRating || movie?.rating), 0) / ratedFilms
+    : 0;
+  const genreSet = new Set();
+  const directorSet = new Set();
+  ratedMovies.forEach((movie) => {
+    String(movie?.genres || '').split(',').map((item) => item.trim()).filter(Boolean).forEach((genre) => genreSet.add(genre.toLowerCase()));
+    String(movie?.directors || movie?.director || '').split(',').map((item) => item.trim()).filter(Boolean).forEach((director) => directorSet.add(director.toLowerCase()));
+  });
+  const taggedFilms = ratedMovies.filter((movie) => Array.isArray(movie?.cinematicLifeTags) && movie.cinematicLifeTags.length).length;
+  const rawAffinities = cinematicLifeReading?.affinities?.length ? cinematicLifeReading.affinities : getUserTagAffinity(ratedMovies);
+  const rewardedTags = getRewardedTags(rawAffinities);
+  const rewardedKeys = new Set(rewardedTags.map((tag) => `${tag.tag_type}:${tag.tag}`));
+  const negativeLiftTags = getNegativeLiftTags(rawAffinities, rewardedKeys);
+  const topSignals = [...(personalReading?.signals || [])].sort((a, b) => b.score - a.score);
+  const stats = {
+    ratedFilms,
+    genres: genreSet.size,
+    directors: directorSet.size,
+    taggedFilms,
+    tagsAnalyzed: rawAffinities.length,
+  };
+  const archetype = getTasteArchetype(topSignals, rewardedTags, stats);
+  const identityChips = [
+    ...topSignals.slice(0, 4).map((signal) => signal.label),
+    ...rewardedTags.slice(0, 4).map((tag) => tag.label),
+  ].slice(0, 5);
+  const strongestTags = rewardedTags.slice(0, 4).map((tag) => tag.label);
+  const strongestSignals = topSignals.slice(0, 3).map((signal) => signal.label.toLowerCase());
+  const summary = `Your ratings suggest a viewer drawn to ${joinReadable([...strongestSignals, ...strongestTags.slice(0, 2)].slice(0, 4)) || 'layered stories and emotional texture'}. You seem to reward films where people are difficult to judge, choices carry consequence, and atmosphere matters as much as plot. This is a soft inference, not a psychological claim.`;
+  const storyWorlds = getTagsByCategory(rewardedTags, 'setting').slice(0, 4);
+  const emotionalTextures = getTagsByCategory(rewardedTags, ['tone_texture', 'emotional_moral_theme']).slice(0, 4);
+  const characterPatterns = getTagsByCategory(rewardedTags, ['story_situation', 'social_context', 'social_world', 'emotional_moral_theme']).slice(0, 6);
+  const constellations = getTagConstellations(ratedMovies, userAverageRating);
+
+  return {
+    stats,
+    userAverageRating,
+    readingConfidence: getReadingConfidence(stats),
+    summary,
+    identityChips,
+    signals: topSignals,
+    archetype,
+    rewardedTags,
+    storyWorlds,
+    emotionalTextures,
+    characterPatterns,
+    constellations,
+    negativeLiftTags,
+    innerPattern: personalReading?.innerPattern || '',
+    compass: getCompassStatements(topSignals, rewardedTags),
+  };
+};
+
+const TastePersonalityReportView = ({ report }) => {
+  if (!report) return null;
+
+  const renderAnchorFilms = (item) => {
+    const films = getAnchorFilmsForTag(item);
+    if (!films.length) return null;
+    return (
+      <div className="mt-4 border-t border-slate-800 pt-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Anchor films</p>
+        <div className="mt-2 space-y-1">
+          {films.map((film) => (
+            <p key={`${item.tag}-${film.title}-${film.year}`} className="truncate text-xs text-slate-300">
+              {film.title}{film.year ? ` (${film.year})` : ''} - {film.rating}/10
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderLiftCard = (item, variant = 'rewarded') => {
+    const isRewarded = variant === 'rewarded';
+    return (
+      <Card key={`${variant}-${item.tag_type}-${item.tag}`} className="border-slate-700/70 bg-slate-950/60">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-semibold capitalize text-white">{item.label}</h4>
+              <p className="mt-1 text-xs text-slate-500">{TAG_CATEGORY_LABELS[item.tag_type] || item.tag_type.replace(/_/g, ' ')}</p>
+            </div>
+            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${isRewarded ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100' : 'border-blue-400/20 bg-blue-500/10 text-blue-100'}`}>
+              {item.lift >= 0 ? '+' : ''}{item.lift.toFixed(1)}
+            </span>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-slate-300">
+            {variant === 'world'
+              ? `You seem to reward stories set in ${item.label} when the setting creates pressure, memory, danger, intimacy, or social tension.`
+              : variant === 'texture'
+                ? `Your ratings rise around ${item.label} stories. This suggests your taste may respond to the emotional climate this texture creates, especially when it is tied to character, consequence, or atmosphere.`
+                : variant === 'pattern'
+                  ? `Your ratings tend to rise when ${item.label} becomes part of the human pressure inside the story rather than a surface plot device.`
+                  : `Your ratings tend to rise around ${item.label} stories, especially when the tag carries enough human consequence, atmosphere, or pressure to lift the film above your usual baseline.`}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{item.count} films</span>
+            <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{item.confidenceLabel}</span>
+          </div>
+          {renderAnchorFilms(item)}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="relative overflow-hidden border-blue-500/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(8,13,26,0.98))]">
+        <CardContent className="space-y-6 p-6 sm:p-8">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-blue-200">
+              <Sparkles className="h-4 w-4" />
+              Taste Personality
+            </div>
+            <h2 className="text-3xl font-black tracking-tight text-white sm:text-5xl">Your Taste Personality</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400 sm:text-base">
+              A soft reading of the stories, emotions, characters, and worlds your ratings tend to reward.
+            </p>
+            <p className="mt-5 max-w-5xl text-base leading-relaxed text-slate-300 sm:text-lg">{report.summary}</p>
+          </div>
+          {report.identityChips.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {report.identityChips.map((chip) => (
+                <span key={chip} className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold capitalize text-blue-100">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-700/70 bg-slate-950/60">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Reading Confidence / Data Basis</p>
+              <h3 className="mt-1 text-xl font-bold text-white">{report.readingConfidence}</h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Based on {report.stats.ratedFilms.toLocaleString()} rated films, {report.stats.genres} genres, and plot-derived tags from your movie history.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:min-w-[560px]">
+              {[
+                ['Rated films', report.stats.ratedFilms],
+                ['Genres', report.stats.genres],
+                ['Directors', report.stats.directors],
+                ['Tagged films', report.stats.taggedFilms],
+                ['Tags analyzed', report.stats.tagsAnalyzed],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                  <p className="text-lg font-black text-white">{Number(value).toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-500">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-xl font-bold text-white">Core Taste Signals</h3>
+          <p className="mt-1 text-sm text-slate-400">Eight soft signals inferred from your ratings, genres, metadata, and viewing patterns.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {report.signals.map((signal) => (
+            <Card key={signal.key} className="border-slate-700/70 bg-slate-950/60">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h4 className="font-semibold text-white">{signal.label}</h4>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-blue-200">{signal.strength}</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-slate-300">{signal.score}/100</span>
+                </div>
+                <p className="mt-4 text-sm leading-relaxed text-slate-300">{signal.copy}</p>
+                {signal.evidence.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {signal.evidence.slice(0, 4).map((item) => (
+                      <span key={item} className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{item}</span>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <Card className="border-blue-400/20 bg-[linear-gradient(135deg,rgba(30,41,59,0.92),rgba(15,23,42,0.96))]">
+        <CardContent className="p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-200">Taste Archetype</p>
+          <h3 className="mt-2 text-3xl font-black tracking-tight text-white">{report.archetype.title}</h3>
+          <p className="mt-4 max-w-4xl text-sm leading-relaxed text-slate-300 sm:text-base">{report.archetype.description}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {report.archetype.evidence.map((item) => (
+              <span key={item} className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-100">{item}</span>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {report.rewardedTags.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">Tags You Consistently Reward</h3>
+            <p className="mt-1 text-sm text-slate-400">Positive-lift plot tags that reliably sit above your own rating baseline.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {report.rewardedTags.slice(0, 6).map((item) => renderLiftCard(item))}
+          </div>
+        </section>
+      )}
+
+      {report.storyWorlds.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">Story Worlds You Return To</h3>
+            <p className="mt-1 text-sm text-slate-400">Positive-lift setting tags that describe the environments your ratings tend to reward.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{report.storyWorlds.map((item) => renderLiftCard(item, 'world'))}</div>
+        </section>
+      )}
+
+      {report.emotionalTextures.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">Emotional Textures You Reward</h3>
+            <p className="mt-1 text-sm text-slate-400">Tone and emotional tags that rise above your usual rating baseline.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{report.emotionalTextures.map((item) => renderLiftCard(item, 'texture'))}</div>
+        </section>
+      )}
+
+      {report.characterPatterns.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">Character & Conflict Patterns</h3>
+            <p className="mt-1 text-sm text-slate-400">Human situations and conflicts that help explain the stronger personality signals.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{report.characterPatterns.map((item) => renderLiftCard(item, 'pattern'))}</div>
+        </section>
+      )}
+
+      {report.constellations.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">Tag Constellations</h3>
+            <p className="mt-1 text-sm text-slate-400">Repeated tag combinations found in films you rated at least one point above your baseline.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {report.constellations.map((cluster) => (
+              <Card key={cluster.key} className="border-blue-400/15 bg-slate-950/70">
+                <CardContent className="p-5">
+                  <h4 className="font-semibold capitalize text-white">{cluster.title}</h4>
+                  <p className="mt-1 text-xs text-slate-500">Appears in {cluster.count} highly rated films</p>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-300">
+                    You seem to respond when {joinReadable(cluster.tags)} appear together, especially when the combination creates a clearer emotional or moral shape.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {cluster.films.map((film) => (
+                      <span key={`${cluster.key}-${film.title}`} className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{film.title}</span>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {report.negativeLiftTags.length > 0 && (
+        <Card className="border-slate-700/70 bg-slate-950/60">
+          <CardHeader>
+            <CardTitle>What Usually Does Not Lift Your Ratings</CardTitle>
+            <CardDescription>These tags appear in your history, but they tend not to rise above your usual rating baseline.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-relaxed text-slate-400">
+              A negative lift does not mean you dislike the tag. It means the tag alone does not reliably increase your rating unless another stronger signal carries the film.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {report.negativeLiftTags.slice(0, 8).map((item) => (
+                <span key={`low-${item.tag_type}-${item.tag}`} className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-sm text-slate-300">
+                  {item.label} ({item.lift.toFixed(1)})
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="border-blue-400/20 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(8,13,26,0.98))]">
+        <CardHeader>
+          <CardTitle>Your Inner Viewing Pattern</CardTitle>
+          <CardDescription>A soft interpretation based on the strongest signals and rewarded tags above.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm leading-relaxed text-slate-300">
+          {report.innerPattern.split('\n\n').map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
+        </CardContent>
+      </Card>
+
+      {report.compass.length > 0 && (
+        <Card className="border-slate-700/70 bg-slate-950/60">
+          <CardHeader>
+            <CardTitle>Taste Compass</CardTitle>
+            <CardDescription>Short statements derived from your strongest visible signals.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {report.compass.map((item) => (
+                <span key={item} className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-100">{item}</span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 };
 const stableStringify = (value) => {
   try {
@@ -5144,6 +5674,10 @@ const [user, setUser] = useState(null);
   const cinematicLifeReading = React.useMemo(
     () => getCinematicLifeTagReading(data || []),
     [data]
+  );
+  const tastePersonalityReport = React.useMemo(
+    () => buildTastePersonalityReport(data || [], personalReading, cinematicLifeReading),
+    [data, personalReading, cinematicLifeReading]
   );
 
   const stats = getSummaryStats();
@@ -11233,6 +11767,8 @@ const [user, setUser] = useState(null);
                       </Card>
                     ) : (
                       <>
+                        <TastePersonalityReportView report={tastePersonalityReport} />
+                        <div className="hidden">
                         <Card className="relative overflow-hidden border-blue-500/20 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(8,13,26,0.98))]">
                           <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-2 text-xl">
@@ -11504,6 +12040,7 @@ const [user, setUser] = useState(null);
                             </div>
                           </CardContent>
                         </Card>
+                        </div>
                       </>
                     )}
                   </Motion.div>
