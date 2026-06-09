@@ -8686,6 +8686,16 @@ const [user, setUser] = useState(null);
               <>
                 <div className="hidden" />
                 <aside className="profile-scroll lg:hidden flickd-mobile-profile-rail flickd-sidebar-rail bg-[#111827] border border-gray-700 rounded-2xl p-4 pt-5 overflow-hidden flex flex-col h-auto pointer-events-auto">
+                  {memberViewUserId && (
+                    <button
+                      type="button"
+                      onClick={() => { exitMemberDashboard(); handleTabChange('members'); }}
+                      className="mb-4 inline-flex w-fit items-center gap-2 rounded-lg border border-blue-500/30 bg-[#0b1220] px-3 py-2 text-xs font-medium text-blue-200 transition-colors hover:bg-[#101a2d]"
+                    >
+                      <span aria-hidden="true">←</span>
+                      Back
+                    </button>
+                  )}
                   <div className="flickd-profile-identity">
                     {(currentProfileAvatarUrl && !profileAvatarFailed) ? (
                       <img
