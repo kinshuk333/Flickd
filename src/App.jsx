@@ -56,6 +56,11 @@ import {
 } from 'lucide-react';
 import TasteAtlasSection from './components/TasteAtlasSection';
 import RecallFromMyFilms from './components/RecallFromMyFilms';
+import {
+  ensureCinematicLifeTagsForMovies,
+  getCinematicLifeTagReading,
+  inferCinematicLifeTags,
+} from './utils/cinematicLifeTags';
 
 const ACCENT_COLOR = '#3b82f6';
 const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
@@ -159,6 +164,8 @@ const toShareableRows = (rows = []) => rows.map((row) => ({
   i: row?.imdbId || row?.imdbID || '',
   dr: row?.dateRated instanceof Date ? row.dateRated.toISOString() : (row?.dateRated || null),
   c: row?.country || '',
+  p: row?.plot || row?.description || row?.omdbPlot || '',
+  ct: Array.isArray(row?.cinematicLifeTags) ? row.cinematicLifeTags : [],
 }));
 
 const fromShareableRows = (rows = []) => rows
@@ -176,6 +183,10 @@ const fromShareableRows = (rows = []) => rows
     imdbId: row?.imdbId ?? row?.imdbID ?? row?.i ?? '',
     dateRated: (row?.dateRated ?? row?.dr) ? new Date(row?.dateRated ?? row?.dr) : null,
     country: row?.country ?? row?.c ?? '',
+    plot: row?.plot ?? row?.description ?? row?.p ?? '',
+    description: row?.description ?? row?.plot ?? row?.p ?? '',
+    omdbPlot: row?.omdbPlot ?? row?.omdb_plot ?? '',
+    cinematicLifeTags: Array.isArray(row?.cinematicLifeTags ?? row?.ct) ? (row?.cinematicLifeTags ?? row?.ct) : [],
   }))
   .filter((row) => row?.title);
 
@@ -2089,17 +2100,18 @@ const [user, setUser] = useState(null);
   const topGenreFilmsPerPage = 10;
 
   const persistDataset = (rows, sourceFileName) => {
+    const taggedRows = ensureCinematicLifeTagsForMovies(rows);
     try {
       const payload = {
-        rows,
+        rows: taggedRows,
         fileName: sourceFileName || fileName || 'IMDb Ratings',
         updatedAt: new Date().toISOString(),
       };
       if (user?.id) {
         localStorage.setItem(datasetCacheKey(user.id), JSON.stringify(payload));
       }
-      if (user?.id && Array.isArray(rows) && rows.length) {
-        localStorage.setItem(memberDatasetKey(user.id), JSON.stringify(toShareableRows(rows)));
+      if (user?.id && Array.isArray(taggedRows) && taggedRows.length) {
+        localStorage.setItem(memberDatasetKey(user.id), JSON.stringify(toShareableRows(taggedRows)));
       }
       setLastDataSyncAt(payload.updatedAt);
     } catch (e) {
@@ -2126,12 +2138,12 @@ const [user, setUser] = useState(null);
       try {
         const cached = JSON.parse(localStorage.getItem(datasetCacheKey(user.id)) || 'null');
         if (cached?.rows?.length) {
-          const hydratedRows = cached.rows.map((row) => ({
+          const hydratedRows = ensureCinematicLifeTagsForMovies(cached.rows.map((row) => ({
             ...row,
             dateRated: row?.dateRated ? new Date(row.dateRated) : null,
             imdbVotes: Number(row?.imdbVotes ?? row?.numVotes) || 0,
             numVotes: Number(row?.numVotes ?? row?.imdbVotes) || 0,
-          }));
+          })));
 
           if (!cancelled) {
             setData(hydratedRows);
@@ -2154,7 +2166,7 @@ const [user, setUser] = useState(null);
           const remoteRows = extractMemberDataset(row.snapshot);
 
           if (remoteRows.length) {
-            const normalized = fromShareableRows(remoteRows);
+            const normalized = ensureCinematicLifeTagsForMovies(fromShareableRows(remoteRows));
             if (normalized.length) {
               setData(normalized);
               setFileName('IMDb Ratings (synced)');
@@ -2930,12 +2942,13 @@ const [user, setUser] = useState(null);
   };
 
   const applyImportedDataset = (rows, sourceName, fromCache = false, updateSummary = null) => {
-    setData(rows);
+    const taggedRows = ensureCinematicLifeTagsForMovies(rows);
+    setData(taggedRows);
     setFileName(sourceName);
     setLoadedFromCache(fromCache);
     setDatasetUpdateSummary(updateSummary);
-    persistDataset(rows, sourceName);
-    syncDatasetToMemberProfile(rows);
+    persistDataset(taggedRows, sourceName);
+    syncDatasetToMemberProfile(taggedRows);
     setHiddenGemsPage(1);
     setHiddenTreasuresPage(1);
     setWatchedPage(1);
@@ -3000,6 +3013,12 @@ const [user, setUser] = useState(null);
         imdbId: existing?.imdbId || existing?.imdbID || incoming?.imdbId || incoming?.imdbID || '',
         numVotes: Number(existing?.numVotes ?? existing?.imdbVotes ?? incoming?.numVotes ?? incoming?.imdbVotes) || 0,
         imdbVotes: Number(existing?.imdbVotes ?? existing?.numVotes ?? incoming?.imdbVotes ?? incoming?.numVotes) || 0,
+        plot: incoming?.plot || incoming?.description || existing?.plot || existing?.description || existing?.omdbPlot || '',
+        description: incoming?.description || incoming?.plot || existing?.description || existing?.plot || existing?.omdbPlot || '',
+        omdbPlot: incoming?.omdbPlot || existing?.omdbPlot || '',
+        cinematicLifeTags: Array.isArray(existing?.cinematicLifeTags) && existing.cinematicLifeTags.length
+          ? existing.cinematicLifeTags
+          : inferCinematicLifeTags(incoming),
       };
     });
 
@@ -3027,6 +3046,10 @@ const [user, setUser] = useState(null);
       imdbId: isValidOmdb ? String(payload?.imdbID || '').trim() : '',
       dateRated: film?.dateRated || null,
       country: isValidOmdb && payload?.Country !== 'N/A' ? String(payload?.Country || '').split(',')[0].trim() : '',
+      language: isValidOmdb && payload?.Language !== 'N/A' ? String(payload?.Language || '').trim() : '',
+      plot: isValidOmdb && payload?.Plot !== 'N/A' ? String(payload?.Plot || '').trim() : '',
+      description: isValidOmdb && payload?.Plot !== 'N/A' ? String(payload?.Plot || '').trim() : '',
+      omdbPlot: isValidOmdb && payload?.Plot !== 'N/A' ? String(payload?.Plot || '').trim() : '',
       letterboxdUrl: film?.letterboxdUrl || '',
     };
   };
@@ -3267,6 +3290,7 @@ const [user, setUser] = useState(null);
           const imdbId = String(getByAliases(row, ['Const', 'IMDb ID', 'imdbID', 'tconst'])).trim();
           const dateRated = parseExcelDate(getByAliases(row, ['Date Rated', 'Date Watched', 'Watched Date']));
           const country = String(getByAliases(row, ['Country', 'Country of Origin'])).trim();
+          const plot = String(getByAliases(row, ['Plot', 'Description', 'Overview', 'Summary', 'OMDb Plot'])).trim();
 
           return {
             title,
@@ -3282,6 +3306,9 @@ const [user, setUser] = useState(null);
             imdbId,
             dateRated,
             country,
+            plot,
+            description: plot,
+            omdbPlot: plot,
           };
         })
         .filter(Boolean);
@@ -4955,6 +4982,10 @@ const [user, setUser] = useState(null);
   const personalReading = React.useMemo(
     () => getPersonalitySignalsFromTaste(data || [], { personality, patterns, cinemaMindProfile }),
     [data, personality, patterns, cinemaMindProfile]
+  );
+  const cinematicLifeReading = React.useMemo(
+    () => getCinematicLifeTagReading(data || []),
+    [data]
   );
 
   const stats = getSummaryStats();
@@ -11099,6 +11130,119 @@ const [user, setUser] = useState(null);
                             ))}
                           </div>
                         </section>
+
+                        {cinematicLifeReading?.recurring?.length > 0 && (
+                          <section className="space-y-4">
+                            <div>
+                              <h3 className="text-xl font-bold text-white">Recurring Tags You Reward</h3>
+                              <p className="mt-1 text-sm text-slate-400">
+                                Plot-derived cinematic-life tags where your ratings rise above your own average.
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                              {cinematicLifeReading.recurring.slice(0, 8).map((item) => (
+                                <Card key={`${item.tag_type}-${item.tag}`} className="border-slate-700/70 bg-slate-950/60">
+                                  <CardContent className="p-5">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <h4 className="font-semibold capitalize text-white">{item.label}</h4>
+                                        <p className="mt-1 text-xs text-slate-500">{item.tag_type.replace(/_/g, ' ')}</p>
+                                      </div>
+                                      <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100">
+                                        {item.lift >= 0 ? '+' : ''}{item.lift.toFixed(1)}
+                                      </span>
+                                    </div>
+                                    <p className="mt-4 text-sm leading-relaxed text-slate-300">
+                                      Your ratings rise around {item.label} stories across {item.count} films.
+                                    </p>
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                      <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{item.count} films</span>
+                                      <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{Math.round(item.confidence * 100)}% tag confidence</span>
+                                    </div>
+                                    {item.films.length > 0 && (
+                                      <div className="mt-4 border-t border-slate-800 pt-3">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Anchor films</p>
+                                        <div className="mt-2 space-y-1">
+                                          {item.films.slice(0, 3).map((film) => (
+                                            <p key={`${item.tag}-${film.title}-${film.year}`} className="truncate text-xs text-slate-300">
+                                              {film.title}{film.year ? ` (${film.year})` : ''} - {film.rating}/10
+                                            </p>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          </section>
+                        )}
+
+                        {cinematicLifeReading?.sections?.map((section) => (
+                          section.items.length > 0 ? (
+                            <section key={section.key} className="space-y-4">
+                              <div>
+                                <h3 className="text-xl font-bold text-white">{section.title}</h3>
+                                <p className="mt-1 text-sm text-slate-400">{section.summary}</p>
+                              </div>
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {section.items.slice(0, 4).map((item) => (
+                                  <Card key={`${section.key}-${item.tag_type}-${item.tag}`} className="border-slate-700/70 bg-slate-950/60">
+                                    <CardContent className="p-5">
+                                      <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                          <h4 className="font-semibold capitalize text-white">{item.label}</h4>
+                                          <p className="mt-1 text-xs text-slate-500">{item.count} films tagged from plot data</p>
+                                        </div>
+                                        <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-100">
+                                          {item.lift >= 0 ? '+' : ''}{item.lift.toFixed(1)} above avg
+                                        </span>
+                                      </div>
+                                      <p className="mt-4 text-sm leading-relaxed text-slate-300">
+                                        You seem to reward {item.label} stories when they carry enough texture to stand above your usual rating baseline.
+                                      </p>
+                                      <div className="mt-4 flex flex-wrap gap-2">
+                                        {item.reasons.slice(0, 2).map((reason) => (
+                                          <span key={reason} className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">
+                                            {reason}
+                                          </span>
+                                        ))}
+                                      </div>
+                                      {item.films.length > 0 && (
+                                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          {item.films.slice(0, 4).map((film) => (
+                                            <div key={`${section.key}-${item.tag}-${film.title}-${film.year}`} className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+                                              <p className="truncate text-xs font-medium text-slate-200">{film.title}</p>
+                                              <p className="mt-0.5 text-[11px] text-slate-500">{film.year || 'Unknown year'} - {film.rating}/10</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                            </section>
+                          ) : null
+                        ))}
+
+                        {cinematicLifeReading?.lowLift?.length > 0 && (
+                          <Card className="border-slate-700/70 bg-slate-950/60">
+                            <CardHeader>
+                              <CardTitle>What Your Taste Rarely Rewards</CardTitle>
+                              <CardDescription>Lower-lift plot tags where your ratings do not rise much above your baseline.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex flex-wrap gap-2">
+                                {cinematicLifeReading.lowLift.map((item) => (
+                                  <span key={`low-${item.tag_type}-${item.tag}`} className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-sm text-slate-300">
+                                    {item.label} ({item.lift >= 0 ? '+' : ''}{item.lift.toFixed(1)})
+                                  </span>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
 
                         <Card className="border-slate-700/70 bg-slate-950/60">
                           <CardHeader>
