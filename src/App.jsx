@@ -51,6 +51,7 @@ import {
   Gauge,
   Layers,
   Palette,
+  Search,
   RefreshCw,
   Trash2,
 } from 'lucide-react';
@@ -1058,6 +1059,66 @@ const getTagConstellations = (highRatedFilms = [], userAverageRating = 0) => {
     .slice(0, 5);
 };
 
+const PLOT_KEYWORD_MOTIF_LABELS = {
+  rape: 'sexual violence',
+  sexual_violence: 'sexual violence',
+  raped: 'sexual violence',
+  young_women: 'vulnerable young women',
+  murdered: 'violent crime',
+  murder: 'violent crime',
+  serial_murder: 'serial crime',
+  unknown_culprit: 'unresolved culprit',
+  culprit: 'culprit uncertainty',
+  detectives: 'detective work',
+  detective: 'detective work',
+  investigation: 'investigation',
+  korean: 'Korean stories',
+  korea: 'Korean stories',
+};
+const PLOT_KEYWORD_MOTIF_DESCRIPTIONS = {
+  rape: 'This appears as contextual evidence around films where violence, vulnerability, and institutional pressure shape the story.',
+  sexual_violence: 'This appears as contextual evidence around films where violence, vulnerability, and institutional pressure shape the story.',
+  young_women: 'This appears in films where vulnerability, gendered pressure, or threatened safety becomes part of the human stakes.',
+  murdered: 'This appears in films where violent crime creates moral pressure, fear, investigation, or social consequence.',
+  murder: 'This appears in films where violent crime creates moral pressure, fear, investigation, or social consequence.',
+  serial_murder: 'This appears in films where repeated violence creates social fear, procedural pressure, or moral unease.',
+  unknown_culprit: 'This appears in films where uncertainty, pursuit, and unresolved guilt drive the emotional pressure.',
+  culprit: 'This appears in films where uncertainty, pursuit, and unresolved guilt drive the emotional pressure.',
+  detectives: 'This appears in films where inquiry, procedure, and flawed human judgment shape the story.',
+  detective: 'This appears in films where inquiry, procedure, and flawed human judgment shape the story.',
+  investigation: 'This appears in films where inquiry, procedure, and flawed human judgment shape the story.',
+  korean: 'This appears as a recurring cultural or geographic marker in films you rate above your baseline.',
+  korea: 'This appears as a recurring cultural or geographic marker in films you rate above your baseline.',
+};
+const GENERIC_PLOT_KEYWORDS = new Set([
+  'film', 'story', 'man', 'woman', 'people', 'world', 'family', 'life', 'young', 'small', 'multiple',
+]);
+const getPlotKeywordMotifLabel = (tag = '') => {
+  const key = String(tag || '').toLowerCase();
+  return PLOT_KEYWORD_MOTIF_LABELS[key] || tagDisplayLabel({ tag });
+};
+const getPlotKeywordMotifs = (taggedMovies = []) => {
+  const plotKeywordAffinities = getUserTagAffinity(taggedMovies)
+    .filter((tag) => tag?.tag_type === 'plot_keyword')
+    .filter((tag) => !GENERIC_PLOT_KEYWORDS.has(String(tag?.tag || '').toLowerCase()))
+    .filter((tag) => getTagLift(tag) > 0 && safeNumber(tag?.count) >= 3 && hasUsableTagConfidence(tag))
+    .map((tag) => {
+      const key = String(tag?.tag || '').toLowerCase();
+      return {
+        ...tag,
+        label: getPlotKeywordMotifLabel(tag?.tag),
+        confidenceLabel: getTagConfidenceLabel(tag?.confidence),
+        description: PLOT_KEYWORD_MOTIF_DESCRIPTIONS[key] || `This appears as recurring supporting evidence in films you rate above your baseline, without becoming a personality label on its own.`,
+        motifScore: getTagLift(tag) * Math.log10(safeNumber(tag?.count) + 1) * getTagConfidenceWeight(tag?.confidence),
+      };
+    })
+    .sort((a, b) => b.motifScore - a.motifScore || getTagLift(b) - getTagLift(a));
+
+  return plotKeywordAffinities
+    .filter((tag, index, all) => all.findIndex((item) => item.label.toLowerCase() === tag.label.toLowerCase()) === index)
+    .slice(0, 8);
+};
+
 const buildTastePersonalityReport = (movies = [], personalReading = null, cinematicLifeReading = null) => {
   const ratedMovies = Array.isArray(movies) ? movies.filter((movie) => safeNumber(movie?.yourRating || movie?.rating) > 0) : [];
   const taggedRatedMovies = ensureCinematicLifeTagsForMovies(ratedMovies);
@@ -1109,6 +1170,7 @@ const buildTastePersonalityReport = (movies = [], personalReading = null, cinema
   const emotionalTextures = getTagsByCategory(rewardedTags, ['tone_texture', 'emotional_moral_theme']).slice(0, 4);
   const characterPatterns = getTagsByCategory(rewardedTags, ['story_situation', 'social_context', 'social_world', 'emotional_moral_theme']).slice(0, 6);
   const constellations = getTagConstellations(taggedRatedMovies, userAverageRating);
+  const plotKeywordMotifs = getPlotKeywordMotifs(taggedRatedMovies);
 
   return {
     stats,
@@ -1123,6 +1185,7 @@ const buildTastePersonalityReport = (movies = [], personalReading = null, cinema
     emotionalTextures,
     characterPatterns,
     constellations,
+    plotKeywordMotifs,
     negativeLiftTags,
     innerPattern: personalReading?.innerPattern || '',
     compass: getCompassStatements(topSignals, rewardedTags),
@@ -1284,10 +1347,42 @@ const TastePersonalityReportView = ({ report }) => {
         <section className="space-y-4">
           <div>
             <h3 className="text-xl font-bold text-white">Tags You Consistently Reward</h3>
-            <p className="mt-1 text-sm text-slate-400">Positive-lift plot tags that reliably sit above your own rating baseline.</p>
+            <p className="mt-1 text-sm text-slate-400">Positive-lift semantic tags that reliably sit above your own rating baseline.</p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {report.rewardedTags.slice(0, 6).map((item) => renderLiftCard(item))}
+          </div>
+        </section>
+      )}
+
+      {report.plotKeywordMotifs.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">Recurring Plot Motifs</h3>
+            <p className="mt-1 text-sm text-slate-400">Raw plot keywords used as supporting evidence, translated into safer recurring motifs.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {report.plotKeywordMotifs.map((item) => (
+              <Card key={`motif-${item.tag}`} className="border-slate-700/70 bg-slate-950/60">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="font-semibold capitalize text-white">{item.label}</h4>
+                      <p className="mt-1 text-xs text-slate-500">Plot motif</p>
+                    </div>
+                    <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-100">
+                      +{item.lift.toFixed(1)}
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-300">{item.description}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{item.count} films</span>
+                    <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{item.confidenceLabel}</span>
+                  </div>
+                  {renderAnchorFilms(item)}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </section>
       )}
@@ -1446,6 +1541,7 @@ export default function App() {
   const [watchedDirectorFilter, setWatchedDirectorFilter] = useState('all');
   const [watchedSortBy, setWatchedSortBy] = useState('year_desc');
   const [watchedMoreFiltersOpen, setWatchedMoreFiltersOpen] = useState(false);
+  const [watchedSearchDraft, setWatchedSearchDraft] = useState('');
   const [watchedSearchQuery, setWatchedSearchQuery] = useState('');
   const [selectedTopGenre, setSelectedTopGenre] = useState('all');
   const [topGenrePage, setTopGenrePage] = useState(1);
@@ -8017,6 +8113,10 @@ const [user, setUser] = useState(null);
   const isMembersTopActive =
     activeTab === 'members' ||
     (Boolean(memberViewUserId) && !['following', 'followers', 'settings'].includes(activeTab));
+  const submitWatchedSearch = () => {
+    setWatchedSearchQuery(watchedSearchDraft.trim());
+    setWatchedPage(1);
+  };
   const handleTabChange = (tabId) => {
     if (publicCommunityMode && !user && !memberViewUserId) {
       if (tabId === 'members') {
@@ -10438,13 +10538,26 @@ const [user, setUser] = useState(null);
                         <p className="text-xs text-gray-400 mt-1">Every rated film, searchable by title, plot, cast, tags, year, and metadata.</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <input
-                          type="text"
-                          value={watchedSearchQuery}
-                          onChange={(e) => setWatchedSearchQuery(e.target.value)}
-                          placeholder="Search films, plots, actors, tags..."
-                          className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 w-56 sm:w-72"
-                        />
+                        <div className="flex h-10 w-full overflow-hidden rounded-lg border border-gray-700 bg-[#0b1220] sm:w-[34rem] lg:w-[40rem]">
+                          <input
+                            type="text"
+                            value={watchedSearchDraft}
+                            onChange={(e) => setWatchedSearchDraft(e.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') submitWatchedSearch();
+                            }}
+                            placeholder="Search films, plots, actors, tags, years..."
+                            className="min-w-0 flex-1 bg-transparent px-3 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={submitWatchedSearch}
+                            className="flex w-11 flex-none items-center justify-center border-l border-gray-700 text-gray-300 hover:bg-[#101a2d] hover:text-white"
+                            aria-label="Search film archive"
+                          >
+                            <Search className="h-4 w-4" />
+                          </button>
+                        </div>
                         <Select value={watchedSortBy} onValueChange={setWatchedSortBy}>
                           <SelectTrigger className="h-10 w-full sm:w-64">
                             <SelectValue placeholder="Sort by" />
