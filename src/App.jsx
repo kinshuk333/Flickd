@@ -55,7 +55,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import TasteAtlasSection from './components/TasteAtlasSection';
-import RecallFromMyFilms from './components/RecallFromMyFilms';
+import { searchRecallFilms } from './utils/recallSearch';
 import {
   ensureCinematicLifeTagsForMovies,
   getCinematicLifeTagReading,
@@ -6158,14 +6158,13 @@ const [user, setUser] = useState(null);
     return year >= decadeStart && year <= decadeStart + 9;
   });
 
-  const watchedFilteredFilms = (data || []).filter((movie) => {
+  const watchedSearchText = watchedSearchQuery.trim();
+  const watchedBaseFilteredFilms = (data || []).filter((movie) => {
     if (movie?.titleType && movie.titleType !== 'movie') return false;
 
     const year = Number(movie?.year) || 0;
     const rating = Number(movie?.yourRating) || 0;
     const genresText = String(movie?.genres || '').toLowerCase();
-    const titleText = String(movie?.title || '').toLowerCase();
-    const query = watchedSearchQuery.trim().toLowerCase();
 
     if (watchedDecadeFilter !== 'all') {
       const decadeStart = Number(watchedDecadeFilter);
@@ -6189,10 +6188,20 @@ const [user, setUser] = useState(null);
       const directors = String(movie?.directors || '').toLowerCase();
       if (!directors.split(',').map((d) => d.trim()).includes(watchedDirectorFilter.toLowerCase())) return false;
     }
-    if (query && !titleText.includes(query)) return false;
 
     return true;
-  }).sort((a, b) => {
+  });
+
+  const watchedFilteredFilms = (watchedSearchText
+    ? searchRecallFilms(watchedBaseFilteredFilms, watchedSearchText, { limit: watchedBaseFilteredFilms.length })
+      .map((match) => ({
+        ...(match.source || match),
+        archiveSearchConfidence: match.confidence,
+        archiveSearchReason: match.whyMatched,
+      }))
+    : watchedBaseFilteredFilms
+  ).sort((a, b) => {
+    if (watchedSearchText) return (Number(b?.archiveSearchConfidence) || 0) - (Number(a?.archiveSearchConfidence) || 0);
     if (watchedSortBy === 'year_asc') return (Number(a?.year) || 0) - (Number(b?.year) || 0);
     if (watchedSortBy === 'rating_desc') return (Number(b?.yourRating) || 0) - (Number(a?.yourRating) || 0);
     if (watchedSortBy === 'rating_asc') return (Number(a?.yourRating) || 0) - (Number(b?.yourRating) || 0);
@@ -7997,7 +8006,6 @@ const [user, setUser] = useState(null);
     { id: 'overview', label: 'Overview' },
     { id: 'personality', label: 'Identity' },
     { id: 'allwatched', label: 'Film Archive' },
-    { id: 'memory', label: 'Memory' },
     { id: 'tastetimeline', label: 'Timeline Map' },
     { id: 'mytrace', label: "Director's Fingerprint" },
     { id: 'moodboard', label: 'Filmboards' },
@@ -10427,15 +10435,15 @@ const [user, setUser] = useState(null);
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                       <div>
                         <h2 className="text-lg font-semibold text-white">Film Archive</h2>
-                        <p className="text-xs text-gray-400 mt-1">Every rated film, organized as a living archive of taste.</p>
+                        <p className="text-xs text-gray-400 mt-1">Every rated film, searchable by title, plot, cast, tags, year, and metadata.</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           type="text"
                           value={watchedSearchQuery}
                           onChange={(e) => setWatchedSearchQuery(e.target.value)}
-                          placeholder="Search title..."
-                          className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 w-40 sm:w-52"
+                          placeholder="Search films, plots, actors, tags..."
+                          className="bg-[#0b1220] border border-gray-700 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 w-56 sm:w-72"
                         />
                         <Select value={watchedSortBy} onValueChange={setWatchedSortBy}>
                           <SelectTrigger className="h-10 w-full sm:w-64">
@@ -10538,6 +10546,7 @@ const [user, setUser] = useState(null);
                     )}
                     <p className="text-xs text-gray-400 mt-3">
                       Showing {watchedFilteredFilms.length === 0 ? 0 : (watchedSafePage - 1) * watchedFilmsPerPage + 1} - {Math.min(watchedSafePage * watchedFilmsPerPage, watchedFilteredFilms.length)} of {watchedFilteredFilms.length} films
+                      {watchedSearchText ? ' by best match' : ''}
                     </p>
                   </div>
 
@@ -10576,6 +10585,11 @@ const [user, setUser] = useState(null);
                               {movie.title}
                             </button>
                             <div className="flickd-poster-meta">{movie.year} {"\u2605"} {movie.yourRating}</div>
+                            {watchedSearchText && movie.archiveSearchReason ? (
+                              <div className="mt-1 line-clamp-2 text-[10px] leading-snug text-blue-200/80">
+                                {movie.archiveSearchReason.replace(/^Why this matched:\s*/i, '')}
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -10604,13 +10618,6 @@ const [user, setUser] = useState(null);
                     )}
                   </div>
                 </div>
-              )}
-{activeTab === 'memory' && (
-                <RecallFromMyFilms
-                  userMovies={data || []}
-                  posters={posters}
-                  onMovieClick={handleMovieClick}
-                />
               )}
 {activeTab === 'mytrace' && (
                 <div className="space-y-4">

@@ -13,7 +13,7 @@ const FIELD_KEYS = {
   userRating: ['userRating', 'rating', 'Rating', 'Your Rating', 'yourRating'],
   poster: ['poster', 'Poster', 'posterUrl', 'posterURL', 'image', 'Image'],
   awards: ['awards', 'Awards'],
-  keywords: ['keywords', 'Keywords', 'tags', 'Tags'],
+  keywords: ['keywords', 'Keywords', 'tags', 'Tags', 'cinematicLifeTags', 'themeTags', 'movieTags'],
 };
 
 const SEARCHABLE_FIELDS = [
@@ -39,6 +39,9 @@ const FIELD_LABELS = {
   country: 'country',
   language: 'language',
   plot: 'plot',
+  awards: 'awards',
+  keywords: 'film tags',
+  userRating: 'rating',
   searchableText: 'movie details',
 };
 
@@ -55,8 +58,28 @@ const QUERY_EXPANSIONS = {
 };
 
 const safeString = (value) => {
-  if (Array.isArray(value)) return value.filter(Boolean).join(', ');
-  if (value && typeof value === 'object') return Object.values(value).filter(Boolean).join(', ');
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (entry && typeof entry === 'object') {
+          return [entry.tag, entry.label, entry.tag_type, entry.reason].filter(Boolean).join(' ');
+        }
+        return entry;
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value)
+      .map((entry) => {
+        if (entry && typeof entry === 'object') {
+          return [entry.tag, entry.label, entry.tag_type, entry.reason].filter(Boolean).join(' ');
+        }
+        return entry;
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
   return value == null ? '' : String(value);
 };
 
@@ -179,7 +202,10 @@ const fallbackScore = (item, query) => {
     if (item.normalizedFields.genre.includes(token)) score += 2;
     if (item.normalizedFields.country.includes(token)) score += 2;
     if (item.normalizedFields.language.includes(token)) score += 2;
+    if (item.normalizedFields.keywords.includes(token)) score += 2;
+    if (item.normalizedFields.year.includes(token)) score += 1.5;
     if (item.normalizedFields.plot.includes(token)) score += 1.5;
+    if (item.normalizedFields.awards.includes(token)) score += 1;
     if (item.normalizedFields.searchableText.includes(token)) score += 1;
   });
 
@@ -198,10 +224,13 @@ const fallbackSearch = (items, query, existingIndexes = new Set(), limit = 10) =
     whyMatched: buildWhyMatched(result.item, query),
   }));
 
-export function searchRecallFilms(userMovies = [], query = '') {
+export function searchRecallFilms(userMovies = [], query = '', options = {}) {
   const items = buildRecallSearchItems(userMovies);
   const trimmedQuery = String(query || '').trim();
   if (!items.length || !trimmedQuery) return [];
+  const limit = Number.isFinite(Number(options?.limit))
+    ? Math.max(1, Number(options.limit))
+    : 10;
 
   try {
     const fuse = new Fuse(items, {
@@ -217,13 +246,16 @@ export function searchRecallFilms(userMovies = [], query = '') {
         { name: 'genre', weight: 0.11 },
         { name: 'country', weight: 0.08 },
         { name: 'language', weight: 0.06 },
-        { name: 'plot', weight: 0.05 },
+        { name: 'keywords', weight: 0.08 },
+        { name: 'year', weight: 0.07 },
+        { name: 'plot', weight: 0.06 },
+        { name: 'awards', weight: 0.03 },
         { name: 'searchableText', weight: 0.02 },
       ],
     });
 
     const expandedQuery = expandQuery(trimmedQuery);
-    const fuseResults = fuse.search(expandedQuery, { limit: 10 })
+    const fuseResults = fuse.search(expandedQuery, { limit })
       .filter((result) => Number(result.score) <= 0.58)
       .map((result) => ({
         ...result.item,
@@ -231,14 +263,14 @@ export function searchRecallFilms(userMovies = [], query = '') {
         whyMatched: buildWhyMatched(result.item, trimmedQuery, result.matches),
       }));
 
-    if (fuseResults.length >= 10) return fuseResults.slice(0, 10);
+    if (fuseResults.length >= limit) return fuseResults.slice(0, limit);
 
     const existingIndexes = new Set(fuseResults.map((result) => result.index));
     return [
       ...fuseResults,
-      ...fallbackSearch(items, trimmedQuery, existingIndexes, 10 - fuseResults.length),
-    ].slice(0, 10);
+      ...fallbackSearch(items, trimmedQuery, existingIndexes, limit - fuseResults.length),
+    ].slice(0, limit);
   } catch {
-    return fallbackSearch(items, trimmedQuery);
+    return fallbackSearch(items, trimmedQuery, new Set(), limit);
   }
 }
