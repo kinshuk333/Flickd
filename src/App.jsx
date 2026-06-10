@@ -1119,6 +1119,99 @@ const getPlotKeywordMotifs = (taggedMovies = []) => {
     .slice(0, 8);
 };
 
+const getFirstTagByTypes = (tags = [], types = []) => (
+  tags.find((tag) => types.includes(tag?.tag_type)) || null
+);
+const getPlotTasteProfile = (taggedMovies = [], userAverageRating = 0, rewardedTags = [], plotKeywordMotifs = []) => {
+  const highRatedMovies = taggedMovies
+    .filter((movie) => safeNumber(movie?.yourRating || movie?.rating) >= Math.max(8, userAverageRating + 0.75))
+    .sort((a, b) => safeNumber(b?.yourRating || b?.rating) - safeNumber(a?.yourRating || a?.rating));
+  const candidateMovies = highRatedMovies.length >= 8
+    ? highRatedMovies
+    : taggedMovies
+      .filter((movie) => safeNumber(movie?.yourRating || movie?.rating) >= userAverageRating + 0.5)
+      .sort((a, b) => safeNumber(b?.yourRating || b?.rating) - safeNumber(a?.yourRating || a?.rating));
+  const patterns = new Map();
+
+  candidateMovies.forEach((movie) => {
+    const rating = safeNumber(movie?.yourRating || movie?.rating);
+    const tags = (Array.isArray(movie?.cinematicLifeTags) ? movie.cinematicLifeTags : [])
+      .filter((tag) => tag?.tag && tag?.tag_type && tag.tag_type !== 'plot_keyword')
+      .filter((tag) => ['story_situation', 'social_context', 'social_world', 'setting', 'tone_texture', 'emotional_moral_theme', 'life_stage'].includes(tag.tag_type));
+    const situation = getFirstTagByTypes(tags, ['story_situation', 'social_world', 'life_stage']);
+    const world = getFirstTagByTypes(tags, ['setting', 'social_context']);
+    const pressure = getFirstTagByTypes(tags, ['emotional_moral_theme', 'tone_texture']);
+    if (!situation || !pressure) return;
+
+    const parts = [
+      tagDisplayLabel(situation),
+      world ? tagDisplayLabel(world) : null,
+      tagDisplayLabel(pressure),
+    ].filter(Boolean);
+    const key = parts.map((part) => part.toLowerCase()).join('|');
+    if (!patterns.has(key)) {
+      patterns.set(key, {
+        key,
+        situation: tagDisplayLabel(situation),
+        world: world ? tagDisplayLabel(world) : '',
+        pressure: tagDisplayLabel(pressure),
+        count: 0,
+        ratingSum: 0,
+        films: [],
+      });
+    }
+    const pattern = patterns.get(key);
+    pattern.count += 1;
+    pattern.ratingSum += rating;
+    if (pattern.films.length < 4) {
+      pattern.films.push({
+        title: movie?.title || 'Unknown Title',
+        year: movie?.year || '',
+        rating,
+      });
+    }
+  });
+
+  const plotSetups = Array.from(patterns.values())
+    .filter((pattern) => pattern.count >= 2)
+    .map((pattern) => ({
+      ...pattern,
+      averageRating: pattern.count ? pattern.ratingSum / pattern.count : 0,
+      title: pattern.world
+        ? `${pattern.situation} in ${pattern.world}`
+        : pattern.situation,
+      description: `You often rate these higher when the plot turns ${pattern.situation} into ${pattern.pressure}${pattern.world ? ` within ${pattern.world}` : ''}.`,
+    }))
+    .sort((a, b) => b.count - a.count || b.averageRating - a.averageRating)
+    .slice(0, 5);
+
+  const plotIngredients = rewardedTags
+    .filter((tag) => ['story_situation', 'social_context', 'social_world', 'emotional_moral_theme', 'life_stage'].includes(tag?.tag_type))
+    .slice(0, 8)
+    .map((tag) => ({
+      ...tag,
+      reading: `Plots involving ${tag.label} tend to sit above your rating baseline, especially when the film gives the situation emotional consequence instead of treating it as decoration.`,
+    }));
+
+  const topMotifs = plotKeywordMotifs.slice(0, 6);
+  const lovedFilmTitles = candidateMovies.slice(0, 6).map((movie) => movie?.title).filter(Boolean);
+  const summaryParts = [
+    plotIngredients[0]?.label,
+    plotIngredients[1]?.label,
+    topMotifs[0]?.label,
+  ].filter(Boolean);
+
+  return {
+    plotSetups,
+    plotIngredients,
+    motifs: topMotifs,
+    lovedFilmTitles,
+    summary: summaryParts.length
+      ? `Your highest-rated films suggest you respond to plots built around ${joinReadable(summaryParts)} when those elements create pressure, consequence, or moral/emotional ambiguity.`
+      : 'Your highest-rated films suggest you respond to plots where human pressure, consequence, and atmosphere are tied closely to the story setup.',
+  };
+};
+
 const buildTastePersonalityReport = (movies = [], personalReading = null, cinematicLifeReading = null) => {
   const ratedMovies = Array.isArray(movies) ? movies.filter((movie) => safeNumber(movie?.yourRating || movie?.rating) > 0) : [];
   const taggedRatedMovies = ensureCinematicLifeTagsForMovies(ratedMovies);
@@ -1171,6 +1264,7 @@ const buildTastePersonalityReport = (movies = [], personalReading = null, cinema
   const characterPatterns = getTagsByCategory(rewardedTags, ['story_situation', 'social_context', 'social_world', 'emotional_moral_theme']).slice(0, 6);
   const constellations = getTagConstellations(taggedRatedMovies, userAverageRating);
   const plotKeywordMotifs = getPlotKeywordMotifs(taggedRatedMovies);
+  const plotTasteProfile = getPlotTasteProfile(taggedRatedMovies, userAverageRating, rewardedTags, plotKeywordMotifs);
 
   return {
     stats,
@@ -1186,6 +1280,7 @@ const buildTastePersonalityReport = (movies = [], personalReading = null, cinema
     characterPatterns,
     constellations,
     plotKeywordMotifs,
+    plotTasteProfile,
     negativeLiftTags,
     innerPattern: personalReading?.innerPattern || '',
     compass: getCompassStatements(topSignals, rewardedTags),
@@ -1299,6 +1394,64 @@ const TastePersonalityReportView = ({ report }) => {
           </div>
         </CardContent>
       </Card>
+
+      {report.plotTasteProfile && (
+        <section className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-200">Plot Taste Profile</p>
+            <h3 className="mt-1 text-2xl font-black tracking-tight text-white">The Kinds of Plots You Seem to Love</h3>
+            <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-400">{report.plotTasteProfile.summary}</p>
+          </div>
+
+          {report.plotTasteProfile.plotSetups.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {report.plotTasteProfile.plotSetups.map((pattern) => (
+                <Card key={pattern.key} className="border-blue-400/20 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(8,13,26,0.98))]">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="font-semibold capitalize text-white">{pattern.title}</h4>
+                        <p className="mt-1 text-xs text-slate-500">Recurring high-rated plot setup</p>
+                      </div>
+                      <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-100">
+                        {pattern.count} films
+                      </span>
+                    </div>
+                    <p className="mt-4 text-sm leading-relaxed text-slate-300">{pattern.description}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {pattern.films.map((film) => (
+                        <span key={`${pattern.key}-${film.title}`} className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">
+                          {film.title}{film.year ? ` (${film.year})` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {report.plotTasteProfile.plotIngredients.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {report.plotTasteProfile.plotIngredients.slice(0, 4).map((item) => (
+                <Card key={`plot-ingredient-${item.tag_type}-${item.tag}`} className="border-slate-700/70 bg-slate-950/60">
+                  <CardContent className="p-5">
+                    <h4 className="font-semibold capitalize text-white">{item.label}</h4>
+                    <p className="mt-1 text-xs text-slate-500">{TAG_CATEGORY_LABELS[item.tag_type] || 'Plot ingredient'}</p>
+                    <p className="mt-4 text-sm leading-relaxed text-slate-300">{item.reading}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100">
+                        +{item.lift.toFixed(1)} lift
+                      </span>
+                      <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-300">{item.count} films</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="space-y-3">
         <div>
