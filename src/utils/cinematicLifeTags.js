@@ -1,4 +1,4 @@
-const TAGGER_VERSION = 'v1';
+const TAGGER_VERSION = 'v2';
 
 const TAXONOMY = {
   setting: [
@@ -46,6 +46,7 @@ const TAXONOMY = {
     'sacrifice', 'obsession', 'moral_ambiguity', 'justice', 'corruption', 'shame', 'identity_confusion',
     'emotional_repression', 'alienation', 'hope', 'disillusionment', 'vulnerability', 'female_interiority',
   ],
+  plot_keyword: [],
 };
 
 const IMPORTANCE_WEIGHT = { primary: 1, secondary: 0.65, fallback: 0.35 };
@@ -56,6 +57,7 @@ const TYPE_LABELS = {
   story_situation: 'Social Situations You Reward',
   tone_texture: 'Emotional Textures',
   emotional_moral_theme: 'Emotional Textures',
+  plot_keyword: 'Plot Keywords',
 };
 
 const compact = (value) => String(value || '').replace(/_/g, ' ');
@@ -68,6 +70,73 @@ const normalizeText = (value) => String(value || '')
 const hasAny = (text, phrases = []) => phrases.some((phrase) => text.includes(normalizeText(phrase)));
 const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, Number(value) || 0));
 const normalize = (value, min, max) => clamp(((Number(value) || 0) - min) / Math.max(1, max - min) * 100);
+
+const PLOT_KEYWORD_STOPWORDS = new Set([
+  'about', 'after', 'again', 'against', 'along', 'also', 'amid', 'among', 'around', 'away', 'because',
+  'been', 'being', 'between', 'both', 'case', 'comes', 'down', 'during', 'each', 'find', 'found',
+  'from', 'gets', 'goes', 'have', 'having', 'into', 'just', 'life', 'like', 'more', 'must',
+  'multiple', 'only', 'over', 'small', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'through', 'under',
+  'until', 'upon', 'when', 'where', 'while', 'with', 'without', 'young',
+  'the', 'and', 'for', 'that', 'his', 'her', 'she', 'him', 'who', 'two', 'one', 'its', 'are',
+  'was', 'were', 'has', 'had', 'but', 'not', 'you', 'all', 'own', 'out', 'new',
+]);
+const PLOT_KEYWORD_ALIASES = new Map([
+  ['korean', 'korea'],
+  ['south_korean', 'korea'],
+  ['raped', 'rape'],
+  ['rapes', 'rape'],
+  ['murdered', 'murder'],
+  ['murders', 'murder'],
+  ['detective', 'detectives'],
+  ['culprits', 'culprit'],
+]);
+const PLOT_KEYWORD_PHRASES = [
+  ['young_women', ['young women', 'young woman']],
+  ['sexual_violence', ['raped', 'rape', 'sexual assault', 'sexually assaulted']],
+  ['serial_murder', ['serial killer', 'multiple murders', 'multiple young women', 'raped and murdered']],
+  ['unknown_culprit', ['unknown culprit', 'unknown killer', 'unknown murderer']],
+  ['korea', ['korean', 'south korean', 'korea']],
+];
+const keywordTag = (value) => {
+  const normalized = normalizeText(value).replace(/-/g, ' ').replace(/\s+/g, '_');
+  return PLOT_KEYWORD_ALIASES.get(normalized) || normalized;
+};
+const extractPlotKeywordTags = (plot = '') => {
+  const text = normalizeText(plot);
+  if (!text) return [];
+  const keywords = new Map();
+  const addKeyword = (tag, reason, confidence = 0.82) => {
+    const safeTag = keywordTag(tag);
+    if (!safeTag || safeTag.length < 2 || PLOT_KEYWORD_STOPWORDS.has(safeTag)) return;
+    if (!keywords.has(safeTag)) keywords.set(safeTag, { tag: safeTag, reason, confidence });
+  };
+
+  PLOT_KEYWORD_PHRASES.forEach(([tag, phrases]) => {
+    const phrase = phrases.find((candidate) => hasAny(text, [candidate]));
+    if (phrase) addKeyword(tag, `Plot keyword phrase: ${phrase}.`, 0.9);
+  });
+
+  const words = text.split(/\s+/).filter(Boolean);
+  words.forEach((word) => {
+    const safe = keywordTag(word);
+    if (/^\d{4}$/.test(safe)) {
+      addKeyword(safe, `Plot mentions ${safe}.`, 0.86);
+      return;
+    }
+    if (safe.length < 4 || PLOT_KEYWORD_STOPWORDS.has(safe)) return;
+    addKeyword(safe, `Plot keyword: ${word}.`, 0.78);
+  });
+
+  words.forEach((word, index) => {
+    const first = keywordTag(word);
+    const second = keywordTag(words[index + 1] || '');
+    if (!first || !second || first.length < 4 || second.length < 4) return;
+    if (PLOT_KEYWORD_STOPWORDS.has(first) || PLOT_KEYWORD_STOPWORDS.has(second)) return;
+    addKeyword(`${first}_${second}`, `Plot keyword phrase: ${word} ${words[index + 1]}.`, 0.84);
+  });
+
+  return Array.from(keywords.values()).slice(0, 30);
+};
 
 const RULES = [
   ['high_school', 'setting', ['high school', 'school student', 'classmate', 'school life']],
@@ -245,7 +314,7 @@ export const inferCinematicLifeTags = (movie = {}) => {
 
   const add = (tag) => {
     const allowed = TAXONOMY[tag.tag_type] || [];
-    if (!allowed.includes(tag.tag)) return;
+    if (tag.tag_type !== 'plot_keyword' && !allowed.includes(tag.tag)) return;
     const existing = byTag.get(`${tag.tag_type}:${tag.tag}`);
     if (!existing || IMPORTANCE_WEIGHT[tag.importance] > IMPORTANCE_WEIGHT[existing.importance] || tag.confidence > existing.confidence) {
       byTag.set(`${tag.tag_type}:${tag.tag}`, makeTag(tag));
@@ -302,6 +371,22 @@ export const inferCinematicLifeTags = (movie = {}) => {
     if (genres.includes(String(genre).toLowerCase())) add({ tag, tag_type, importance, confidence, source: 'genre_fallback', reason });
   });
 
+  if (hasAny(text, ['rape', 'raped', 'sexual assault', 'murdered', 'murder'])) {
+    byTag.delete('tone_texture:playful');
+    byTag.delete('tone_texture:warm');
+  }
+
+  extractPlotKeywordTags(plot).forEach((keyword) => {
+    add({
+      tag: keyword.tag,
+      tag_type: 'plot_keyword',
+      importance: 'secondary',
+      confidence: keyword.confidence,
+      source: 'plot_keyword',
+      reason: keyword.reason,
+    });
+  });
+
   if (!hasStrongPlot(plot)) {
     add({ tag: 'realist', tag_type: 'tone_texture', importance: 'fallback', confidence: 0.45, source: 'genre_fallback', reason: 'Plot data is missing or short, so this tag is a weak fallback.' });
   }
@@ -324,7 +409,7 @@ export const inferCinematicLifeTags = (movie = {}) => {
     }
     return { ...tag, importance };
   });
-  return normalized.slice(0, Math.max(4, Math.min(12, normalized.length)));
+  return normalized.slice(0, Math.max(4, Math.min(36, normalized.length)));
 };
 
 export const withCachedCinematicLifeTags = (movie = {}) => {
@@ -352,9 +437,16 @@ export const getUserTagAffinity = (userRatings = [], movieTags = null) => {
   const grouped = new Map();
 
   rows.forEach((movie) => {
-    const tags = externalTags?.get(filmKey(movie)) || movie?.cinematicLifeTags || [];
+    const seenMovieTags = new Set();
+    const tags = (externalTags?.get(filmKey(movie)) || movie?.cinematicLifeTags || [])
+      .filter((tag) => {
+        if (!tag?.tag || !tag?.tag_type) return false;
+        const key = `${tag.tag_type}:${tag.tag}`;
+        if (seenMovieTags.has(key)) return false;
+        seenMovieTags.add(key);
+        return true;
+      });
     tags.forEach((tag) => {
-      if (!tag?.tag || !tag?.tag_type) return;
       const rating = Number(movie?.yourRating || movie?.rating) || 0;
       const key = `${tag.tag_type}:${tag.tag}`;
       if (!grouped.has(key)) {

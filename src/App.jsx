@@ -863,6 +863,7 @@ const TAG_CATEGORY_LABELS = {
   story_situation: 'Story situation',
   tone_texture: 'Emotional texture',
   emotional_moral_theme: 'Character and conflict',
+  plot_keyword: 'Plot keyword',
 };
 
 const getTagLift = (tag) => safeNumber(tag?.lift);
@@ -1081,7 +1082,8 @@ const buildTastePersonalityReport = (movies = [], personalReading = null, cinema
       distinctTagKeys.add(`${tag.tag_type}:${tag.tag}`);
     });
   });
-  const rawAffinities = getUserTagAffinity(taggedRatedMovies);
+  const rawAffinities = getUserTagAffinity(taggedRatedMovies)
+    .filter((tag) => tag?.tag_type !== 'plot_keyword');
   const rewardedTags = getRewardedTags(rawAffinities);
   const rewardedKeys = new Set(rewardedTags.map((tag) => `${tag.tag_type}:${tag.tag}`));
   const negativeLiftTags = getNegativeLiftTags(rawAffinities, rewardedKeys);
@@ -2634,9 +2636,11 @@ const [user, setUser] = useState(null);
   const OMDB_CACHE_TABLE = 'omdb_cache';
   const MOVIE_CACHE_TABLE = 'movie_cache';
   const MOVIE_THEME_TAGS_TABLE = 'movie_theme_tags';
+  const MOVIE_THEME_TAG_SETS_TABLE = 'movie_theme_tag_sets';
   const OMDB_FETCH_TIMEOUT_MS = 8000;
   const invalidOmdbKeysRef = React.useRef(new Set());
   const movieThemeTagsAvailableRef = React.useRef(true);
+  const movieThemeTagSetsAvailableRef = React.useRef(true);
 
   const hiddenGemsPerPage = 10;
   const hiddenTreasuresPerPage = 10;
@@ -2819,6 +2823,22 @@ const [user, setUser] = useState(null);
     tagger_version: row?.tagger_version || 'v1',
   });
 
+  const dedupeMovieThemeTags = (tags = []) => {
+    const byKey = new Map();
+    const importanceRank = { primary: 3, secondary: 2, fallback: 1 };
+    (Array.isArray(tags) ? tags : []).forEach((tag) => {
+      if (!tag?.tag || !tag?.tag_type) return;
+      const key = `${tag.tag_type}:${tag.tag}:${tag.tagger_version || 'v1'}`;
+      const existing = byKey.get(key);
+      const tagScore = (importanceRank[tag.importance] || 0) * 10 + (Number(tag.confidence) || 0);
+      const existingScore = existing ? (importanceRank[existing.importance] || 0) * 10 + (Number(existing.confidence) || 0) : -1;
+      if (!existing || tagScore > existingScore) {
+        byKey.set(key, tag);
+      }
+    });
+    return Array.from(byKey.values());
+  };
+
   const mergeCachedMovieThemeTags = (rows = [], tagRows = []) => {
     const tagsByCacheKey = new Map();
     (Array.isArray(tagRows) ? tagRows : []).forEach((tagRow) => {
@@ -2832,10 +2852,55 @@ const [user, setUser] = useState(null);
       const cacheKey = getMovieThemeTagCacheKey(row);
       const cachedTags = cacheKey ? tagsByCacheKey.get(cacheKey) : null;
       if (cachedTags?.length) {
-        return { ...row, cinematicLifeTags: cachedTags };
+        return { ...row, cinematicLifeTags: dedupeMovieThemeTags(cachedTags) };
       }
       return row;
     });
+  };
+
+  const fetchMovieThemeTagSetsForRows = async (rows = []) => {
+    if (!movieThemeTagSetsAvailableRef.current || !supabaseDataEnabled || !Array.isArray(rows) || rows.length === 0) {
+      return { tagRows: [], coveredCacheKeys: new Set() };
+    }
+    const cacheKeys = [...new Set(rows.map(getMovieThemeTagCacheKey).filter(Boolean))];
+    if (!cacheKeys.length) return { tagRows: [], coveredCacheKeys: new Set() };
+
+    const tagRows = [];
+    const coveredCacheKeys = new Set();
+    for (let i = 0; i < cacheKeys.length; i += 400) {
+      const keys = cacheKeys.slice(i, i + 400);
+      const { data: setRows, error } = await runSupabaseResilient(
+        'movie_theme_tag_sets:fetch',
+        () => {
+          let query = supabase
+            .from(MOVIE_THEME_TAG_SETS_TABLE)
+            .select('cache_key,tags')
+            .in('cache_key', keys);
+          query = user?.id ? query.or(`user_id.eq.${String(user.id)},user_id.is.null`) : query.is('user_id', null);
+          return query;
+        },
+        { timeoutMs: 10000, retries: 1 }
+      );
+      if (error) {
+        if (error?.code === 'PGRST205' || error?.status === 404 || String(error?.message || '').includes('does not exist')) {
+          movieThemeTagSetsAvailableRef.current = false;
+        }
+        console.warn('movie_theme_tag_sets fetch skipped:', error);
+        return { tagRows, coveredCacheKeys };
+      }
+
+      (Array.isArray(setRows) ? setRows : []).forEach((setRow) => {
+        const cacheKey = String(setRow?.cache_key || '').trim();
+        const tags = Array.isArray(setRow?.tags) ? setRow.tags : [];
+        if (!cacheKey || !tags.length) return;
+        coveredCacheKeys.add(cacheKey);
+        tags.forEach((tag) => {
+          tagRows.push({ cache_key: cacheKey, ...normalizeMovieThemeTagRow(tag) });
+        });
+      });
+    }
+
+    return { tagRows, coveredCacheKeys };
   };
 
   const fetchMovieThemeTagsForRows = async (rows = []) => {
@@ -2872,11 +2937,88 @@ const [user, setUser] = useState(null);
     return allTags;
   };
 
+  const fetchMovieThemeTagsForRowsWithSets = async (rows = []) => {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const { tagRows: setTagRows, coveredCacheKeys } = await fetchMovieThemeTagSetsForRows(safeRows);
+    const missingRows = safeRows.filter((row) => {
+      const cacheKey = getMovieThemeTagCacheKey(row);
+      return cacheKey && !coveredCacheKeys.has(cacheKey);
+    });
+    if (!missingRows.length) return setTagRows;
+    const legacyTagRows = await fetchMovieThemeTagsForRows(missingRows);
+    return setTagRows.concat(legacyTagRows);
+  };
+
+  const saveMovieThemeTagSetsForRows = async (rows = []) => {
+    if (!movieThemeTagSetsAvailableRef.current || !supabaseDataEnabled || !Array.isArray(rows) || rows.length === 0) return false;
+    const records = [];
+    rows.forEach((row) => {
+      const tags = dedupeMovieThemeTags(Array.isArray(row?.cinematicLifeTags) ? row.cinematicLifeTags : []);
+      const cacheKey = getMovieThemeTagCacheKey(row);
+      if (!cacheKey || !tags.length) return;
+      records.push({
+        user_id: user?.id || null,
+        movie_id: null,
+        imdb_id: row?.imdbId || row?.imdbID || row?.const || null,
+        cache_key: cacheKey,
+        title: row?.title || null,
+        year: Number(row?.year) || null,
+        tagger_version: tags.find((tag) => tag?.tagger_version)?.tagger_version || 'v2',
+        tags,
+        updated_at: new Date().toISOString(),
+      });
+    });
+    if (!records.length) return true;
+
+    const cacheKeys = [...new Set(records.map((record) => record.cache_key).filter(Boolean))];
+    for (let i = 0; i < cacheKeys.length; i += 100) {
+      const keys = cacheKeys.slice(i, i + 100);
+      const { error: deleteError } = await runSupabaseResilient(
+        'movie_theme_tag_sets:delete_existing',
+        () => {
+          let query = supabase
+            .from(MOVIE_THEME_TAG_SETS_TABLE)
+            .delete()
+            .in('cache_key', keys);
+          query = user?.id ? query.eq('user_id', user.id) : query.is('user_id', null);
+          return query;
+        },
+        { timeoutMs: 10000, retries: 1 }
+      );
+      if (deleteError) {
+        if (deleteError?.code === 'PGRST205' || deleteError?.status === 404 || String(deleteError?.message || '').includes('does not exist')) {
+          movieThemeTagSetsAvailableRef.current = false;
+        }
+        console.warn('movie_theme_tag_sets delete skipped:', deleteError);
+        return false;
+      }
+    }
+
+    for (let i = 0; i < records.length; i += 250) {
+      const chunk = records.slice(i, i + 250);
+      const { error } = await runSupabaseResilient(
+        'movie_theme_tag_sets:insert',
+        () => supabase.from(MOVIE_THEME_TAG_SETS_TABLE).insert(chunk),
+        { timeoutMs: 12000, retries: 1 }
+      );
+      if (error) {
+        if (error?.code === 'PGRST205' || error?.status === 404 || String(error?.message || '').includes('does not exist')) {
+          movieThemeTagSetsAvailableRef.current = false;
+        }
+        console.warn('movie_theme_tag_sets insert skipped:', error);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const saveMovieThemeTagsForRows = async (rows = []) => {
+    const savedTagSets = await saveMovieThemeTagSetsForRows(rows);
+    if (savedTagSets) return;
     if (!movieThemeTagsAvailableRef.current || !supabaseDataEnabled || !Array.isArray(rows) || rows.length === 0) return;
     const records = [];
     rows.forEach((row) => {
-      const tags = Array.isArray(row?.cinematicLifeTags) ? row.cinematicLifeTags : [];
+      const tags = dedupeMovieThemeTags(Array.isArray(row?.cinematicLifeTags) ? row.cinematicLifeTags : []);
       const cacheKey = getMovieThemeTagCacheKey(row);
       if (!cacheKey || !tags.length) return;
       tags.forEach((tag) => {
@@ -2943,7 +3085,7 @@ const [user, setUser] = useState(null);
   const hydrateMovieThemeTags = async (rows = []) => {
     const safeRows = Array.isArray(rows) ? rows : [];
     if (!safeRows.length) return [];
-    const cachedTagRows = await fetchMovieThemeTagsForRows(safeRows);
+    const cachedTagRows = await fetchMovieThemeTagsForRowsWithSets(safeRows);
     const withRemoteTags = mergeCachedMovieThemeTags(safeRows, cachedTagRows);
     const generatedRows = [];
     const finalRows = withRemoteTags.map((row) => {

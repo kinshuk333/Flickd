@@ -42,7 +42,10 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 const MIN_TAGS_PER_FILM = Number(env.MIN_THEME_TAGS_PER_FILM || 6);
-const MAX_MOVIES_TO_RETAG = Number(env.MAX_MOVIES_TO_RETAG || 2000);
+const MAX_MOVIES_TO_RETAG = Math.max(Number(env.MAX_MOVIES_TO_RETAG || 0), 10000);
+const TARGET_TAGGER_VERSION = 'v2';
+const ENABLE_DB_PLOT_KEYWORDS = env.ENABLE_DB_PLOT_KEYWORDS === '1';
+const EFFECTIVE_MIN_TAGS_PER_FILM = ENABLE_DB_PLOT_KEYWORDS ? MIN_TAGS_PER_FILM : 3;
 
 const runWithRetry = async (label, factory, retries = 3) => {
   let lastResult = null;
@@ -159,7 +162,7 @@ const fetchExistingTagCountsForPage = async (cacheKeys) => {
     const { data, error } = await runWithRetry('movie_theme_tags:existing_page', () =>
       supabase
         .from('movie_theme_tags')
-        .select('cache_key')
+        .select('cache_key,tag_type,tagger_version')
         .is('user_id', null)
         .in('cache_key', chunk)
     );
@@ -168,7 +171,14 @@ const fetchExistingTagCountsForPage = async (cacheKeys) => {
       throw new Error(`Could not read existing tags for page: ${error.message}`);
     }
     (Array.isArray(data) ? data : []).forEach((row) => {
-      if (row.cache_key) counts.set(row.cache_key, (counts.get(row.cache_key) || 0) + 1);
+      if (!row.cache_key) return;
+      const count = counts.get(row.cache_key) || { total: 0, targetVersion: 0 };
+      count.total += 1;
+      if (row.tagger_version === TARGET_TAGGER_VERSION) count.targetVersion += 1;
+      if (row.tagger_version === TARGET_TAGGER_VERSION && row.tag_type === 'plot_keyword') {
+        count.targetKeywords = (count.targetKeywords || 0) + 1;
+      }
+      counts.set(row.cache_key, count);
     });
   }
   return counts;
@@ -239,13 +249,30 @@ const deleteGlobalTagsForKeys = async (cacheKeys) => {
 };
 
 const insertTagRecords = async (movies) => {
-  const records = [];
+  const recordsByKey = new Map();
+  const importanceRank = { primary: 3, secondary: 2, fallback: 1 };
+  const addRecord = (record) => {
+    const filmKey = record.imdb_id
+      ? `imdb:${record.imdb_id}`
+      : record.cache_key
+        ? `cache:${record.cache_key}`
+        : `title:${String(record.title || '').toLowerCase()}|${Number(record.year) || ''}`;
+    const key = `${record.user_id || 'global'}|${filmKey}|${record.tag_type}|${record.tag}|${record.tagger_version}`;
+    const existing = recordsByKey.get(key);
+    const score = (importanceRank[record.importance] || 0) * 10 + (Number(record.confidence) || 0);
+    const existingScore = existing ? (importanceRank[existing.importance] || 0) * 10 + (Number(existing.confidence) || 0) : -1;
+    if (!existing || score > existingScore) {
+      recordsByKey.set(key, record);
+    }
+  };
+
   movies.forEach((movie) => {
-    const tags = Array.isArray(movie.cinematicLifeTags) ? movie.cinematicLifeTags : inferCinematicLifeTags(movie);
+    const tags = (Array.isArray(movie.cinematicLifeTags) ? movie.cinematicLifeTags : inferCinematicLifeTags(movie))
+      .filter((tag) => ENABLE_DB_PLOT_KEYWORDS || tag?.tag_type !== 'plot_keyword');
     const cacheKey = movie.cacheKey || cacheKeyForMovie(movie);
     if (!cacheKey || tags.length === 0) return;
     tags.forEach((tag) => {
-      records.push({
+      addRecord({
         user_id: null,
         movie_id: null,
         imdb_id: movie.imdbId || null,
@@ -262,6 +289,7 @@ const insertTagRecords = async (movies) => {
       });
     });
   });
+  const records = Array.from(recordsByKey.values());
 
   for (let i = 0; i < records.length; i += 500) {
     const chunk = records.slice(i, i + 500);
@@ -304,10 +332,13 @@ const processSourceTable = async ({ table, select, mapper }) => {
       .map((cacheKey) => {
         const movie = byCacheKey.get(cacheKey);
         if (!movie) return null;
-        const existingCount = existingCounts.get(cacheKey) || 0;
-        if (existingCount >= MIN_TAGS_PER_FILM) return null;
+        const existingCount = existingCounts.get(cacheKey) || { total: 0, targetVersion: 0 };
+        const hasEnoughTargetTags = existingCount.targetVersion >= EFFECTIVE_MIN_TAGS_PER_FILM;
+        const hasTargetKeywords = !ENABLE_DB_PLOT_KEYWORDS || existingCount.targetKeywords > 0;
+        if (hasEnoughTargetTags && hasTargetKeywords) return null;
         const nextTags = inferCinematicLifeTags(movie);
-        if (nextTags.length <= existingCount) return null;
+        const insertableTagCount = nextTags.filter((tag) => ENABLE_DB_PLOT_KEYWORDS || tag?.tag_type !== 'plot_keyword').length;
+        if (insertableTagCount <= existingCount.targetVersion) return null;
         return { ...movie, cinematicLifeTags: nextTags };
       })
       .filter(Boolean);
